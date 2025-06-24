@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     htop \
     nano \
     vim \
+    zsh \
     locales \
     tzdata \
     # Dependências de Build
@@ -108,7 +109,7 @@ RUN npm install -g yarn
 # 🛠️ Instalar ferramentas globais Node.js
 RUN npm install -g \
     create-react-app \
-    @vitejs/create-vite \
+    create-vite \
     vite \
     typescript \
     ts-node \
@@ -133,7 +134,7 @@ RUN composer global require \
 
 # 👤 Criar usuário vscode
 RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/zsh \
     && apt-get update \
     && apt-get install -y sudo \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
