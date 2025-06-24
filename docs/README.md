@@ -15,11 +15,13 @@ O **Sistema Rei do Óleo MVP** é uma aplicação completa para gestão de troca
 ## 🎯 Funcionalidades MVP
 
 ### 👥 Gestão de Clientes
+
 - Cadastro por placa veicular (máximo 500/filial)
 - Histórico de serviços
 - Notificações automáticas
 
 ### 🔧 Tipos de Serviços
+
 - Troca de óleo motor
 - Filtro de óleo
 - Filtro de ar
@@ -27,16 +29,19 @@ O **Sistema Rei do Óleo MVP** é uma aplicação completa para gestão de troca
 - Fluidos diversos
 
 ### 📱 Interface
+
 - PWA responsiva
 - Funcionalidade offline
 - Interface mobile-first
 
 ### 📊 Dashboard
+
 - Métricas em tempo real
 - Relatórios de serviços
 - Controle de estoque
 
 ### 🔐 Autenticação
+
 - JWT com Laravel Sanctum
 - Controle de permissões
 - Sessões seguras
@@ -44,6 +49,7 @@ O **Sistema Rei do Óleo MVP** é uma aplicação completa para gestão de troca
 ## 🛠️ Início Rápido
 
 ### Pré-requisitos
+
 - Docker & Docker Compose
 - Git
 - Node.js 18+ (opcional)
@@ -83,14 +89,23 @@ rei-do-oleo/
 ├── docker/               # Configurações Docker
 ├── scripts/              # Scripts de automação
 ├── docs/                 # Documentação
+│   ├── README.md          # Documentação geral
+│   └── BACKEND.md         # Documentação específica do backend
 ├── docker-compose.yml    # Orquestração desenvolvimento
 ├── docker-compose.prod.yml # Orquestração produção
 └── README.md
 ```
 
+## 📚 Documentação Específica
+
+- **[Backend API](BACKEND.md)** - Laravel 12 + Sanctum + MySQL + Redis
+- **Frontend Web** - React 18 + TypeScript + Vite (em desenvolvimento)
+- **Infraestrutura** - Docker + CI/CD (em desenvolvimento)
+
 ## 🔧 Comandos Úteis
 
 ### Desenvolvimento
+
 ```bash
 # Iniciar serviços
 bash scripts/start.sh
@@ -110,6 +125,7 @@ docker-compose exec frontend npm run dev
 ```
 
 ### Produção
+
 ```bash
 # Deploy
 bash scripts/deploy.sh production
@@ -124,6 +140,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 ## 🧪 Testes
 
 ### Backend (Laravel)
+
 ```bash
 cd backend
 php artisan test
@@ -131,6 +148,7 @@ php artisan test
 ```
 
 ### Frontend (React)
+
 ```bash
 cd frontend
 npm test
@@ -141,6 +159,7 @@ npm run type-check
 ## 🔒 Segurança
 
 ### Configurações Implementadas
+
 - Rate limiting na API
 - Headers de segurança
 - Validação de entrada
@@ -149,6 +168,7 @@ npm run type-check
 - Criptografia de senhas
 
 ### SSL/HTTPS
+
 ```bash
 # Gerar certificados SSL
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -159,18 +179,21 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 ## 🚀 Deploy
 
 ### Staging
+
 ```bash
 git push origin develop
 # Deploy automático via GitHub Actions
 ```
 
 ### Produção
+
 ```bash
 git push origin main
 # Deploy automático via GitHub Actions
 ```
 
 ### Manual
+
 ```bash
 bash scripts/deploy.sh production
 ```
@@ -178,6 +201,7 @@ bash scripts/deploy.sh production
 ## 📊 Monitoramento
 
 ### Métricas Disponíveis
+
 - Tempo de resposta API
 - Taxa de erro
 - Uso de recursos
@@ -185,6 +209,7 @@ bash scripts/deploy.sh production
 - Cache hit rate
 
 ### Alertas
+
 - CPU > 80%
 - Memória > 85%
 - Disco > 90%
@@ -194,9 +219,11 @@ bash scripts/deploy.sh production
 ## 🔧 Configuração
 
 ### Variáveis de Ambiente
+
 Veja `.env.example` para todas as configurações disponíveis.
 
 ### White Label
+
 ```env
 WHITE_LABEL_ENABLED=true
 WHITE_LABEL_LOGO_URL=https://example.com/logo.png
@@ -225,19 +252,22 @@ Este projeto está licenciado sob a [MIT License](LICENSE).
 ## 🗺️ Roadmap
 
 ### Fase 1 (MVP) ✅
+
 - [x] Gestão básica de clientes
 - [x] 5 tipos de serviços
 - [x] Interface PWA
 - [x] Dashboard básico
 
 ### Fase 2
+
 - [ ] Agendamento online
 - [ ] Integração WhatsApp
 - [ ] Relatórios avançados
 - [ ] Multi-tenancy
 
 ### Fase 3
+
 - [ ] App móvel nativo
 - [ ] Integração fiscal
 - [ ] BI avançado
-- [ ] Marketplace 
+- [ ] Marketplace
