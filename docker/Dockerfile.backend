@@ -1,0 +1,56 @@
+FROM php:8.2-fpm-alpine
+
+WORKDIR /var/www/html
+
+# Instalar dependências
+RUN apk add --no-cache \
+    build-base \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    postgresql-dev \
+    redis \
+    git \
+    curl \
+    bash
+
+# Instalar extensões PHP
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo \
+        pdo_pgsql \
+        gd \
+        zip \
+        bcmath \
+        opcache \
+        pcntl
+
+# Instalar Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configurar PHP
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Configurar usuário
+RUN adduser -D -s /bin/bash laravel
+USER laravel
+
+# Copiar código
+COPY --chown=laravel:laravel . .
+
+# Instalar dependências PHP
+RUN composer install --no-dev --optimize-autoloader
+
+# Configurar permissões
+USER root
+RUN chown -R laravel:laravel /var/www/html/storage /var/www/html/bootstrap/cache
+
+EXPOSE 9000
+
+CMD ["php-fpm"] 

@@ -1,0 +1,118 @@
+{
+  "name": "rei-do-oleo",
+  "version": "1.0.0",
+  "description": "Sistema completo de gestão para troca de óleo automotivo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"cd backend && php artisan serve --host=0.0.0.0\" \"cd frontend && npm run dev\"",
+    "build": "cd frontend && npm run build",
+    "build:prod": "cd frontend && npm run build --mode production",
+    "test": "concurrently \"cd backend && php artisan test\" \"cd frontend && npm test\"",
+    "test:backend": "cd backend && php artisan test",
+    "test:frontend": "cd frontend && npm test",
+    "lint": "concurrently \"npm run lint:backend\" \"npm run lint:frontend\"",
+    "lint:backend": "cd backend && ./vendor/bin/phpstan analyse && ./vendor/bin/php-cs-fixer fix --dry-run",
+    "lint:frontend": "cd frontend && npm run lint",
+    "fix": "concurrently \"npm run fix:backend\" \"npm run fix:frontend\"",
+    "fix:backend": "cd backend && ./vendor/bin/php-cs-fixer fix",
+    "fix:frontend": "cd frontend && npm run lint:fix",
+    "setup": "bash scripts/setup.sh",
+    "start": "bash scripts/start.sh",
+    "stop": "docker-compose down",
+    "restart": "npm run stop && npm run start",
+    "backup": "bash scripts/backup.sh",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:staging": "bash scripts/deploy.sh staging",
+    "deploy:prod": "bash scripts/deploy.sh production",
+    "logs": "docker-compose logs -f",
+    "logs:backend": "docker-compose logs -f backend",
+    "logs:frontend": "docker-compose logs -f frontend",
+    "db:migrate": "docker-compose exec backend php artisan migrate",
+    "db:seed": "docker-compose exec backend php artisan db:seed",
+    "db:fresh": "docker-compose exec backend php artisan migrate:fresh --seed",
+    "cache:clear": "docker-compose exec backend php artisan cache:clear",
+    "optimize": "docker-compose exec backend php artisan optimize",
+    "shell:backend": "docker-compose exec backend bash",
+    "shell:frontend": "docker-compose exec frontend sh",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/org/rei-do-oleo.git"
+  },
+  "keywords": [
+    "laravel",
+    "react",
+    "typescript",
+    "pwa",
+    "docker",
+    "monorepo",
+    "automotive",
+    "oil-change",
+    "management-system"
+  ],
+  "author": "Rei do Óleo Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/org/rei-do-oleo/issues"
+  },
+  "homepage": "https://github.com/org/rei-do-oleo#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "build",
+          "ci",
+          "chore",
+          "revert"
+        ]
+      ],
+      "subject-case": [
+        2,
+        "never",
+        ["sentence-case", "start-case", "pascal-case", "upper-case"]
+      ]
+    }
+  },
+  "lint-staged": {
+    "backend/**/*.php": [
+      "./backend/vendor/bin/php-cs-fixer fix",
+      "git add"
+    ],
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "cd frontend && npm run lint:fix",
+      "git add"
+    ],
+    "**/*.{json,md,yml,yaml}": [
+      "prettier --write",
+      "git add"
+    ]
+  }
+} 

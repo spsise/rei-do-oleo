@@ -1,0 +1,23 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependências globais
+RUN npm install -g vite
+
+# Configurar usuário
+RUN adduser -D -s /bin/bash react
+USER react
+
+# Copiar package files
+COPY --chown=react:react package*.json ./
+
+# Instalar dependências
+RUN npm ci
+
+# Copiar código
+COPY --chown=react:react . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 

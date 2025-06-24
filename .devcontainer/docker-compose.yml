@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/workspace:cached
+      - vscode-extensions:/home/vscode/.vscode-server/extensions
+      - ~/.ssh:/home/vscode/.ssh-localhost:ro
+    command: sleep infinity
+    networks:
+      - reidooleo-dev
+    depends_on:
+      - postgres
+      - redis
+      - mailhog
+    environment:
+      - DISPLAY=:0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_DB: reidooleo_dev
+      POSTGRES_USER: reidooleo
+      POSTGRES_PASSWORD: reidooleo123
+      POSTGRES_MULTIPLE_DATABASES: reidooleo_test,reidooleo_staging
+    ports:
+      - "5432:5432"
+    networks:
+      - reidooleo-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reidooleo -d reidooleo_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - reidooleo-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - reidooleo-dev
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ../:/workspace:cached
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites-available:/etc/nginx/sites-available
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./nginx/ssl:/etc/nginx/ssl
+    networks:
+      - reidooleo-dev
+    depends_on:
+      - devcontainer
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: reidooleo
+      MINIO_ROOT_PASSWORD: reidooleo123
+    command: server /data --console-address ":9001"
+    networks:
+      - reidooleo-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - reidooleo-dev
+    depends_on:
+      - postgres
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    networks:
+      - reidooleo-dev
+    depends_on:
+      - redis
+
+volumes:
+  vscode-extensions:
+  postgres-data:
+  redis-data:
+  minio-data:
+
+networks:
+  reidooleo-dev:
+    driver: bridge 

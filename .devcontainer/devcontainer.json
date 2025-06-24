@@ -1,0 +1,134 @@
+{
+  "name": "Rei do Óleo - Full Stack Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "username": "vscode",
+      "upgradePackages": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": true,
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "php.validate.executablePath": "/usr/local/bin/php",
+        "php.suggest.basic": false,
+        "typescript.updateImportsOnFileMove.enabled": "always",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": true,
+          "source.organizeImports": true
+        },
+        "files.associations": {
+          "*.blade.php": "blade",
+          "*.env.example": "dotenv",
+          "*.env.local": "dotenv"
+        },
+        "emmet.includeLanguages": {
+          "blade": "html",
+          "javascript": "javascriptreact"
+        },
+        "tailwindCSS.includeLanguages": {
+          "blade": "html"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
+      
+      "extensions": [
+        // PHP Extensions
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug",
+        "ryannaddy.laravel-artisan",
+        "onecentlin.laravel-blade",
+        "codingyu.laravel-goto-view",
+        "amiralizadeh9480.laravel-extra-intellisense",
+        
+        // JavaScript/React Extensions
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense",
+        "ms-vscode.vscode-json",
+        
+        // Git & Development
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers",
+        
+        // Database
+        "ms-mssql.mssql",
+        "cweijan.vscode-postgresql-client2",
+        
+        // Testing
+        "recca0120.vscode-phpunit",
+        "orta.vscode-jest",
+        
+        // Utilities
+        "ms-vscode.vscode-thunder-client",
+        "humao.rest-client",
+        "streetsidesoftware.code-spell-checker",
+        "wayou.vscode-todo-highlight",
+        "gruntfuggly.todo-tree"
+      ]
+    }
+  },
+
+  "forwardPorts": [
+    8000,  // Laravel Backend
+    5173,  // Vite Frontend
+    3000,  // React Dev Server
+    5432,  // PostgreSQL
+    6379,  // Redis
+    8080,  // Nginx
+    9000   // PHP-FPM
+  ],
+
+  "portsAttributes": {
+    "8000": {
+      "label": "Laravel API",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite Dev Server",
+      "onAutoForward": "openBrowser"
+    },
+    "3000": {
+      "label": "React App",
+      "onAutoForward": "openBrowser"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "ignore"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "ignore"
+    }
+  },
+
+  "postCreateCommand": "bash scripts/setup.sh",
+  "postStartCommand": "bash scripts/start.sh",
+
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/zsh-history,target=/home/vscode/.zsh_history,type=bind,consistency=cached"
+  ]
+} 
