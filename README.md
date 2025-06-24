@@ -40,6 +40,7 @@ bash scripts/start.sh
 - 🔧 **API**: http://api.reidooleo.local
 - 📧 **Email**: http://localhost:8025
 
+
 ## 🏗️ Arquitetura
 
 ### Backend (Laravel 12)
