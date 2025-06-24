@@ -10,7 +10,7 @@ services:
       - ./backend:/var/www/html
       - backend-storage:/var/www/html/storage
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=mysql
       - DB_DATABASE=reidooleo_dev
       - DB_USERNAME=reidooleo
       - DB_PASSWORD=reidooleo123
@@ -18,7 +18,7 @@ services:
       - MAIL_HOST=mailhog
       - MAIL_PORT=1025
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - reidooleo
@@ -56,22 +56,23 @@ services:
     networks:
       - reidooleo
 
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
     environment:
-      POSTGRES_DB: reidooleo_dev
-      POSTGRES_USER: reidooleo
-      POSTGRES_PASSWORD: reidooleo123
+      MYSQL_DATABASE: reidooleo_dev
+      MYSQL_USER: reidooleo
+      MYSQL_PASSWORD: reidooleo123
+      MYSQL_ROOT_PASSWORD: root123
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
     ports:
-      - "5432:5432"
+      - "3306:3306"
     networks:
       - reidooleo
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reidooleo -d reidooleo_dev"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -130,13 +131,13 @@ services:
     volumes:
       - ./backend:/var/www/html
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=mysql
       - DB_DATABASE=reidooleo_dev
       - DB_USERNAME=reidooleo
       - DB_PASSWORD=reidooleo123
       - REDIS_HOST=redis
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - reidooleo
@@ -151,20 +152,20 @@ services:
     volumes:
       - ./backend:/var/www/html
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=mysql
       - DB_DATABASE=reidooleo_dev
       - DB_USERNAME=reidooleo
       - DB_PASSWORD=reidooleo123
       - REDIS_HOST=redis
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - reidooleo
     restart: unless-stopped
 
 volumes:
-  postgres-data:
+  mysql-data:
   redis-data:
   minio-data:
   backend-storage:

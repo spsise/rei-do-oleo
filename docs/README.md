@@ -6,7 +6,7 @@ O **Sistema Rei do Óleo MVP** é uma aplicação completa para gestão de troca
 
 ### 🏗️ Arquitetura
 
-- **Backend**: Laravel 12 + PostgreSQL + Redis
+- **Backend**: Laravel 12 + MySQL + Redis
 - **Frontend**: React 18 + TypeScript + Vite + PWA
 - **Containerização**: Docker + Docker Compose
 - **CI/CD**: GitHub Actions

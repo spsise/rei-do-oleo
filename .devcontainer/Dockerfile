@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     ca-certificates \
     lsb-release \
-    # Dependências PostgreSQL
-    libpq-dev \
-    postgresql-client \
+    # Dependências MySQL
+    default-mysql-client \
+    libmysqlclient-dev \
     # Dependências Redis
     redis-tools \
     # Utilitários desenvolvimento
@@ -48,8 +48,8 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp --with-xpm \
     && docker-php-ext-install \
     pdo \
-    pdo_pgsql \
-    pgsql \
+    pdo_mysql \
+    mysqli \
     mbstring \
     xml \
     zip \

@@ -75,7 +75,7 @@
         
         // Database
         "ms-mssql.mssql",
-        "cweijan.vscode-postgresql-client2",
+        "cweijan.vscode-mysql-client2",
         
         // Testing
         "recca0120.vscode-phpunit",
@@ -95,7 +95,7 @@
     8000,  // Laravel Backend
     5173,  // Vite Frontend
     3000,  // React Dev Server
-    5432,  // PostgreSQL
+    3306,  // MySQL
     6379,  // Redis
     8080,  // Nginx
     9000   // PHP-FPM
@@ -114,8 +114,8 @@
       "label": "React App",
       "onAutoForward": "openBrowser"
     },
-    "5432": {
-      "label": "PostgreSQL",
+    "3306": {
+      "label": "MySQL",
       "onAutoForward": "ignore"
     },
     "6379": {

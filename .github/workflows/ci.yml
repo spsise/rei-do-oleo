@@ -15,18 +15,20 @@ jobs:
   test-backend:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:15
+      mysql:
+        image: mysql:8.0
         env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: reidooleo_test
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: reidooleo_test
+          MYSQL_USER: reidooleo
+          MYSQL_PASSWORD: reidooleo123
         options: >-
-          --health-cmd pg_isready
+          --health-cmd="mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 3306:3306
       
       redis:
         image: redis:7-alpine
@@ -46,7 +48,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, dom, filter, gd, json, zip, redis
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, zip, redis
         coverage: xdebug
 
     - name: Cache Composer dependencies
@@ -69,12 +71,12 @@ jobs:
     - name: Configure environment
       working-directory: backend
       run: |
-        sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=pgsql/' .env
+        sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/' .env
         sed -i 's/DB_HOST=127.0.0.1/DB_HOST=localhost/' .env
-        sed -i 's/DB_PORT=3306/DB_PORT=5432/' .env
+        sed -i 's/DB_PORT=3306/DB_PORT=3306/' .env
         sed -i 's/DB_DATABASE=laravel/DB_DATABASE=reidooleo_test/' .env
-        sed -i 's/DB_USERNAME=root/DB_USERNAME=postgres/' .env
-        sed -i 's/DB_PASSWORD=/DB_PASSWORD=postgres/' .env
+        sed -i 's/DB_USERNAME=root/DB_USERNAME=reidooleo/' .env
+        sed -i 's/DB_PASSWORD=/DB_PASSWORD=reidooleo123/' .env
 
     - name: Run migrations
       working-directory: backend

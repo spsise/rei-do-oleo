@@ -139,9 +139,9 @@ if [ ! -f "backend/.env" ]; then
     cp backend/.env.example backend/.env
     
     # Configurar database
-    sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=pgsql/' backend/.env
-    sed -i 's/DB_HOST=127.0.0.1/DB_HOST=postgres/' backend/.env
-    sed -i 's/DB_PORT=3306/DB_PORT=5432/' backend/.env
+    sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/' backend/.env
+    sed -i 's/DB_HOST=127.0.0.1/DB_HOST=mysql/' backend/.env
+    sed -i 's/DB_PORT=3306/DB_PORT=3306/' backend/.env
     sed -i 's/DB_DATABASE=laravel/DB_DATABASE=reidooleo_dev/' backend/.env
     sed -i 's/DB_USERNAME=root/DB_USERNAME=reidooleo/' backend/.env
     sed -i 's/DB_PASSWORD=/DB_PASSWORD=reidooleo123/' backend/.env
@@ -340,7 +340,7 @@ bash scripts/start.sh
 
 ## 🏗️ Arquitetura
 
-- **Backend**: Laravel 12 + PostgreSQL + Redis
+- **Backend**: Laravel 12 + MySQL + Redis
 - **Frontend**: React 18 + TypeScript + Vite + PWA
 - **Containerização**: Docker + Docker Compose
 - **CI/CD**: GitHub Actions

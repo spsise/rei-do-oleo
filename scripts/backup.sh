@@ -60,27 +60,27 @@ log "🚀 Iniciando backup do Sistema Rei do Óleo..."
 
 # 1. Backup do Banco de Dados
 log "🗄️ Realizando backup do banco de dados..."
-if docker-compose ps postgres | grep -q "Up"; then
+if docker-compose ps mysql | grep -q "Up"; then
     BACKUP_FILE="$BACKUP_DIR/database/db_$TIMESTAMP.sql"
     
-    docker-compose exec -T postgres pg_dump \
-        -U $DB_USER \
-        -h localhost \
-        -d $DB_NAME \
-        --verbose \
-        --clean \
-        --no-owner \
-        --no-privileges > $BACKUP_FILE
+    docker-compose exec -T mysql mysqldump \
+        -u $DB_USER \
+        -p$DB_PASSWORD \
+        --single-transaction \
+        --routines \
+        --triggers \
+        --add-drop-database \
+        --databases $DB_NAME > $BACKUP_FILE
     
     # Comprimir backup
     gzip $BACKUP_FILE
     log "✅ Banco: db_$TIMESTAMP.sql.gz"
     
     # Informações do backup
-    DB_SIZE=$(docker-compose exec -T postgres psql -U $DB_USER -d $DB_NAME -t -c "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));")
-    info "📊 Tamanho do banco: $(echo $DB_SIZE | xargs)"
+    DB_SIZE=$(docker-compose exec -T mysql mysql -u $DB_USER -p$DB_PASSWORD -e "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) AS 'DB Size in MB' FROM information_schema.tables WHERE table_schema='$DB_NAME';" | tail -n1)
+    info "📊 Tamanho do banco: ${DB_SIZE}MB"
 else
-    error "Container PostgreSQL não está rodando!"
+    error "Container MySQL não está rodando!"
     exit 1
 fi
 

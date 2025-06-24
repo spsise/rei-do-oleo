@@ -13,7 +13,7 @@ services:
     networks:
       - reidooleo-dev
     depends_on:
-      - postgres
+      - mysql
       - redis
       - mailhog
     environment:
@@ -21,23 +21,23 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  postgres:
-    image: postgres:15-alpine
+  mysql:
+    image: mysql:8.0
     restart: unless-stopped
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
     environment:
-      POSTGRES_DB: reidooleo_dev
-      POSTGRES_USER: reidooleo
-      POSTGRES_PASSWORD: reidooleo123
-      POSTGRES_MULTIPLE_DATABASES: reidooleo_test,reidooleo_staging
+      MYSQL_DATABASE: reidooleo_dev
+      MYSQL_USER: reidooleo
+      MYSQL_PASSWORD: reidooleo123
+      MYSQL_ROOT_PASSWORD: root123
     ports:
-      - "5432:5432"
+      - "3306:3306"
     networks:
       - reidooleo-dev
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reidooleo -d reidooleo_dev"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -111,11 +111,11 @@ services:
     ports:
       - "8081:8080"
     environment:
-      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DEFAULT_SERVER: mysql
     networks:
       - reidooleo-dev
     depends_on:
-      - postgres
+      - mysql
 
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -131,7 +131,7 @@ services:
 
 volumes:
   vscode-extensions:
-  postgres-data:
+  mysql-data:
   redis-data:
   minio-data:
 

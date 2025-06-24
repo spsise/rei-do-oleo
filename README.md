@@ -5,7 +5,7 @@
 
 <div align="center">
 
-[![CI/CD](https://github.com/org/rei-do-oleo/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/org/rei-do-oleo/actions)
+[![CI/CD](https://github.com/spsise/rei-do-oleo/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/spsise/rei-do-oleo/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -25,7 +25,7 @@
 
 ```bash
 # Clone o repositório
-git clone https://github.com/org/rei-do-oleo.git
+git clone https://github.com/spsise/rei-do-oleo.git
 cd rei-do-oleo
 
 # Setup completo (instala tudo)
@@ -44,7 +44,7 @@ bash scripts/start.sh
 
 ### Backend (Laravel 12)
 - **API RESTful** com autenticação JWT
-- **PostgreSQL 15** + **Redis 7** para cache/sessões
+- **MySQL 8.0** + **Redis 7** para cache/sessões
 - **Queue Jobs** para processamento assíncrono
 - **Sanctum** para autenticação de API
 - **Telescope** para debugging (dev)
@@ -278,7 +278,7 @@ Este projeto está licenciado sob a [MIT License](LICENSE) - veja o arquivo para
 
 - 📧 **Email**: suporte@reidooleo.com
 - 💬 **Discord**: [Servidor da Comunidade](https://discord.gg/reidooleo)
-- 📋 **Issues**: [GitHub Issues](https://github.com/org/rei-do-oleo/issues)
+- 📋 **Issues**: [GitHub Issues](https://github.com/spsise/rei-do-oleo/issues)
 - 📖 **Docs**: [Documentação Completa](docs/README.md)
 
 ## 🗺️ Roadmap

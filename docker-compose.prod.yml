@@ -9,7 +9,7 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - DB_HOST=postgres
+      - DB_HOST=mysql
       - DB_DATABASE=reidooleo_prod
       - DB_USERNAME=reidooleo
       - DB_PASSWORD=${DB_PASSWORD}
@@ -24,7 +24,7 @@ services:
     volumes:
       - backend-storage:/var/www/html/storage
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - reidooleo
@@ -62,17 +62,17 @@ services:
       - reidooleo
     restart: unless-stopped
 
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
     environment:
-      POSTGRES_DB: reidooleo_prod
-      POSTGRES_USER: reidooleo
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: reidooleo_prod
+      MYSQL_USER: reidooleo
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/mysql.prod.conf:/etc/mysql/conf.d/custom.cnf
     networks:
       - reidooleo
     restart: unless-stopped
@@ -108,13 +108,13 @@ services:
     command: php artisan queue:work --verbose --tries=3 --timeout=90
     environment:
       - APP_ENV=production
-      - DB_HOST=postgres
+      - DB_HOST=mysql
       - DB_DATABASE=reidooleo_prod
       - DB_USERNAME=reidooleo
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - reidooleo
@@ -130,13 +130,13 @@ services:
     command: php artisan schedule:work
     environment:
       - APP_ENV=production
-      - DB_HOST=postgres
+      - DB_HOST=mysql
       - DB_DATABASE=reidooleo_prod
       - DB_USERNAME=reidooleo
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
     depends_on:
-      - postgres
+      - mysql
       - redis
     networks:
       - reidooleo
@@ -168,7 +168,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres-data:
+  mysql-data:
   redis-data:
   backend-storage:
   prometheus-data:

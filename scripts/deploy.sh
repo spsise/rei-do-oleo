@@ -39,7 +39,7 @@ docker-compose -f docker-compose.prod.yml down
 
 # 3. Executar migrações
 log "Executando migrações..."
-docker-compose -f docker-compose.prod.yml up -d postgres redis
+docker-compose -f docker-compose.prod.yml up -d mysql redis
 sleep 10
 docker-compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force
 
