@@ -497,3 +497,13 @@ EOF
 : 1750780544:0;git commit -m "⃼� feat: Adiciona configuração inicial da API e estrutura de diretórios para o backend"
 : 1750780572:0;git config --global user.email "spsise@gmail.com"
 : 1750780588:0;git config --global user.name "Sebastião Apolinario"
+: 1750780640:0;git pull
+: 1750780676:0;cd /workspace && git status
+: 1750780679:0;q
+: 1750780683:0;ls -la
+: 1750780686:0;q
+: 1750780690:0;git config --list
+: 1750781335:0;source "\vscode\cursor-server\bin\linux-x64\ef5eeb47a684b4c217dfaf0463aa7ea952f8ab90\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration-rc.zsh"
+: 1750781336:0;chmod +x .devcontainer/scripts/ssh-setup.sh
+: 1750781342:0;q
+: 1750781408:0;git add -A && git status

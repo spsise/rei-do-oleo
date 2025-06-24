@@ -57,19 +57,19 @@ if [ ! -d "backend" ]; then
     log "Criando novo projeto Laravel..."
     composer create-project laravel/laravel:^11.0 backend --prefer-dist
     cd backend
-    
+
     # Instalar dependências específicas
     log "📚 Instalando dependências Laravel..."
     composer require laravel/sanctum laravel/horizon spatie/laravel-permission
     composer require spatie/laravel-query-builder spatie/laravel-backup
     composer require barryvdh/laravel-cors league/flysystem-aws-s3-v3
-    
+
     # Dependências de desenvolvimento
     composer require --dev laravel/telescope barryvdh/laravel-debugbar
     composer require --dev phpunit/phpunit mockery/mockery fakerphp/faker
     composer require --dev friendsofphp/php-cs-fixer phpstan/phpstan
     composer require --dev laravel/sail pestphp/pest
-    
+
     cd /workspace
 else
     log "Backend Laravel existente encontrado"
@@ -82,7 +82,7 @@ if [ ! -d "frontend" ]; then
     log "Criando projeto React com Vite..."
     npm create vite@latest frontend -- --template react-ts
     cd frontend
-    
+
     # Instalar dependências
     log "📚 Instalando dependências React..."
     npm install
@@ -92,14 +92,14 @@ if [ ! -d "frontend" ]; then
     npm install react-hook-form @hookform/resolvers yup
     npm install date-fns react-hot-toast @vite-pwa/vite-plugin
     npm install workbox-precaching workbox-routing workbox-strategies
-    
+
     # Dependências de desenvolvimento
     npm install --dev @types/react @types/react-dom
     npm install --dev @typescript-eslint/eslint-plugin @typescript-eslint/parser
     npm install --dev eslint eslint-plugin-react-hooks eslint-plugin-react-refresh
     npm install --dev prettier @testing-library/react @testing-library/jest-dom
     npm install --dev @testing-library/user-event vitest jsdom autoprefixer postcss
-    
+
     cd /workspace
 else
     log "Frontend React existente encontrado"
@@ -113,7 +113,7 @@ step "🔧 Configurando variáveis de ambiente..."
 if [ ! -f "backend/.env" ]; then
     log "Criando .env do backend..."
     cp backend/.env.example backend/.env
-    
+
     # Configurações do banco
     sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/' backend/.env
     sed -i 's/DB_HOST=127.0.0.1/DB_HOST=mysql/' backend/.env
@@ -121,14 +121,14 @@ if [ ! -f "backend/.env" ]; then
     sed -i 's/DB_DATABASE=laravel/DB_DATABASE=rei_do_oleo_dev/' backend/.env
     sed -i 's/DB_USERNAME=root/DB_USERNAME=rei_do_oleo/' backend/.env
     sed -i 's/DB_PASSWORD=/DB_PASSWORD=secret123/' backend/.env
-    
+
     # Configurações Redis
     echo "" >> backend/.env
     echo "# Redis Configuration" >> backend/.env
     echo "REDIS_HOST=redis" >> backend/.env
     echo "REDIS_PASSWORD=null" >> backend/.env
     echo "REDIS_PORT=6379" >> backend/.env
-    
+
     # Configurações de Mail
     echo "" >> backend/.env
     echo "# Mail Configuration" >> backend/.env
@@ -138,7 +138,7 @@ if [ ! -f "backend/.env" ]; then
     echo "MAIL_USERNAME=null" >> backend/.env
     echo "MAIL_PASSWORD=null" >> backend/.env
     echo "MAIL_ENCRYPTION=null" >> backend/.env
-    
+
     # Configurações MinIO
     echo "" >> backend/.env
     echo "# MinIO S3 Configuration" >> backend/.env
@@ -353,7 +353,7 @@ fi
 if [ ! -d ".husky" ]; then
     npx husky install
     npx husky add .husky/pre-commit "npx lint-staged"
-    
+
     # Configurar lint-staged
     cat > .lintstagedrc.json << 'EOF'
 {
@@ -398,4 +398,9 @@ EOF
 echo -e "${NC}"
 
 info "🎯 Ambiente de desenvolvimento totalmente configurado!"
-info "🔧 Execute 'npm run dev' para iniciar os serviços" 
+
+# 10. Configurar SSH para Git
+step "🔐 Configurando SSH para Git..."
+bash /workspace/.devcontainer/scripts/ssh-setup.sh
+
+info "🔧 Execute 'npm run dev' para iniciar os serviços"

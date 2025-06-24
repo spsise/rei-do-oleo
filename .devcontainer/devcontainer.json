@@ -4,10 +4,10 @@
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
-  
+
   "postCreateCommand": "/workspace/.devcontainer/scripts/postCreate.sh",
   "postStartCommand": "sudo service php8.2-fpm start",
-  
+
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -30,12 +30,12 @@
         "intelephense.files.maxSize": 5000000,
         "intelephense.completion.triggerParameterHints": true,
         "intelephense.completion.insertUseDeclaration": true,
-        
+
         // TypeScript/JavaScript Settings
         "typescript.updateImportsOnFileMove.enabled": "always",
         "typescript.preferences.quoteStyle": "single",
         "javascript.preferences.quoteStyle": "single",
-        
+
         // Editor Settings
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
@@ -47,7 +47,7 @@
         "editor.wordWrap": "on",
         "editor.tabSize": 4,
         "editor.insertSpaces": true,
-        
+
         // File Associations
         "files.associations": {
           "*.blade.php": "blade",
@@ -57,14 +57,14 @@
           "*.env.staging": "dotenv",
           "docker-compose*.yml": "dockercompose"
         },
-        
+
         // Emmet
         "emmet.includeLanguages": {
           "blade": "html",
           "javascript": "javascriptreact",
           "typescript": "typescriptreact"
         },
-        
+
         // TailwindCSS
         "tailwindCSS.includeLanguages": {
           "blade": "html",
@@ -76,16 +76,16 @@
           ["classnames\\(([^)]*)\\)", "'([^']*)'"],
           ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
         ],
-        
+
         // Terminal
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.fontSize": 14,
-        
+
         // Git
         "git.enableSmartCommit": true,
         "git.confirmSync": false,
         "git.autofetch": true,
-        
+
         // Search
         "search.exclude": {
           "**/node_modules": true,
@@ -96,14 +96,14 @@
           "**/storage/logs": true,
           "**/storage/framework": true
         },
-        
+
         // Files
         "files.exclude": {
           "**/.DS_Store": true,
           "**/Thumbs.db": true,
           "**/.vscode": false
         },
-        
+
         // Language specific
         "[php]": {
           "editor.defaultFormatter": "junstyle.php-cs-fixer",
@@ -130,27 +130,27 @@
           "editor.autoIndent": "full"
         }
       },
-      
+
       "extensions": [
         // PHP Extensions Essenciais
         "bmewburn.vscode-intelephense-client",
         "xdebug.php-debug",
         "onecentlin.laravel-blade",
-        
+
         // JavaScript/React Essenciais
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
         "dsznajder.es7-react-js-snippets",
-        
+
         // Ferramentas Essenciais
         "eamodio.gitlens",
         "ms-azuretools.vscode-docker",
         "cweijan.vscode-mysql-client2",
         "rangav.vscode-thunder-client",
-        
+
         // Formatação
         "editorconfig.editorconfig",
-        
+
         // Theme
         "pkief.material-icon-theme"
       ]
@@ -158,14 +158,14 @@
   },
 
   "forwardPorts": [
-    8000,  // Laravel API
-    3000,  // React Vite Dev Server
-    3306,  // MySQL Database
-    6379,  // Redis Cache
-    8080,  // phpMyAdmin
-    6380,  // Redis Commander
-    9000,  // PHP-FPM
-    5173   // Vite Alternative Port
+    8000, // Laravel API
+    3000, // React Vite Dev Server
+    3306, // MySQL Database
+    6379, // Redis Cache
+    8080, // phpMyAdmin
+    6380, // Redis Commander
+    9000, // PHP-FPM
+    5173 // Vite Alternative Port
   ],
 
   "portsAttributes": {
@@ -209,10 +209,11 @@
   "postAttachCommand": "bash /workspace/.devcontainer/scripts/welcome.sh",
 
   "remoteUser": "vscode",
-  
+
   "mounts": [
     "source=${localWorkspaceFolder}/.devcontainer/zsh-history,target=/home/vscode/.zsh_history,type=bind,consistency=cached",
-    "source=${localWorkspaceFolder}/.devcontainer/bash-history,target=/home/vscode/.bash_history,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.devcontainer/bash-history,target=/home/vscode/.bash_history,type=bind,consistency=cached",
+    "source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
   ],
 
   "containerEnv": {
@@ -223,6 +224,7 @@
   },
 
   "remoteEnv": {
-    "PATH": "${containerEnv:PATH}:/home/vscode/.composer/vendor/bin:/workspace/vendor/bin"
+    "PATH": "${containerEnv:PATH}:/home/vscode/.composer/vendor/bin:/workspace/vendor/bin",
+    "GIT_SSH_COMMAND": "ssh -i /home/vscode/.ssh/id_rsa -o StrictHostKeyChecking=no"
   }
-} 
+}
