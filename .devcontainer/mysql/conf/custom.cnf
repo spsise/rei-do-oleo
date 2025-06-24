@@ -1,0 +1,54 @@
+# 🗄️ MySQL Custom Configuration - Rei do Óleo Dev Environment
+# Configurações otimizadas para desenvolvimento
+
+[mysql]
+default-character-set = utf8mb4
+
+[mysqld]
+# Character Set / Collation
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+init_connect = 'SET NAMES utf8mb4'
+
+# General Settings
+max_connections = 200
+max_allowed_packet = 64M
+default_storage_engine = InnoDB
+skip-name-resolve
+bind-address = 0.0.0.0
+
+# Memory Settings
+innodb_buffer_pool_size = 256M
+key_buffer_size = 64M
+tmp_table_size = 64M
+max_heap_table_size = 64M
+
+# InnoDB Settings
+innodb_file_per_table = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_buffer_size = 16M
+innodb_log_file_size = 64M
+
+# Query Cache (for development)
+query_cache_type = 1
+query_cache_size = 64M
+query_cache_limit = 4M
+
+# Logging (development mode)
+general_log = 1
+general_log_file = /var/log/mysql/general.log
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 2
+
+# Binary Logging (disabled for development)
+skip-log-bin
+
+# Error Logging
+log-error = /var/log/mysql/error.log
+
+# SQL Mode (relaxed for development)
+sql_mode = "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+
+# Time Zone
+default-time-zone = "-03:00" 

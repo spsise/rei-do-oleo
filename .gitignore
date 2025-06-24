@@ -12,6 +12,7 @@ ehthumbs.db
 Thumbs.db
 *.tmp
 *.temp
+desktop.ini
 
 # Environment Files
 .env
@@ -24,21 +25,36 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
 # Dependencies
 node_modules/
 jspm_packages/
 bower_components/
+vendor/
+.pnp
+.pnp.js
 
 # Build Outputs
 dist/
 build/
+public/build/
+public/hot
+public/storage
+storage/app/public
 *.tgz
 *.tar.gz
 
 # IDE & Editor Files
 .vscode/
-!.vscode/extensions.json
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/c_cpp_properties.json
+.vscode/chrome-debug-profile/
+.vscode/edge-debug-profile/
+.vscode/thunder-client/
 .idea/
 *.swp
 *.swo
@@ -100,8 +116,10 @@ backups/
 # Cache
 .cache/
 .parcel-cache/
-.npm/
-.yarn/
+.npm
+.eslintcache
+.sass-cache/
+*.tsbuildinfo
 
 # Runtime
 *.pid
@@ -142,6 +160,7 @@ backups/
 *.key
 *.crt
 *.csr
+*.p12
 
 # Local development
 .local/
@@ -161,4 +180,34 @@ composer.lock
 
 # Specific to this project
 storage/
-public/storage 
+public/storage
+
+# ==================================================
+# Arquivos permitidos (exceções)
+# ==================================================
+!.gitkeep
+!.htaccess
+!storage/app/.gitignore
+!storage/framework/.gitignore
+!storage/logs/.gitignore
+
+# ==================================================
+# Arquivos e diretórios que devem ser ignorados pelo Git
+# ==================================================
+.devcontainer/zsh-history
+.devcontainer/bash-history
+
+# ==================================================
+# MinIO/S3
+# ==================================================
+/storage/minio/
+
+# ==================================================
+# Outros
+# ==================================================
+*.pid
+*.gz
+*.zip
+.vagrant/
+Vagrantfile.local
+mix-manifest.json 

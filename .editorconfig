@@ -1,0 +1,82 @@
+# 🛠️ EditorConfig - Sistema Rei do Óleo
+# Configurações de editor para consistência entre diferentes IDEs
+
+root = true
+
+# Configurações padrão para todos os arquivos
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+# PHP (Laravel)
+[*.php]
+indent_size = 4
+max_line_length = 120
+
+# Blade Templates
+[*.blade.php]
+indent_size = 4
+max_line_length = 120
+
+# JavaScript, TypeScript, JSX, TSX
+[*.{js,jsx,ts,tsx}]
+indent_size = 2
+max_line_length = 80
+
+# JSON e JSON com comentários
+[*.{json,jsonc}]
+indent_size = 2
+max_line_length = 120
+
+# YAML
+[*.{yml,yaml}]
+indent_size = 2
+
+# CSS, SCSS, Less
+[*.{css,scss,less}]
+indent_size = 2
+
+# HTML
+[*.html]
+indent_size = 2
+
+# XML
+[*.xml]
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = 80
+
+# Docker
+[{Dockerfile,*.dockerfile}]
+indent_size = 4
+
+# Docker Compose
+[docker-compose*.yml]
+indent_size = 2
+
+# Shell Scripts
+[*.{sh,bash,zsh}]
+indent_size = 4
+
+# SQL
+[*.sql]
+indent_size = 2
+
+# Configurações específicas
+[*.conf]
+indent_size = 4
+
+# .env files
+[.env*]
+insert_final_newline = false
+
+# Logs (não formatamos)
+[*.log]
+insert_final_newline = false
+trim_trailing_whitespace = false 

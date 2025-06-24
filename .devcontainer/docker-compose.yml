@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # 🛠️ Container Principal de Desenvolvimento
   devcontainer:
     build:
       context: .
@@ -8,30 +9,51 @@ services:
     volumes:
       - ../:/workspace:cached
       - vscode-extensions:/home/vscode/.vscode-server/extensions
+      - composer-cache:/home/vscode/.cache/composer
+      - npm-cache:/home/vscode/.cache/npm
       - ~/.ssh:/home/vscode/.ssh-localhost:ro
     command: sleep infinity
     networks:
       - reidooleo-dev
     depends_on:
-      - mysql
-      - redis
-      - mailhog
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DISPLAY=:0
+      - COMPOSER_CACHE_DIR=/home/vscode/.cache/composer
+      - NPM_CONFIG_CACHE=/home/vscode/.cache/npm
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=rei_do_oleo_dev
+      - DB_USERNAME=rei_do_oleo
+      - DB_PASSWORD=secret123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"   # Laravel API
+      - "3000:3000"   # React Frontend
+      - "5173:5173"   # Vite Dev Server
 
+  # 🗄️ MySQL Database 8.0
   mysql:
     image: mysql:8.0
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d
+      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./mysql/conf:/etc/mysql/conf.d
     environment:
-      MYSQL_DATABASE: reidooleo_dev
-      MYSQL_USER: reidooleo
-      MYSQL_PASSWORD: reidooleo123
       MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: rei_do_oleo_dev
+      MYSQL_USER: rei_do_oleo
+      MYSQL_PASSWORD: secret123
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
       - "3306:3306"
     networks:
@@ -40,15 +62,17 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
+  # 📦 Redis Cache & Sessions 7.x
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redis-data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
     ports:
       - "6379:6379"
     networks:
@@ -57,23 +81,82 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 3
+      retries: 5
 
+  # 💾 phpMyAdmin - Interface Web MySQL
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root123
+      MYSQL_ROOT_PASSWORD: root123
+      PMA_ARBITRARY: 1
+      PMA_ABSOLUTE_URI: http://localhost:8080/
+    ports:
+      - "8080:80"
+    networks:
+      - reidooleo-dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # 🔍 Redis Commander - Interface Web Redis
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: secret123
+    ports:
+      - "6380:8081"
+    networks:
+      - reidooleo-dev
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # 📧 MailHog - Captura de Emails (Desenvolvimento)
   mailhog:
     image: mailhog/mailhog:latest
     restart: unless-stopped
     ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
     networks:
       - reidooleo-dev
 
+  # 📦 MinIO - Object Storage S3 Compatible
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: reidooleo
+      MINIO_ROOT_PASSWORD: secret123456
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    networks:
+      - reidooleo-dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # 📊 Nginx - Reverse Proxy Local
   nginx:
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - ../:/workspace:cached
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
@@ -85,56 +168,17 @@ services:
     depends_on:
       - devcontainer
 
-  minio:
-    image: minio/minio:latest
-    restart: unless-stopped
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio-data:/data
-    environment:
-      MINIO_ROOT_USER: reidooleo
-      MINIO_ROOT_PASSWORD: reidooleo123
-    command: server /data --console-address ":9001"
-    networks:
-      - reidooleo-dev
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  adminer:
-    image: adminer:latest
-    restart: unless-stopped
-    ports:
-      - "8081:8080"
-    environment:
-      ADMINER_DEFAULT_SERVER: mysql
-    networks:
-      - reidooleo-dev
-    depends_on:
-      - mysql
-
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    restart: unless-stopped
-    ports:
-      - "8082:8081"
-    environment:
-      REDIS_HOSTS: local:redis:6379
-    networks:
-      - reidooleo-dev
-    depends_on:
-      - redis
-
 volumes:
   vscode-extensions:
   mysql-data:
   redis-data:
   minio-data:
+  composer-cache:
+  npm-cache:
 
 networks:
   reidooleo-dev:
-    driver: bridge 
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
