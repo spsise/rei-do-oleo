@@ -62,13 +62,13 @@ sudo usermod -aG docker $USER
 
 | Serviço | Porta | URL | Credenciais |
 |---------|-------|-----|------------|
-| Laravel API | 8000 | http://localhost:8000 | - |
-| React App | 3000 | http://localhost:3000 | - |
-| MySQL | 3309 | localhost:3309 | `rei_do_oleo` / `secret123` |
-| phpMyAdmin | 8081 | http://localhost:8081 | `root` / `root123` |
-| Redis | 6379 | localhost:6379 | - |
-| Redis Commander | 6380 | http://localhost:6380 | `admin` / `secret123` |
-| MailHog | 8025 | http://localhost:8025 | - |
+| Laravel API | 8100 | http://localhost:8100 | - |
+| React App | 3100 | http://localhost:3100 | - |
+| MySQL | 3310 | localhost:3310 | `rei_do_oleo` / `secret123` |
+| phpMyAdmin | 8110 | http://localhost:8110 | `root` / `root123` |
+| Redis | 6400 | localhost:6400 | - |
+| Redis Commander | 6410 | http://localhost:6410 | `admin` / `secret123` |
+| MailHog | 8030 | http://localhost:8030 | - |
 
 ### 🚀 Comandos Úteis
 
@@ -143,4 +143,107 @@ docker volume prune
 
 # Reconstruir
 docker-compose up --build
-``` 
+```
+
+## ✅ Problema Resolvido - Conflito de Portas
+
+O conflito de portas foi resolvido! As portas foram ajustadas para evitar conflitos com outros projetos.
+
+## 🔌 Portas Atualizadas
+
+### 🛠️ Serviços de Desenvolvimento
+- **Laravel API**: http://localhost:8100 (antes: 8000)
+- **React Frontend**: http://localhost:3100 (antes: 3000) 
+- **Vite Dev Server**: http://localhost:5200 (antes: 5173)
+
+### 🗄️ Banco de Dados
+- **MySQL**: localhost:3310 (antes: 3309)
+  - Database: `rei_do_oleo_dev`
+  - User: `rei_do_oleo` / Password: `secret123`
+  - Root Password: `root123`
+
+### 📦 Cache & Sessions
+- **Redis**: localhost:6400 (antes: 6379)
+
+### 🌐 Ferramentas Web
+- **phpMyAdmin**: http://localhost:8110 (antes: 8081)
+- **Redis Commander**: http://localhost:6410 (antes: 6380)
+  - User: `admin` / Password: `secret123`
+
+### 📧 Email Testing
+- **MailHog Web**: http://localhost:8030 (antes: 8025)
+- **MailHog SMTP**: localhost:1030 (antes: 1025)
+
+## 🚀 Como Iniciar o Dev Container
+
+1. **Feche o VSCode** se estiver aberto
+2. **Reabra o projeto**: `code .`
+3. **Clique em "Reopen in Container"** quando solicitado
+4. **Aguarde a inicialização** (primeira vez pode demorar ~5-10 minutos)
+
+## ⚠️ Se Ainda Houver Problemas
+
+Se ainda houver conflitos, execute:
+
+```bash
+# 1. Pare todos os containers relacionados
+docker stop $(docker ps -q --filter "name=rei-do-oleo") 2>/dev/null || true
+
+# 2. Remova containers antigos
+docker rm $(docker ps -aq --filter "name=rei-do-oleo") 2>/dev/null || true
+
+# 3. Remova volumes se necessário
+docker volume rm $(docker volume ls -q --filter "name=rei-do-oleo") 2>/dev/null || true
+
+# 4. Reabra no VSCode
+code .
+```
+
+## 📋 Checklist de Verificação
+
+Após inicializar o dev container, verifique:
+
+- [ ] ✅ MySQL conectando em localhost:3310
+- [ ] ✅ Redis respondendo em localhost:6400  
+- [ ] ✅ phpMyAdmin acessível em http://localhost:8110
+- [ ] ✅ Redis Commander em http://localhost:6410
+- [ ] ✅ MailHog em http://localhost:8030
+- [ ] ✅ Laravel servindo em http://localhost:8100
+- [ ] ✅ React servindo em http://localhost:3100
+
+## 🛠️ Configurações de Conexão
+
+### Laravel (.env)
+```env
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=rei_do_oleo_dev
+DB_USERNAME=rei_do_oleo
+DB_PASSWORD=secret123
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+MAIL_HOST=mailhog
+MAIL_PORT=1025
+```
+
+### Cliente MySQL Externo
+```bash
+mysql -h localhost -P 3310 -u rei_do_oleo -psecret123 rei_do_oleo_dev
+```
+
+### Redis CLI Externo
+```bash
+redis-cli -h localhost -p 6400
+```
+
+## 📝 Notas Importantes
+
+- **Portas internas** dos containers permanecem as mesmas (3306, 6379, etc.)
+- **Apenas as portas expostas** foram alteradas para evitar conflitos
+- **Configurações da aplicação** (.env) não precisam mudar
+- **Acesso externo** agora usa as novas portas
+
+---
+*Configuração atualizada em $(date) - Conflito de portas resolvido* ✨ 
