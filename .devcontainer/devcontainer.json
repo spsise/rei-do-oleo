@@ -5,25 +5,19 @@
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
   
+  "postCreateCommand": "/workspace/.devcontainer/scripts/postCreate.sh",
+  "postStartCommand": "sudo service php8.2-fpm start",
+  
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
       "configureZshAsDefaultShell": true,
       "installOhMyZsh": true,
       "username": "vscode",
-      "upgradePackages": true
+      "upgradePackages": false
     },
     "ghcr.io/devcontainers/features/git:1": {
-      "ppa": true,
       "version": "latest"
-    },
-    "ghcr.io/devcontainers/features/github-cli:1": {
-      "installDirectlyFromGitHubRelease": true,
-      "version": "latest"
-    },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest",
-      "enableNonRootDocker": "true"
     }
   },
 
@@ -138,65 +132,27 @@
       },
       
       "extensions": [
-        // PHP Extensions
+        // PHP Extensions Essenciais
         "bmewburn.vscode-intelephense-client",
-        "xdebug.php-debug", 
-        "ryannaddy.laravel-artisan",
+        "xdebug.php-debug",
         "onecentlin.laravel-blade",
-        "codingyu.laravel-goto-view",
-        "amiralizadeh9480.laravel-extra-intellisense",
-        "junstyle.php-cs-fixer",
         
-        // Laravel Specific
-        "m1guelpf.laravel-extension-pack",
-        "shufo.vscode-blade-formatter",
-        
-        // JavaScript/React/TypeScript Extensions
+        // JavaScript/React Essenciais
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-        "ms-vscode.vscode-typescript-next",
         "dsznajder.es7-react-js-snippets",
-        "pmneo.tsimporter",
-        "bradlc.vscode-tailwindcss",
-        "formulahendry.auto-rename-tag",
-        "christian-kohler.path-intellisense",
         
-        // Git & Development Tools
+        // Ferramentas Essenciais
         "eamodio.gitlens",
-        "github.vscode-pull-request-github",
-        "github.copilot",
         "ms-azuretools.vscode-docker",
-        "ms-vscode-remote.remote-containers",
-        
-        // Database Tools
         "cweijan.vscode-mysql-client2",
-        "redis.redis-for-vscode",
-        
-        // Testing Extensions
-        "recca0120.vscode-phpunit",
-        "orta.vscode-jest",
-        "ms-playwright.playwright",
-        
-        // API & HTTP Tools
         "rangav.vscode-thunder-client",
-        "humao.rest-client",
         
-        // Utilities
-        "streetsidesoftware.code-spell-checker",
-        "wayou.vscode-todo-highlight",
-        "gruntfuggly.todo-tree",
-        "ms-vscode.vscode-json",
-        "redhat.vscode-yaml",
-        "ms-vscode.sublime-keybindings",
-        
-        // Formatting & Linting
+        // Formatação
         "editorconfig.editorconfig",
-        "esbenp.prettier-vscode",
-        "ms-vscode.vscode-eslint",
         
-        // Theme & Icons
-        "pkief.material-icon-theme",
-        "github.github-vscode-theme"
+        // Theme
+        "pkief.material-icon-theme"
       ]
     }
   },

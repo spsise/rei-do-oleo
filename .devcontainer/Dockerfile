@@ -43,11 +43,10 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     # Dependências de Imagem
     libfreetype6-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-turbo8-dev \
     libpng-dev \
     libwebp-dev \
     libxpm-dev \
-    libavif-dev \
     # Dependências XML/HTML
     libxml2-dev \
     libxslt1-dev \
@@ -74,16 +73,15 @@ RUN locale-gen pt_BR.UTF-8 && \
 # ⏰ Configurar timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 🐘 Instalar PHP 8.2 com extensões
-RUN add-apt-repository ppa:ondrej/php && \
+# 🐘 Instalar PHP 8.2 com extensões essenciais
+RUN add-apt-repository ppa:ondrej/php -y && \
     apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
     php8.2 \
     php8.2-cli \
     php8.2-fpm \
     php8.2-common \
     php8.2-mysql \
-    php8.2-pdo \
     php8.2-opcache \
     php8.2-zip \
     php8.2-gd \
@@ -91,17 +89,11 @@ RUN add-apt-repository ppa:ondrej/php && \
     php8.2-curl \
     php8.2-xml \
     php8.2-bcmath \
-    php8.2-soap \
     php8.2-intl \
     php8.2-readline \
-    php8.2-ldap \
-    php8.2-msgpack \
-    php8.2-igbinary \
     php8.2-redis \
-    php8.2-memcached \
-    php8.2-pcov \
     php8.2-xdebug \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # 🎼 Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -192,6 +184,7 @@ RUN echo 'export PATH="/home/vscode/.composer/vendor/bin:$PATH"' >> /home/vscode
     echo '' >> /home/vscode/.zshrc && \
     echo '# 🗄️ Database Aliases' >> /home/vscode/.zshrc && \
     echo 'alias mysql-cli="mysql -h mysql -u rei_do_oleo -psecret123 rei_do_oleo_dev"' >> /home/vscode/.zshrc && \
+    echo 'alias mysql-root="mysql -h mysql -u root -proot123"' >> /home/vscode/.zshrc && \
     echo 'alias redis-cli="redis-cli -h redis"' >> /home/vscode/.zshrc && \
     echo '' >> /home/vscode/.zshrc && \
     echo '# 🔧 Utility Aliases' >> /home/vscode/.zshrc && \

@@ -180,7 +180,7 @@ composer.lock
 
 # Specific to this project
 storage/
-public/storage
+public/storage 
 
 # ==================================================
 # Arquivos permitidos (exceções)
