@@ -107,8 +107,8 @@ RUN npm install -g yarn
 
 # 🛠️ Instalar ferramentas globais Node.js
 RUN npm install -g \
-    @vueuse/cli \
     create-react-app \
+    @vitejs/create-vite \
     vite \
     typescript \
     ts-node \
@@ -117,18 +117,19 @@ RUN npm install -g \
     pm2 \
     nodemon \
     concurrently \
-    cross-env
+    cross-env \
+    serve \
+    rimraf
 
 # 🎯 Instalar ferramentas globais PHP
 RUN composer global require \
     laravel/installer \
-    laravel/valet \
     friendsofphp/php-cs-fixer \
     phpstan/phpstan \
-    phpunit/phpunit \
     squizlabs/php_codesniffer \
     psy/psysh \
-    symfony/var-dumper
+    symfony/var-dumper \
+    --no-interaction --prefer-dist
 
 # 👤 Criar usuário vscode
 RUN groupadd --gid $USER_GID $USERNAME \
