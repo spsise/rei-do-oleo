@@ -494,3 +494,6 @@ EOF
 : 1750780471:0;php artisan migrate
 : 1750780475:0;cd backend
 : 1750780478:0;php artisan migrate
+: 1750780544:0;git commit -m "⃼� feat: Adiciona configuração inicial da API e estrutura de diretórios para o backend"
+: 1750780572:0;git config --global user.email "spsise@gmail.com"
+: 1750780588:0;git config --global user.name "Sebastião Apolinario"
