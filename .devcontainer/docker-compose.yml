@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 🛠️ Container Principal de Desenvolvimento
   devcontainer:
@@ -143,7 +141,5 @@ volumes:
 
 networks:
   reidooleo-dev:
-    driver: bridge 
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16 
+    external: true
+    name: devcontainer_reidooleo-dev 
