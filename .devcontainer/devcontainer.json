@@ -5,9 +5,6 @@
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
 
-  "postCreateCommand": "/workspace/.devcontainer/scripts/postCreate.sh",
-  "postStartCommand": "sudo service php8.2-fpm start",
-
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
