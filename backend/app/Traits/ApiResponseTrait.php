@@ -11,8 +11,8 @@ trait ApiResponseTrait
      * Success response
      */
     protected function successResponse(
-        string $message = 'Success',
         mixed $data = null,
+        string $message = 'Success',
         int $code = Response::HTTP_OK
     ): JsonResponse {
         $response = [
@@ -134,12 +134,12 @@ trait ApiResponseTrait
      * Created response
      */
     protected function createdResponse(
-        string $message = 'Resource created successfully',
-        mixed $data = null
+        mixed $data = null,
+        string $message = 'Resource created successfully'
     ): JsonResponse {
         return $this->successResponse(
-            $message,
             $data,
+            $message,
             Response::HTTP_CREATED
         );
     }
