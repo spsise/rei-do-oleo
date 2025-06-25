@@ -7,10 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use App\Domain\Service\Models\ServiceItem;
+use Database\Factories\ProductFactory;
 
 class Product extends Model
 {
     use HasFactory;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return ProductFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.

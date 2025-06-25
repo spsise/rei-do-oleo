@@ -18,83 +18,37 @@ class ServiceFactory extends Factory
 
     public function definition(): array
     {
-        $scheduledDate = $this->faker->optional(0.8)->dateTimeBetween('-30 days', '+15 days');
+        $scheduledAt = $this->faker->optional(0.8)->dateTimeBetween('-30 days', '+15 days');
         $createdAt = $this->faker->dateTimeBetween('-60 days', 'now');
 
+        // Get a random existing status instead of hardcoded ID
+        $statusId = ServiceStatus::inRandomOrder()->value('id') ?? $this->createDefaultStatus();
+
         // Realistic service flow based on status
-        $statusFlow = $this->generateRealisticStatusFlow($createdAt, $scheduledDate);
+        $statusFlow = $this->generateRealisticStatusFlow($createdAt, $scheduledAt, $statusId);
 
         return [
             'service_center_id' => ServiceCenter::factory(),
             'client_id' => Client::factory(),
             'vehicle_id' => Vehicle::factory(),
+            'user_id' => User::factory(),
             'service_number' => $this->generateServiceNumber(),
-            'description' => $this->generateServiceDescription(),
-            'complaint' => $this->faker->optional(0.9)->randomElement([
-                'Veículo fazendo ruído estranho no motor',
-                'Freios fazendo barulho ao frear',
-                'Carro puxando para um lado',
-                'Motor falhando na aceleração',
-                'Ar condicionado não está gelando',
-                'Direção hidráulica pesada',
-                'Bateria descarregando rapidamente',
-                'Pneus desgastando irregularmente',
-                'Câmbio engasgando',
-                'Superaquecimento do motor',
-                'Luz do painel acesa',
-                'Consumo alto de combustível',
-                'Dificuldade para dar partida',
-                'Vibração no volante',
-                'Vazamento de óleo'
-            ]),
-            'diagnosis' => $this->faker->optional(0.7)->randomElement([
-                'Necessário troca de óleo e filtros',
-                'Pastilhas de freio desgastadas',
-                'Alinhamento e balanceamento necessários',
-                'Velas de ignição com desgaste',
-                'Gás do ar condicionado baixo',
-                'Fluido da direção hidráulica baixo',
-                'Bateria com vida útil esgotada',
-                'Pneus com pressão incorreta',
-                'Óleo do câmbio contaminado',
-                'Radiador com vazamento',
-                'Sensor com defeito',
-                'Bico injetor entupido',
-                'Motor de arranque com defeito',
-                'Disco de freio empenado'
-            ]),
-            'solution' => $this->faker->optional(0.6)->randomElement([
-                'Realizada troca de óleo 5W30 e filtros',
-                'Substituídas pastilhas de freio dianteiras',
-                'Executado alinhamento e balanceamento',
-                'Trocadas velas de ignição',
-                'Reabastecido gás R134a do ar condicionado',
-                'Completado fluido da direção hidráulica',
-                'Instalada nova bateria 60Ah',
-                'Calibrados pneus conforme especificação',
-                'Trocado óleo do câmbio automático',
-                'Reparado vazamento no radiador',
-                'Substituído sensor de temperatura',
-                'Realizada limpeza dos bicos injetores',
-                'Reparado motor de arranque',
-                'Retificados discos de freio'
-            ]),
-            'scheduled_date' => $scheduledDate,
+            'scheduled_at' => $scheduledAt,
             'started_at' => $statusFlow['started_at'],
-            'finished_at' => $statusFlow['finished_at'],
-            'technician_id' => $this->faker->optional(0.8)->randomElement([null, User::factory()]),
-            'attendant_id' => $this->faker->optional(0.9)->randomElement([null, User::factory()]),
-            'status_id' => $statusFlow['status_id'],
+            'completed_at' => $statusFlow['completed_at'],
+            'service_status_id' => $statusFlow['service_status_id'],
             'payment_method_id' => $this->faker->optional(0.6)->randomElement([null, PaymentMethod::factory()]),
-            'labor_cost' => $this->faker->optional(0.8)->randomFloat(2, 50, 500),
-            'discount' => $this->faker->optional(0.3)->randomFloat(2, 0, 100),
+            'mileage_at_service' => $this->faker->optional(0.9)->numberBetween(0, 300000),
             'total_amount' => $this->faker->optional(0.7)->randomFloat(2, 100, 1500),
-            'mileage' => $this->faker->optional(0.9)->numberBetween(0, 300000),
-            'fuel_level' => $this->faker->optional(0.8)->randomElement(['empty', '1/4', '1/2', '3/4', 'full']),
+            'discount_amount' => $this->faker->optional(0.3)->randomFloat(2, 0, 100),
+            'final_amount' => function (array $attributes) {
+                $total = $attributes['total_amount'] ?? 0;
+                $discount = $attributes['discount_amount'] ?? 0;
+                return max(0, $total - $discount);
+            },
             'observations' => $this->faker->optional(0.4)->sentence(),
-            'internal_notes' => $this->faker->optional(0.3)->sentence(),
-            'warranty_months' => $this->faker->optional(0.7)->randomElement([3, 6, 12, 24]),
-            'priority' => $this->faker->randomElement(['low', 'normal', 'high', 'urgent']),
+            'notes' => $this->faker->optional(0.3)->sentence(),
+            'active' => $this->faker->boolean(95),
             'created_at' => $createdAt,
             'updated_at' => $statusFlow['updated_at'] ?? $createdAt,
         ];
@@ -103,10 +57,10 @@ class ServiceFactory extends Factory
     public function scheduled(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status_id' => 1, // Assuming 1 is 'scheduled'
-            'scheduled_date' => $this->faker->dateTimeBetween('now', '+30 days'),
+            'service_status_id' => $this->getStatusIdByName('scheduled'),
+            'scheduled_at' => $this->faker->dateTimeBetween('now', '+30 days'),
             'started_at' => null,
-            'finished_at' => null,
+            'completed_at' => null,
         ]);
     }
 
@@ -115,23 +69,23 @@ class ServiceFactory extends Factory
         $startedAt = $this->faker->dateTimeBetween('-7 days', 'now');
 
         return $this->state(fn (array $attributes) => [
-            'status_id' => 2, // Assuming 2 is 'in_progress'
+            'service_status_id' => $this->getStatusIdByName('in_progress'),
             'started_at' => $startedAt,
-            'finished_at' => null,
-            'technician_id' => User::factory(),
+            'completed_at' => null,
+            'user_id' => User::factory(),
         ]);
     }
 
     public function completed(): static
     {
         $startedAt = $this->faker->dateTimeBetween('-30 days', '-1 day');
-        $finishedAt = $this->faker->dateTimeBetween($startedAt, 'now');
+        $completedAt = $this->faker->dateTimeBetween($startedAt, 'now');
 
         return $this->state(fn (array $attributes) => [
-            'status_id' => 3, // Assuming 3 is 'completed'
+            'service_status_id' => $this->getStatusIdByName('completed'),
             'started_at' => $startedAt,
-            'finished_at' => $finishedAt,
-            'technician_id' => User::factory(),
+            'completed_at' => $completedAt,
+            'user_id' => User::factory(),
             'payment_method_id' => PaymentMethod::factory(),
             'total_amount' => $this->faker->randomFloat(2, 150, 2000),
         ]);
@@ -140,25 +94,25 @@ class ServiceFactory extends Factory
     public function cancelled(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status_id' => 4, // Assuming 4 is 'cancelled'
+            'service_status_id' => $this->getStatusIdByName('cancelled'),
             'started_at' => null,
-            'finished_at' => null,
+            'completed_at' => null,
             'total_amount' => null,
             'observations' => 'Serviço cancelado pelo cliente',
         ]);
     }
 
-    public function highPriority(): static
+    public function withHighValue(): static
     {
         return $this->state(fn (array $attributes) => [
-            'priority' => 'high',
+            'total_amount' => $this->faker->randomFloat(2, 1000, 5000),
         ]);
     }
 
-    public function urgent(): static
+    public function withLowValue(): static
     {
         return $this->state(fn (array $attributes) => [
-            'priority' => 'urgent',
+            'total_amount' => $this->faker->randomFloat(2, 50, 200),
         ]);
     }
 
@@ -187,14 +141,13 @@ class ServiceFactory extends Factory
     public function withTechnician(User $technician): static
     {
         return $this->state(fn (array $attributes) => [
-            'technician_id' => $technician->id,
+            'user_id' => $technician->id,
         ]);
     }
 
     public function expensive(): static
     {
         return $this->state(fn (array $attributes) => [
-            'labor_cost' => $this->faker->randomFloat(2, 300, 800),
             'total_amount' => $this->faker->randomFloat(2, 800, 3000),
         ]);
     }
@@ -202,9 +155,128 @@ class ServiceFactory extends Factory
     public function cheap(): static
     {
         return $this->state(fn (array $attributes) => [
-            'labor_cost' => $this->faker->randomFloat(2, 30, 150),
             'total_amount' => $this->faker->randomFloat(2, 50, 300),
         ]);
+    }
+
+    private function getStatusIdByName(string $statusName): int
+    {
+        $status = ServiceStatus::where('name', $statusName)->first();
+
+        if (!$status) {
+            // Create status if it doesn't exist (for testing)
+            $status = ServiceStatus::create([
+                'name' => $statusName,
+                'description' => ucfirst(str_replace('_', ' ', $statusName)),
+                'color' => '#000000',
+                'sort_order' => 1,
+            ]);
+        }
+
+        return $status->id;
+    }
+
+    private function createDefaultStatus(): int
+    {
+        $status = ServiceStatus::create([
+            'name' => 'scheduled',
+            'description' => 'Serviço agendado',
+            'color' => '#3B82F6',
+            'sort_order' => 1,
+        ]);
+
+        return $status->id;
+    }
+
+    private function generateRealisticStatusFlow($createdAt, $scheduledDate, $defaultStatusId = null): array
+    {
+        // Get existing status IDs dynamically
+        $statusIds = ServiceStatus::pluck('id', 'name')->toArray();
+
+        if (empty($statusIds)) {
+            // Create basic statuses if none exist
+            $this->createDefaultStatuses();
+            $statusIds = ServiceStatus::pluck('id', 'name')->toArray();
+        }
+
+        $statusOptions = array_values($statusIds);
+        $weights = [20, 15, 60, 5]; // Realistic distribution
+
+        $statusId = $defaultStatusId ?? $this->faker->randomElement(
+            array_merge(
+                array_fill(0, $weights[0], $statusOptions[0] ?? 1),
+                array_fill(0, $weights[1], $statusOptions[1] ?? 2),
+                array_fill(0, $weights[2], $statusOptions[2] ?? 3),
+                array_fill(0, $weights[3], $statusOptions[3] ?? 4)
+            )
+        );
+
+        $flow = ['service_status_id' => $statusId];
+
+        // Get status name for logic
+        $statusName = array_search($statusId, $statusIds) ?: 'scheduled';
+
+        switch ($statusName) {
+            case 'scheduled':
+                $flow['started_at'] = null;
+                $flow['completed_at'] = null;
+                $flow['updated_at'] = $createdAt;
+                break;
+
+            case 'in_progress':
+                $startedAt = $scheduledDate
+                    ? $this->faker->dateTimeBetween($scheduledDate, 'now')
+                    : $this->faker->dateTimeBetween($createdAt, 'now');
+
+                $flow['started_at'] = $startedAt;
+                $flow['completed_at'] = null;
+                $flow['updated_at'] = $startedAt;
+                break;
+
+            case 'completed':
+                // Ensure all dates are logical and in the past
+                $now = new \DateTime('now');
+                $yesterday = (clone $now)->modify('-1 day');
+                $createdAtDateTime = $createdAt instanceof \DateTime ? $createdAt : new \DateTime($createdAt);
+
+                // startedAt should be between createdAt and yesterday
+                $maxStartDate = $createdAtDateTime < $yesterday
+                    ? $createdAtDateTime->modify('+1 hour')  // Start at least 1 hour after creation
+                    : $createdAtDateTime;
+
+                $startedAt = $this->faker->dateTimeBetween($createdAtDateTime, '-1 day');
+
+                // completedAt should be between startedAt and now
+                $completedAt = $this->faker->dateTimeBetween($startedAt, 'now');
+
+                $flow['started_at'] = $startedAt;
+                $flow['completed_at'] = $completedAt;
+                $flow['updated_at'] = $completedAt;
+                break;
+
+            case 'cancelled':
+            default:
+                $flow['started_at'] = null;
+                $flow['completed_at'] = null;
+                $flow['updated_at'] = $this->faker->dateTimeBetween($createdAt, 'now');
+                break;
+        }
+
+        return $flow;
+    }
+
+    private function createDefaultStatuses(): void
+    {
+        $statuses = [
+            ['name' => 'scheduled', 'description' => 'Serviço agendado', 'color' => '#3B82F6', 'sort_order' => 1],
+            ['name' => 'in_progress', 'description' => 'Serviço em andamento', 'color' => '#F59E0B', 'sort_order' => 2],
+            ['name' => 'completed', 'description' => 'Serviço concluído', 'color' => '#10B981', 'sort_order' => 3],
+            ['name' => 'cancelled', 'description' => 'Serviço cancelado', 'color' => '#EF4444', 'sort_order' => 4],
+        ];
+
+        foreach ($statuses as $status) {
+            ServiceStatus::firstOrCreate(['name' => $status['name']], $status);
+        }
     }
 
     private function generateServiceNumber(): string
@@ -242,60 +314,5 @@ class ServiceFactory extends Factory
         ];
 
         return $this->faker->randomElement($services);
-    }
-
-    private function generateRealisticStatusFlow($createdAt, $scheduledDate): array
-    {
-        $statusOptions = [1, 2, 3, 4]; // scheduled, in_progress, completed, cancelled
-        $weights = [20, 15, 60, 5]; // Realistic distribution
-
-        $statusId = $this->faker->randomElement(
-            array_merge(
-                array_fill(0, $weights[0], 1),
-                array_fill(0, $weights[1], 2),
-                array_fill(0, $weights[2], 3),
-                array_fill(0, $weights[3], 4)
-            )
-        );
-
-        $flow = ['status_id' => $statusId];
-
-        switch ($statusId) {
-            case 1: // scheduled
-                $flow['started_at'] = null;
-                $flow['finished_at'] = null;
-                $flow['updated_at'] = $createdAt;
-                break;
-
-            case 2: // in_progress
-                $startedAt = $scheduledDate
-                    ? $this->faker->dateTimeBetween($scheduledDate, 'now')
-                    : $this->faker->dateTimeBetween($createdAt, 'now');
-
-                $flow['started_at'] = $startedAt;
-                $flow['finished_at'] = null;
-                $flow['updated_at'] = $startedAt;
-                break;
-
-            case 3: // completed
-                $startedAt = $scheduledDate
-                    ? $this->faker->dateTimeBetween($scheduledDate, '-1 day')
-                    : $this->faker->dateTimeBetween($createdAt, '-1 day');
-
-                $finishedAt = $this->faker->dateTimeBetween($startedAt, 'now');
-
-                $flow['started_at'] = $startedAt;
-                $flow['finished_at'] = $finishedAt;
-                $flow['updated_at'] = $finishedAt;
-                break;
-
-            case 4: // cancelled
-                $flow['started_at'] = null;
-                $flow['finished_at'] = null;
-                $flow['updated_at'] = $this->faker->dateTimeBetween($createdAt, 'now');
-                break;
-        }
-
-        return $flow;
     }
 }

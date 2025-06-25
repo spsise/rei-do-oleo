@@ -5,6 +5,7 @@ namespace App\Domain\Service\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Database\Factories\PaymentMethodFactory;
 
 class PaymentMethod extends Model
 {
@@ -27,6 +28,14 @@ class PaymentMethod extends Model
         'active' => 'boolean',
         'sort_order' => 'integer',
     ];
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return PaymentMethodFactory::new();
+    }
 
     /**
      * Get the services with this payment method.

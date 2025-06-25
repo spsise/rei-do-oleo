@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Database\Factories\CategoryFactory;
 
 class Category extends Model
 {
@@ -29,6 +30,14 @@ class Category extends Model
         'active' => 'boolean',
         'sort_order' => 'integer',
     ];
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return CategoryFactory::new();
+    }
 
     /**
      * Get the products for the category.

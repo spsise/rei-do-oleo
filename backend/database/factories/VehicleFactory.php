@@ -43,13 +43,8 @@ class VehicleFactory extends Factory
             'fuel_type' => $this->faker->randomElement([
                 'gasoline', 'ethanol', 'diesel', 'flex', 'electric', 'hybrid'
             ]),
-            'engine' => $this->faker->randomElement([
-                '1.0', '1.3', '1.4', '1.5', '1.6', '1.8', '2.0', '2.4', '3.0'
-            ]),
-            'chassis' => $this->faker->optional(0.7)->regexify('[A-Z0-9]{17}'),
-            'renavam' => $this->faker->optional(0.8)->numerify('###########'),
             'mileage' => $this->faker->optional(0.9)->numberBetween(0, 300000),
-            'observations' => $this->faker->optional(0.2)->sentence(),
+            'last_service' => $this->faker->optional(0.3)->dateTimeBetween('-2 years', 'now'),
         ];
     }
 
@@ -94,7 +89,6 @@ class VehicleFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'fuel_type' => 'electric',
-            'engine' => null,
         ]);
     }
 

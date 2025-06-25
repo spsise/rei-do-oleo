@@ -11,35 +11,22 @@ class ClientFactory extends Factory
 
     public function definition(): array
     {
-        $type = $this->faker->randomElement(['individual', 'company']);
         $states = ['SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE'];
+        $isIndividual = $this->faker->boolean(70); // 70% chance of being individual
 
         return [
-            'name' => $type === 'individual'
+            'name' => $isIndividual
                 ? $this->faker->name()
                 : $this->faker->company() . ' ' . $this->faker->randomElement(['Ltda', 'S/A', 'ME', 'EPP']),
-            'type' => $type,
-            'document' => $type === 'individual'
-                ? $this->generateCPF()
-                : $this->generateCNPJ(),
-            'phone' => $this->generateBrazilianPhone(),
-            'whatsapp' => $this->faker->optional(0.8)->randomElement([
+            'phone01' => $this->generateBrazilianPhone(),
+            'phone02' => $this->faker->optional(0.3)->randomElement([
                 $this->generateBrazilianPhone(),
                 null
             ]),
             'email' => $this->faker->optional(0.7)->safeEmail(),
-            'address_line' => $this->faker->optional(0.9)->streetName(),
-            'number' => $this->faker->optional(0.9)->buildingNumber(),
-            'complement' => $this->faker->optional(0.3)->randomElement([
-                'Apto ' . $this->faker->numberBetween(1, 999),
-                'Casa ' . $this->faker->randomLetter(),
-                'Bloco ' . $this->faker->randomLetter(),
-                'Sala ' . $this->faker->numberBetween(1, 50)
-            ]),
-            'neighborhood' => $this->faker->optional(0.9)->randomElement([
-                'Centro', 'Vila Nova', 'Jardim das Flores', 'Bela Vista', 'São José',
-                'Santa Maria', 'Parque Industrial', 'Vila São Paulo', 'Jardim América'
-            ]),
+            'cpf' => $isIndividual ? $this->generateCPF() : null,
+            'cnpj' => !$isIndividual ? $this->generateCNPJ() : null,
+            'address' => $this->faker->optional(0.9)->streetAddress(),
             'city' => $this->faker->optional(0.9)->randomElement([
                 'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Porto Alegre', 'Curitiba',
                 'Florianópolis', 'Salvador', 'Goiânia', 'Recife', 'Fortaleza', 'Brasília',
@@ -47,10 +34,7 @@ class ClientFactory extends Factory
             ]),
             'state' => $this->faker->optional(0.9)->randomElement($states),
             'zip_code' => $this->faker->optional(0.8)->regexify('[0-9]{5}-[0-9]{3}'),
-            'birth_date' => $type === 'individual'
-                ? $this->faker->optional(0.6)->dateTimeBetween('-80 years', '-18 years')
-                : null,
-            'observations' => $this->faker->optional(0.3)->sentence(),
+            'notes' => $this->faker->optional(0.3)->sentence(),
             'active' => $this->faker->boolean(95), // 95% chance of being active
         ];
     }
@@ -58,20 +42,18 @@ class ClientFactory extends Factory
     public function individual(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'individual',
             'name' => $this->faker->name(),
-            'document' => $this->generateCPF(),
-            'birth_date' => $this->faker->dateTimeBetween('-80 years', '-18 years'),
+            'cpf' => $this->generateCPF(),
+            'cnpj' => null,
         ]);
     }
 
     public function company(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'company',
             'name' => $this->faker->company() . ' ' . $this->faker->randomElement(['Ltda', 'S/A', 'ME', 'EPP']),
-            'document' => $this->generateCNPJ(),
-            'birth_date' => null,
+            'cpf' => null,
+            'cnpj' => $this->generateCNPJ(),
         ]);
     }
 

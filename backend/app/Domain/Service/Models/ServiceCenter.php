@@ -8,10 +8,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use App\Domain\User\Models\User;
+use Database\Factories\ServiceCenterFactory;
 
 class ServiceCenter extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return ServiceCenterFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.

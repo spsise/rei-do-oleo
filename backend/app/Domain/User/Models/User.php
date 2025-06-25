@@ -11,6 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Domain\Service\Models\ServiceCenter;
 use App\Domain\Service\Models\Service;
+use Database\Factories\UserFactory;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -22,6 +23,14 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'whatsapp',
+        'document',
+        'birth_date',
+        'hire_date',
+        'salary',
+        'commission_rate',
+        'specialties',
         'password',
         'active',
         'last_login_at',
@@ -42,9 +51,22 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'birth_date' => 'date',
+        'hire_date' => 'date',
+        'salary' => 'decimal:2',
+        'commission_rate' => 'decimal:2',
+        'specialties' => 'array',
         'active' => 'boolean',
         'last_login_at' => 'datetime',
     ];
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return UserFactory::new();
+    }
 
     /**
      * Get the service center that the user belongs to.
@@ -92,6 +114,40 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isManager(): bool
     {
         return $this->hasRole('manager');
+    }
+
+    /**
+     * Check if user is technician.
+     */
+    public function isTechnician(): bool
+    {
+        return $this->hasRole('technician');
+    }
+
+    /**
+     * Scope to get users by role.
+     */
+    public function scopeByRole($query, $role)
+    {
+        return $query->whereHas('roles', function ($q) use ($role) {
+            $q->where('name', $role);
+        });
+    }
+
+    /**
+     * Get services handled as technician.
+     */
+    public function technicalServices()
+    {
+        return $this->hasMany(Service::class, 'technician_id');
+    }
+
+    /**
+     * Get services attended (created by this user).
+     */
+    public function attendedServices()
+    {
+        return $this->hasMany(Service::class, 'attendant_id');
     }
 
     /**

@@ -8,10 +8,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\AllowedFilter;
 use App\Domain\Service\Models\Service;
+use Database\Factories\ClientFactory;
 
 class Client extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return ClientFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -36,6 +45,8 @@ class Client extends Model
      */
     protected $casts = [
         'active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -88,6 +99,60 @@ class Client extends Model
     }
 
     /**
+     * Scope to filter by state.
+     */
+    public function scopeByState($query, $state)
+    {
+        return $query->where('state', $state);
+    }
+
+    /**
+     * Scope to filter by city.
+     */
+    public function scopeByCity($query, $city)
+    {
+        return $query->where('city', $city);
+    }
+
+    /**
+     * Scope to search by document (CPF or CNPJ).
+     */
+    public function scopeSearchByDocument($query, $document)
+    {
+        $cleanDocument = preg_replace('/\D/', '', $document);
+        return $query->where('cpf', 'like', "%{$cleanDocument}%")
+                    ->orWhere('cnpj', 'like', "%{$cleanDocument}%");
+    }
+
+    /**
+     * Combined search scope.
+     */
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('cpf', 'like', "%{$term}%")
+              ->orWhere('cnpj', 'like', "%{$term}%")
+              ->orWhere('email', 'like', "%{$term}%")
+              ->orWhere('phone01', 'like', "%{$term}%");
+        });
+    }
+
+    /**
+     * Scope to filter by document type.
+     */
+    public function scopeByDocumentType($query, $type)
+    {
+        if ($type === 'individual') {
+            return $query->whereNotNull('cpf')->whereNull('cnpj');
+        } elseif ($type === 'company') {
+            return $query->whereNotNull('cnpj')->whereNull('cpf');
+        }
+
+        return $query;
+    }
+
+    /**
      * Find client by license plate with cache.
      */
     public static function findByLicensePlate(string $plate): ?self
@@ -131,6 +196,11 @@ class Client extends Model
      */
     public function getTotalServicesAttribute(): int
     {
+        // Use loaded relationship if available to avoid additional query
+        if ($this->relationLoaded('services')) {
+            return $this->services->count();
+        }
+
         return $this->services()->count();
     }
 
@@ -140,8 +210,30 @@ class Client extends Model
     public function getTotalSpentAttribute(): float
     {
         return $this->services()
-                    ->whereNotNull('final_amount')
-                    ->sum('final_amount');
+                    ->whereNotNull('total_amount')
+                    ->sum('total_amount');
+    }
+
+    /**
+     * Get last service date.
+     */
+    public function getLastServiceDateAttribute(): ?string
+    {
+        $lastService = $this->services()->latest('created_at')->first();
+        return $lastService ? $lastService->created_at->format('Y-m-d') : null;
+    }
+
+    /**
+     * Get next service reminder date.
+     */
+    public function getNextServiceReminderAttribute(): ?\Carbon\Carbon
+    {
+        $lastService = $this->services()->latest('created_at')->first();
+        if (!$lastService) {
+            return null;
+        }
+
+        return $lastService->created_at->addMonths(6);
     }
 
     /**
@@ -167,6 +259,30 @@ class Client extends Model
 
         static::deleted(function ($client) {
             $client->clearCache();
+        });
+    }
+
+    /**
+     * Scope to search by region (advanced feature).
+     */
+    public function scopeByRegion($query, $state, $city = null)
+    {
+        $query = $query->where('state', $state);
+
+        if ($city) {
+            $query->where('city', $city);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Scope to get VIP clients (advanced feature).
+     */
+    public function scopeVip($query, $minimumSpent = 5000)
+    {
+        return $query->whereHas('services', function ($q) use ($minimumSpent) {
+            $q->havingRaw('SUM(total_amount) >= ?', [$minimumSpent]);
         });
     }
 }

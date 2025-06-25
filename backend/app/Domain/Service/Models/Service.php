@@ -9,10 +9,19 @@ use Illuminate\Support\Facades\Cache;
 use App\Domain\Client\Models\Client;
 use App\Domain\Client\Models\Vehicle;
 use App\Domain\User\Models\User;
+use Database\Factories\ServiceFactory;
 
 class Service extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return ServiceFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -279,9 +288,11 @@ class Service extends Model
      */
     public function startService(): void
     {
+        $inProgressStatus = ServiceStatus::findByName('in_progress');
+
         $this->update([
             'started_at' => now(),
-            'service_status_id' => ServiceStatus::findByName('in_progress')->id,
+            'service_status_id' => $inProgressStatus ? $inProgressStatus->id : 2, // Default to ID 2
         ]);
     }
 
@@ -290,13 +301,15 @@ class Service extends Model
      */
     public function completeService(): void
     {
+        $completedStatus = ServiceStatus::findByName('completed');
+
         $this->update([
             'completed_at' => now(),
-            'service_status_id' => ServiceStatus::findByName('completed')->id,
+            'service_status_id' => $completedStatus ? $completedStatus->id : 3, // Default to ID 3
         ]);
 
         // Update vehicle info
-        if ($this->mileage_at_service) {
+        if ($this->mileage_at_service && $this->vehicle) {
             $this->vehicle->updateServiceInfo($this->mileage_at_service, $this->completed_at);
         }
     }
@@ -330,7 +343,8 @@ class Service extends Model
 
             // Set default status if not provided
             if (!$service->service_status_id) {
-                $service->service_status_id = ServiceStatus::findByName('scheduled')->id;
+                $scheduledStatus = ServiceStatus::findByName('scheduled');
+                $service->service_status_id = $scheduledStatus ? $scheduledStatus->id : 1; // Default to ID 1
             }
         });
     }

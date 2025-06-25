@@ -41,37 +41,15 @@ class ProductFactory extends Factory
         $price = round($costPrice * $markup, 2);
 
         return [
-            'category_id' => Category::factory(),
+            'category_id' => null, // Will be set by relationship or test
             'name' => $brand . ' ' . $productType . ' ' . $productVariant,
             'description' => $this->generateProductDescription($productType, $productVariant, $brand),
             'sku' => $this->generateSKU($brand, $productType),
-            'barcode' => $this->faker->optional(0.8)->ean13(),
             'price' => $price,
-            'cost_price' => $costPrice,
             'stock_quantity' => $this->faker->numberBetween(0, 100),
             'min_stock' => $this->faker->numberBetween(5, 20),
             'unit' => $this->faker->randomElement(['UN', 'LT', 'ML', 'KG', 'G', 'MT', 'CM']),
-            'brand' => $brand,
-            'supplier' => $this->faker->randomElement([
-                'Distribuidora Auto Peças Ltda',
-                'Comercial de Peças Brasil S/A',
-                'Auto Center Distribuidora ME',
-                'Peças & Acessórios Nacional',
-                'Importadora AutoMotive Ltda'
-            ]),
-            'location' => $this->faker->optional(0.7)->randomElement([
-                'A1-001', 'A1-002', 'A2-001', 'B1-001', 'B2-001',
-                'C1-001', 'C2-001', 'D1-001', 'E1-001', 'F1-001'
-            ]),
-            'weight' => $this->faker->optional(0.6)->randomFloat(2, 0.1, 50),
-            'dimensions' => $this->faker->optional(0.5)->randomElement([
-                '10x5x3 cm', '15x10x5 cm', '20x15x10 cm', '25x20x15 cm',
-                '30x25x20 cm', '40x30x25 cm', '50x40x30 cm'
-            ]),
-            'warranty_months' => $this->faker->optional(0.8)->randomElement([3, 6, 12, 24, 36]),
             'active' => $this->faker->boolean(90), // 90% chance of being active
-            'featured' => $this->faker->boolean(20), // 20% chance of being featured
-            'observations' => $this->faker->optional(0.3)->sentence(),
         ];
     }
 
@@ -104,6 +82,20 @@ class ProductFactory extends Factory
         ]);
     }
 
+    public function expensive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'price' => $this->faker->randomFloat(2, 500, 2000),
+        ]);
+    }
+
+    public function cheap(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'price' => $this->faker->randomFloat(2, 5, 50),
+        ]);
+    }
+
     public function outOfStock(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -122,22 +114,6 @@ class ProductFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'category_id' => $category->id,
-        ]);
-    }
-
-    public function expensive(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'price' => $this->faker->randomFloat(2, 500, 2000),
-            'cost_price' => $this->faker->randomFloat(2, 300, 1200),
-        ]);
-    }
-
-    public function cheap(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'price' => $this->faker->randomFloat(2, 5, 50),
-            'cost_price' => $this->faker->randomFloat(2, 3, 30),
         ]);
     }
 

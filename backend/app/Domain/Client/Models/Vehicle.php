@@ -6,10 +6,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use App\Domain\Service\Models\Service;
+use Database\Factories\VehicleFactory;
 
 class Vehicle extends Model
 {
     use HasFactory;
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory()
+    {
+        return VehicleFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.

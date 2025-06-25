@@ -99,6 +99,7 @@ rei-do-oleo/
 ## 📚 Documentação Específica
 
 - **[Backend API](BACKEND.md)** - Laravel 12 + Sanctum + MySQL + Redis
+- **[Suite de Testes](TESTING.md)** - Testes completos Unit + Feature + Integration
 - **Frontend Web** - React 18 + TypeScript + Vite (em desenvolvimento)
 - **Infraestrutura** - Docker + CI/CD (em desenvolvimento)
 
@@ -144,6 +145,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 ```bash
 cd backend
 php artisan test
+php artisan test --coverage-html coverage-html
 ./vendor/bin/phpstan analyse
 ```
 
@@ -155,6 +157,17 @@ npm test
 npm run lint
 npm run type-check
 ```
+
+### Documentação Completa
+
+Para informações detalhadas sobre a suite de testes implementada, consulte **[TESTING.md](TESTING.md)**:
+
+- ✅ **250+ testes** implementados
+- ✅ **13 classes Unit Tests** (Models, Services, Repositories)
+- ✅ **5 classes Feature Tests** (API, Auth, Cache)
+- ✅ **+85% cobertura** estimada
+- ✅ **Validações brasileiras** (CPF, CNPJ, placas)
+- ✅ **Mocking estratégico** e cache testing
 
 ## 🔒 Segurança
 

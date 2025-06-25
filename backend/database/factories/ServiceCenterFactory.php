@@ -43,7 +43,7 @@ class ServiceCenterFactory extends Factory
         return [
             'code' => $this->generateCode(),
             'name' => $name,
-            'slug' => Str::slug($name),
+            'slug' => Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1000, 9999),
             'cnpj' => $this->generateCNPJ(),
             'state_registration' => $this->faker->optional(0.8)->numerify('###.###.###.###'),
             'legal_name' => $name . ' Ltda',

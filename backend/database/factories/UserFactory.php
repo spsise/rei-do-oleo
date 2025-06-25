@@ -34,23 +34,6 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'service_center_id' => ServiceCenter::factory(),
-            'phone' => $this->faker->optional(0.9)->passthrough($this->generateBrazilianPhone()),
-            'whatsapp' => $this->faker->optional(0.7)->passthrough($this->generateBrazilianPhone()),
-            'document' => $this->faker->optional(0.8)->passthrough($this->generateCPF()),
-            'birth_date' => $this->faker->optional(0.7)->dateTimeBetween('-65 years', '-18 years'),
-            'hire_date' => $this->faker->optional(0.9)->dateTimeBetween('-10 years', 'now'),
-            'salary' => $this->faker->optional(0.6)->randomFloat(2, 1500, 8000),
-            'commission_rate' => $this->faker->optional(0.4)->randomFloat(2, 0, 15),
-            'specialties' => $this->faker->optional(0.5)->randomElement([
-                'Motor, Suspensão',
-                'Freios, Direção',
-                'Elétrica, Ar Condicionado',
-                'Injeção Eletrônica',
-                'Câmbio, Embreagem',
-                'Diesel, Caminhões',
-                'Diagnóstico Eletrônico',
-                'Pintura, Funilaria'
-            ]),
             'active' => $this->faker->boolean(95), // 95% chance of being active
             'last_login_at' => $this->faker->optional(0.7)->dateTimeBetween('-30 days', 'now'),
         ];
@@ -70,8 +53,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'name' => 'Admin ' . $this->faker->lastName(),
-            'salary' => $this->faker->randomFloat(2, 5000, 12000),
-            'specialties' => null,
         ])->afterCreating(function (User $user) {
             $user->assignRole('admin');
         });
@@ -81,8 +62,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'name' => 'Gerente ' . $this->faker->lastName(),
-            'salary' => $this->faker->randomFloat(2, 4000, 10000),
-            'specialties' => 'Gestão, Vendas',
         ])->afterCreating(function (User $user) {
             $user->assignRole('manager');
         });
@@ -92,8 +71,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'name' => 'Atendente ' . $this->faker->firstName(),
-            'salary' => $this->faker->randomFloat(2, 1500, 3500),
-            'specialties' => 'Atendimento, Vendas',
         ])->afterCreating(function (User $user) {
             $user->assignRole('attendant');
         });
@@ -103,17 +80,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'name' => 'Técnico ' . $this->faker->firstName(),
-            'salary' => $this->faker->randomFloat(2, 2000, 6000),
-            'commission_rate' => $this->faker->randomFloat(2, 5, 20),
-            'specialties' => $this->faker->randomElement([
-                'Motor, Suspensão',
-                'Freios, Direção',
-                'Elétrica, Ar Condicionado',
-                'Injeção Eletrônica',
-                'Câmbio, Embreagem',
-                'Diesel, Caminhões',
-                'Diagnóstico Eletrônico'
-            ]),
         ])->afterCreating(function (User $user) {
             $user->assignRole('technician');
         });
@@ -143,16 +109,14 @@ class UserFactory extends Factory
     public function senior(): static
     {
         return $this->state(fn (array $attributes) => [
-            'hire_date' => $this->faker->dateTimeBetween('-15 years', '-5 years'),
-            'salary' => $this->faker->randomFloat(2, 4000, 10000),
+            'name' => 'Senior ' . $this->faker->firstName(),
         ]);
     }
 
     public function junior(): static
     {
         return $this->state(fn (array $attributes) => [
-            'hire_date' => $this->faker->dateTimeBetween('-2 years', 'now'),
-            'salary' => $this->faker->randomFloat(2, 1500, 4000),
+            'name' => 'Junior ' . $this->faker->firstName(),
         ]);
     }
 

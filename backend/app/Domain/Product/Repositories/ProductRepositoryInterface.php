@@ -32,8 +32,3 @@ interface ProductRepositoryInterface
 
     public function updateStock(int $id, int $quantity, string $type): bool;
 }
-
-    public function getLowStock(): Collection;
-
-    public function updateStock(int , int , string ): bool;
-}
