@@ -10,11 +10,11 @@ use Illuminate\Routing\Controller as BaseController;
  * @OA\Info(
  *     title="Rei do Óleo API",
  *     version="1.0.0",
- *     description="API para sistema de gestão de postos de troca de óleo e serviços automotivos",
- *     termsOfService="http://swagger.io/terms/",
+ *     description="API completa para gerenciamento do sistema Rei do Óleo - Troca de óleo automotivo",
+ *     termsOfService="http://localhost:8100/terms/",
  *     @OA\Contact(
- *         email="suporte@reidooleo.com.br",
- *         name="Suporte Rei do Óleo"
+ *         email="dev@reidooleo.com",
+ *         name="Rei do Óleo Dev Team"
  *     ),
  *     @OA\License(
  *         name="MIT",
@@ -23,8 +23,18 @@ use Illuminate\Routing\Controller as BaseController;
  * )
  *
  * @OA\Server(
- *     url=L5_SWAGGER_CONST_HOST,
- *     description="Servidor de Desenvolvimento"
+ *     url="http://localhost:8100",
+ *     description="Desenvolvimento - Servidor Local (Porta 8100)"
+ * )
+ *
+ * @OA\Server(
+ *     url="http://localhost:8000",
+ *     description="Desenvolvimento - Servidor Local (Porta 8000)"
+ * )
+ *
+ * @OA\Server(
+ *     url="http://localhost:9000",
+ *     description="Desenvolvimento - Servidor Local (Porta 9000)"
  * )
  *
  * @OA\SecurityScheme(
@@ -32,52 +42,47 @@ use Illuminate\Routing\Controller as BaseController;
  *     type="apiKey",
  *     in="header",
  *     name="Authorization",
- *     description="Token de acesso Sanctum no formato: Bearer {token}"
+ *     description="Token de autenticação Sanctum. Use o formato: Bearer {token}"
  * )
  *
  * @OA\Tag(
  *     name="Autenticação",
- *     description="Endpoints para autenticação e autorização"
+ *     description="Endpoints para autenticação e gerenciamento de usuários"
  * )
  *
  * @OA\Tag(
  *     name="Clientes",
- *     description="Gestão de clientes"
+ *     description="Gerenciamento de clientes"
  * )
  *
  * @OA\Tag(
  *     name="Veículos",
- *     description="Gestão de veículos dos clientes"
+ *     description="Gerenciamento de veículos dos clientes"
  * )
  *
  * @OA\Tag(
  *     name="Produtos",
- *     description="Gestão de produtos e estoque"
+ *     description="Gerenciamento de produtos (óleos, filtros, etc.)"
  * )
  *
  * @OA\Tag(
  *     name="Categorias",
- *     description="Gestão de categorias de produtos"
+ *     description="Gerenciamento de categorias de produtos"
  * )
  *
  * @OA\Tag(
  *     name="Centros de Serviço",
- *     description="Gestão de postos e centros de serviço"
+ *     description="Gerenciamento de centros de serviço/filiais"
  * )
  *
  * @OA\Tag(
- *     name="Serviços",
- *     description="Gestão de serviços realizados"
+ *     name="Ordens de Serviço",
+ *     description="Gerenciamento de ordens de serviço"
  * )
  *
  * @OA\Tag(
  *     name="Itens de Serviço",
- *     description="Gestão de itens utilizados nos serviços"
- * )
- *
- * @OA\Tag(
- *     name="Usuários",
- *     description="Gestão de usuários do sistema"
+ *     description="Gerenciamento de itens das ordens de serviço"
  * )
  */
 class Controller extends BaseController
