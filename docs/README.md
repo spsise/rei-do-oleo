@@ -100,6 +100,7 @@ rei-do-oleo/
 
 - **[Backend API](BACKEND.md)** - Laravel 12 + Sanctum + MySQL + Redis
 - **[Suite de Testes](TESTING.md)** - Testes completos Unit + Feature + Integration
+- **[Git Workflow & Versionamento](GIT_WORKFLOW.md)** - Padrões de commit, branches e comandos Git
 - **Frontend Web** - React 18 + TypeScript + Vite (em desenvolvimento)
 - **Infraestrutura** - Docker + CI/CD (em desenvolvimento)
 
@@ -123,6 +124,28 @@ docker-compose exec backend php artisan tinker
 
 # Frontend development
 docker-compose exec frontend npm run dev
+```
+
+### Git & Versionamento
+
+```bash
+# Ver commits do backend
+git log --oneline --grep="🐘 Backend"
+
+# Ver apenas features
+git log --oneline --grep="✨ feat"
+
+# Ver commits por área
+git log --oneline --grep="⚛️ Frontend"
+
+# Criar branch feature
+git checkout -b feature/nova-funcionalidade
+
+# Commit seguindo padrão
+git commit -m "🐘 Backend ✨ feat: Adiciona nova funcionalidade"
+
+# Limpar branches já merged
+git branch --merged | grep -v "\*\|main\|develop" | xargs -n 1 git branch -d
 ```
 
 ### Produção
