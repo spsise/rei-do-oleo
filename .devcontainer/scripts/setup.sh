@@ -517,7 +517,25 @@ echo -e "${NC}"
 
 info "🎯 Ambiente de desenvolvimento totalmente configurado!"
 
-# 10. Configurar SSH para Git
+# 10. Configurar Git Global
+step "🔐 Configurando Git Global..."
+if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
+    log "Configurando usuário Git: $GIT_USER_NAME <$GIT_USER_EMAIL>"
+    git config --global user.name "$GIT_USER_NAME"
+    git config --global user.email "$GIT_USER_EMAIL"
+    git config --global init.defaultBranch main
+    git config --global pull.rebase false
+    git config --global core.autocrlf input
+    git config --global core.editor "code --wait"
+    success "✅ Git configurado com sucesso"
+else
+    warn "⚠️ Variáveis GIT_USER_NAME e GIT_USER_EMAIL não definidas"
+    info "ℹ️ Configure manualmente com:"
+    info "    git config --global user.name \"Seu Nome\""
+    info "    git config --global user.email \"seu@email.com\""
+fi
+
+# 11. Configurar SSH para Git
 step "🔐 Configurando SSH para Git..."
 if [ -f "/workspace/.devcontainer/scripts/ssh-setup.sh" ]; then
     bash /workspace/.devcontainer/scripts/ssh-setup.sh
