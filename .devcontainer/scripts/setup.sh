@@ -22,6 +22,36 @@ info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 success() { echo -e "${PURPLE}[SUCCESS]${NC} $1"; }
 step() { echo -e "${CYAN}[STEP]${NC} $1"; }
 
+# Função para verificar se comando existe
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Função para executar comandos no backend
+backend_exec() {
+    (cd /workspace/backend && "$@")
+}
+
+# Função para executar comandos no frontend
+frontend_exec() {
+    (cd /workspace/frontend && "$@")
+}
+
+# Função para verificar se comando existe
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Função para executar comandos no backend
+backend_exec() {
+    (cd /workspace/backend && "$@")
+}
+
+# Função para executar comandos no frontend
+frontend_exec() {
+    (cd /workspace/frontend && "$@")
+}
+
 # Banner de início
 echo -e "${BLUE}"
 cat << "EOF"
@@ -36,9 +66,11 @@ cd /workspace
 
 # 1. Aguardar serviços estarem prontos
 step "🔄 Aguardando serviços estarem prontos..."
+SERVICES_READY=false
 for i in {1..60}; do
     if mysqladmin ping -h mysql -u root -proot123 --silent 2>/dev/null && \
        redis-cli -h redis ping >/dev/null 2>&1; then
+        SERVICES_READY=true
         success "✅ Serviços MySQL e Redis prontos!"
         break
     fi
@@ -55,25 +87,25 @@ echo
 step "📦 Configurando Backend Laravel..."
 if [ ! -d "backend" ]; then
     log "Criando novo projeto Laravel..."
-    composer create-project laravel/laravel:^11.0 backend --prefer-dist
-    cd backend
+    composer create-project laravel/laravel:^11.0 backend --prefer-dist --no-interaction
 
     # Instalar dependências específicas
     log "📚 Instalando dependências Laravel..."
-    composer require laravel/sanctum laravel/horizon spatie/laravel-permission
-    composer require spatie/laravel-query-builder spatie/laravel-backup
-    composer require barryvdh/laravel-cors league/flysystem-aws-s3-v3
+    backend_exec composer require laravel/sanctum laravel/horizon spatie/laravel-permission
+    backend_exec composer require spatie/laravel-query-builder spatie/laravel-backup
+    backend_exec composer require barryvdh/laravel-cors league/flysystem-aws-s3-v3
 
     # Dependências de desenvolvimento
-    composer require --dev laravel/telescope barryvdh/laravel-debugbar
-    composer require --dev phpunit/phpunit mockery/mockery fakerphp/faker
-    composer require --dev friendsofphp/php-cs-fixer phpstan/phpstan
-    composer require --dev laravel/sail pestphp/pest
+    backend_exec composer require --dev laravel/telescope barryvdh/laravel-debugbar
+    backend_exec composer require --dev phpunit/phpunit mockery/mockery fakerphp/faker
+    backend_exec composer require --dev friendsofphp/php-cs-fixer phpstan/phpstan
+    backend_exec composer require --dev laravel/sail pestphp/pest
 
-    cd /workspace
+    success "✅ Projeto Laravel criado com sucesso"
 else
     log "Backend Laravel existente encontrado"
-    cd backend && composer install && cd /workspace
+    backend_exec composer install --no-interaction
+    success "✅ Dependências do backend atualizadas"
 fi
 
 # 3. Configurar Frontend React
@@ -81,29 +113,29 @@ step "⚛️ Configurando Frontend React..."
 if [ ! -d "frontend" ]; then
     log "Criando projeto React com Vite..."
     npm create vite@latest frontend -- --template react-ts
-    cd frontend
 
     # Instalar dependências
     log "📚 Instalando dependências React..."
-    npm install
-    npm install @tanstack/react-query react-router-dom axios
-    npm install @headlessui/react @heroicons/react
-    npm install tailwindcss @tailwindcss/forms @tailwindcss/typography
-    npm install react-hook-form @hookform/resolvers yup
-    npm install date-fns react-hot-toast @vite-pwa/vite-plugin
-    npm install workbox-precaching workbox-routing workbox-strategies
+    frontend_exec npm install
+    frontend_exec npm install @tanstack/react-query react-router-dom axios
+    frontend_exec npm install @headlessui/react @heroicons/react
+    frontend_exec npm install tailwindcss @tailwindcss/forms @tailwindcss/typography
+    frontend_exec npm install react-hook-form @hookform/resolvers yup
+    frontend_exec npm install date-fns react-hot-toast @vite-pwa/vite-plugin
+    frontend_exec npm install workbox-precaching workbox-routing workbox-strategies
 
     # Dependências de desenvolvimento
-    npm install --dev @types/react @types/react-dom
-    npm install --dev @typescript-eslint/eslint-plugin @typescript-eslint/parser
-    npm install --dev eslint eslint-plugin-react-hooks eslint-plugin-react-refresh
-    npm install --dev prettier @testing-library/react @testing-library/jest-dom
-    npm install --dev @testing-library/user-event vitest jsdom autoprefixer postcss
+    frontend_exec npm install --dev @types/react @types/react-dom
+    frontend_exec npm install --dev @typescript-eslint/eslint-plugin @typescript-eslint/parser
+    frontend_exec npm install --dev eslint eslint-plugin-react-hooks eslint-plugin-react-refresh
+    frontend_exec npm install --dev prettier @testing-library/react @testing-library/jest-dom
+    frontend_exec npm install --dev @testing-library/user-event vitest jsdom autoprefixer postcss
 
-    cd /workspace
+    success "✅ Projeto React criado com sucesso"
 else
     log "Frontend React existente encontrado"
-    cd frontend && npm install && cd /workspace
+    frontend_exec npm install
+    success "✅ Dependências do frontend atualizadas"
 fi
 
 # 4. Configurar variáveis de ambiente
@@ -149,6 +181,10 @@ if [ ! -f "backend/.env" ]; then
     echo "AWS_BUCKET=rei-do-oleo-storage" >> backend/.env
     echo "AWS_ENDPOINT=http://minio:9000" >> backend/.env
     echo "AWS_USE_PATH_STYLE_ENDPOINT=true" >> backend/.env
+
+    success "✅ Arquivo .env do backend configurado"
+else
+    info "ℹ️ Arquivo .env do backend já existe"
 fi
 
 # Frontend .env
@@ -171,59 +207,104 @@ VITE_PWA_BACKGROUND_COLOR="#ffffff"
 VITE_DEV_MODE=true
 VITE_DEV_TOOLS=true
 EOF
+    success "✅ Arquivo .env do frontend configurado"
+else
+    info "ℹ️ Arquivo .env do frontend já existe"
 fi
 
 # 5. Configurar Laravel
 step "🎯 Configurando Laravel..."
-cd backend
 
-# Gerar chave da aplicação
-log "🔑 Gerando chave da aplicação..."
-php artisan key:generate
+# Gerar chave da aplicação se não existir
+if ! grep -q "APP_KEY=" backend/.env || [ -z "$(grep APP_KEY= backend/.env | cut -d'=' -f2)" ]; then
+    log "🔑 Gerando chave da aplicação..."
+    backend_exec php artisan key:generate --force
+    success "✅ Chave da aplicação gerada"
+else
+    info "ℹ️ Chave da aplicação já existe"
+fi
 
-# Aguardar banco estar pronto e executar migrações
-log "🗄️ Configurando banco de dados..."
+# Aguardar banco estar pronto e verificar migrações
+log "🗄️ Verificando banco de dados..."
+DB_AVAILABLE=false
 for i in {1..30}; do
-    if php artisan migrate:status &>/dev/null; then
-        log "✅ Conexão com banco estabelecida!"
+    if backend_exec php artisan migrate:status &>/dev/null; then
+        DB_AVAILABLE=true
+        success "✅ Conexão com banco estabelecida!"
         break
     fi
     if [ $i -eq 30 ]; then
         warn "⚠️ Não foi possível conectar ao banco"
-        cd /workspace
-        exit 0
+        break
     fi
+    echo -n "."
     sleep 2
 done
+echo
 
-# Executar migrações
-log "🔄 Executando migrações..."
-php artisan migrate
+# Configurar banco de dados apenas se disponível
+if [ "$DB_AVAILABLE" = true ]; then
+    # Verificar se há migrações pendentes
+    MIGRATION_COUNT=$(backend_exec php artisan migrate:status --pending 2>/dev/null | grep -c "Pending" || echo "0")
 
-# Publicar configurações
-log "📄 Publicando configurações..."
-php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider" --quiet
-php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --quiet
+    if [ "$MIGRATION_COUNT" -gt 0 ] || ! backend_exec php artisan migrate:status &>/dev/null; then
+        log "🔄 Executando migrações pendentes..."
+        backend_exec php artisan migrate --force
+        success "✅ Migrações executadas com sucesso"
+    else
+        info "ℹ️ Todas as migrações já foram executadas"
+    fi
 
-# Executar migrações novamente
-php artisan migrate
+    # Verificar e publicar configurações apenas se necessário
+    log "📄 Verificando configurações dos pacotes..."
 
-# Criar storage link
-php artisan storage:link
+    # Sanctum
+    if [ ! -f "backend/config/sanctum.php" ]; then
+        log "Publicando configurações do Sanctum..."
+        backend_exec php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --force --quiet
+    else
+        info "ℹ️ Configurações do Sanctum já publicadas"
+    fi
 
-# Limpar caches
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+    # Spatie Permission
+    if [ ! -f "backend/config/permission.php" ]; then
+        log "Publicando configurações do Spatie Permission..."
+        backend_exec php artisan vendor:publish --provider="Spatie\\Permission\\PermissionServiceProvider" --force --quiet
+    else
+        info "ℹ️ Configurações do Spatie Permission já publicadas"
+    fi
 
-cd /workspace
+    # Executar migrações novamente se houver novas migrações dos pacotes
+    NEW_MIGRATION_COUNT=$(backend_exec php artisan migrate:status --pending 2>/dev/null | grep -c "Pending" || echo "0")
+    if [ "$NEW_MIGRATION_COUNT" -gt 0 ]; then
+        log "🔄 Executando novas migrações dos pacotes..."
+        backend_exec php artisan migrate --force
+    fi
+
+    # Criar storage link se não existir
+    if [ ! -L "backend/public/storage" ]; then
+        log "🔗 Criando link simbólico do storage..."
+        backend_exec php artisan storage:link
+        success "✅ Link do storage criado"
+    else
+        info "ℹ️ Link do storage já existe"
+    fi
+
+    # Limpar caches
+    log "🧹 Limpando caches..."
+    backend_exec php artisan cache:clear
+    backend_exec php artisan config:clear
+    backend_exec php artisan route:clear
+    backend_exec php artisan view:clear
+    success "✅ Caches limpos"
+fi
 
 # 6. Configurar ferramentas de qualidade
 step "🔍 Configurando ferramentas de qualidade..."
 
 # PHP CS Fixer
 if [ ! -f ".php-cs-fixer.php" ]; then
+    log "Configurando PHP CS Fixer..."
     cat > .php-cs-fixer.php << 'EOF'
 <?php
 
@@ -252,10 +333,14 @@ return $config->setRules([
     'phpdoc_var_without_name' => true,
 ])->setFinder($finder);
 EOF
+    success "✅ PHP CS Fixer configurado"
+else
+    info "ℹ️ PHP CS Fixer já configurado"
 fi
 
 # PHPStan
 if [ ! -f "phpstan.neon" ]; then
+    log "Configurando PHPStan..."
     cat > phpstan.neon << 'EOF'
 parameters:
     level: 5
@@ -269,11 +354,17 @@ parameters:
         - backend/app/Exceptions/Handler.php
     checkMissingIterableValueType: false
     checkGenericClassInNonGenericObjectType: false
+    bootstrapFiles:
+        - backend/vendor/autoload.php
 EOF
+    success "✅ PHPStan configurado"
+else
+    info "ℹ️ PHPStan já configurado"
 fi
 
 # ESLint Frontend
 if [ ! -f "frontend/.eslintrc.js" ] && [ -d "frontend" ]; then
+    log "Configurando ESLint para o frontend..."
     cat > frontend/.eslintrc.js << 'EOF'
 module.exports = {
   root: true,
@@ -294,10 +385,14 @@ module.exports = {
   },
 }
 EOF
+    success "✅ ESLint configurado"
+else
+    info "ℹ️ ESLint já configurado"
 fi
 
 # Prettier
 if [ ! -f ".prettierrc" ]; then
+    log "Configurando Prettier..."
     cat > .prettierrc << 'EOF'
 {
   "semi": true,
@@ -308,11 +403,15 @@ if [ ! -f ".prettierrc" ]; then
   "useTabs": false
 }
 EOF
+    success "✅ Prettier configurado"
+else
+    info "ℹ️ Prettier já configurado"
 fi
 
 # 7. Configurar Git Hooks com Husky
 step "🔗 Configurando Git Hooks..."
 if [ ! -f "package.json" ]; then
+    log "Criando package.json raiz..."
     cat > package.json << 'EOF'
 {
   "name": "rei-do-oleo",
@@ -347,10 +446,16 @@ if [ ! -f "package.json" ]; then
 }
 EOF
     npm install
+    success "✅ Package.json criado e dependências instaladas"
+else
+    log "Atualizando dependências do package.json..."
+    npm install
+    info "ℹ️ Package.json já existe, dependências atualizadas"
 fi
 
 # Instalar e configurar Husky
 if [ ! -d ".husky" ]; then
+    log "Configurando Husky para Git Hooks..."
     npx husky install
     npx husky add .husky/pre-commit "npx lint-staged"
 
@@ -366,15 +471,24 @@ if [ ! -d ".husky" ]; then
   ]
 }
 EOF
+    success "✅ Husky configurado"
+else
+    info "ℹ️ Husky já configurado"
 fi
 
 # 8. Criar bucket no MinIO
 step "📦 Configurando MinIO Storage..."
-sleep 5  # Aguardar MinIO estar pronto
-if command -v mc >/dev/null 2>&1; then
-    mc alias set minio http://minio:9000 reidooleo secret123456 >/dev/null 2>&1 || true
-    mc mb minio/rei-do-oleo-storage >/dev/null 2>&1 || true
-    mc policy set public minio/rei-do-oleo-storage >/dev/null 2>&1 || true
+if [ "$SERVICES_READY" = true ]; then
+    sleep 5  # Aguardar MinIO estar pronto
+    if command_exists "mc"; then
+        log "Configurando bucket no MinIO..."
+        mc alias set minio http://minio:9000 reidooleo secret123456 >/dev/null 2>&1 || true
+        mc mb minio/rei-do-oleo-storage >/dev/null 2>&1 || true
+        mc policy set public minio/rei-do-oleo-storage >/dev/null 2>&1 || true
+        success "✅ MinIO configurado"
+    else
+        info "ℹ️ MinIO client não disponível, configuração manual necessária"
+    fi
 fi
 
 # 9. Finalização
@@ -391,8 +505,12 @@ cat << "EOF"
 ║  📧 MailHog: http://localhost:8025                       ║
 ║  📦 MinIO Console: http://localhost:9001                 ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Para iniciar desenvolvimento:                           ║
-║  npm run dev                                             ║
+║  Scripts disponíveis:                                    ║
+║  npm run dev      - Iniciar desenvolvimento             ║
+║  npm run test     - Executar todos os testes            ║
+║  npm run lint     - Executar análise de código          ║
+║  npm run fix      - Corrigir problemas de formatação    ║
+║  npm run build    - Build de produção do frontend       ║
 ╚═══════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
@@ -401,6 +519,10 @@ info "🎯 Ambiente de desenvolvimento totalmente configurado!"
 
 # 10. Configurar SSH para Git
 step "🔐 Configurando SSH para Git..."
-bash /workspace/.devcontainer/scripts/ssh-setup.sh
+if [ -f "/workspace/.devcontainer/scripts/ssh-setup.sh" ]; then
+    bash /workspace/.devcontainer/scripts/ssh-setup.sh
+else
+    info "ℹ️ Script SSH não encontrado, configure manualmente se necessário"
+fi
 
-info "🔧 Execute 'npm run dev' para iniciar os serviços"
+info "🚀 Execute 'npm run dev' para iniciar os serviços de desenvolvimento!"
