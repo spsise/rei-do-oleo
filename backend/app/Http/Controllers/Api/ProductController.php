@@ -20,6 +20,18 @@ class ProductController extends Controller
         private ProductRepositoryInterface $productRepository
     ) {}
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products",
+     *     tags={"Produtos"},
+     *     summary="Listar produtos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="search", in="query", required=false, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="category_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="active", in="query", required=false, @OA\Schema(type="boolean")),
+     *     @OA\Response(response=200, description="Lista de produtos obtida com sucesso")
+     * )
+     */
     public function index(Request $request): JsonResponse
     {
         $filters = $request->only(['search', 'category_id', 'active', 'low_stock', 'per_page']);
@@ -31,6 +43,36 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/products",
+     *     tags={"Produtos"},
+     *     summary="Criar novo produto",
+     *     description="Cria um novo produto no sistema",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name","category_id","price","stock_quantity"},
+     *             @OA\Property(property="name", type="string", example="Óleo Motor 5W30"),
+     *             @OA\Property(property="description", type="string", example="Óleo lubrificante sintético para motores"),
+     *             @OA\Property(property="category_id", type="integer", example=1),
+     *             @OA\Property(property="price", type="number", format="float", example=89.90),
+     *             @OA\Property(property="stock_quantity", type="integer", example=50),
+     *             @OA\Property(property="min_stock", type="integer", example=10),
+     *             @OA\Property(property="active", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Produto criado com sucesso"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação"
+     *     )
+     * )
+     */
     public function store(StoreProductRequest $request): JsonResponse
     {
         $product = $this->productRepository->create($request->validated());
@@ -42,6 +84,29 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/{id}",
+     *     tags={"Produtos"},
+     *     summary="Obter produto específico",
+     *     description="Retorna os dados de um produto específico",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produto encontrado"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Produto não encontrado"
+     *     )
+     * )
+     */
     public function show(int $id): JsonResponse
     {
         $product = $this->productRepository->find($id);
@@ -56,6 +121,45 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/v1/products/{id}",
+     *     tags={"Produtos"},
+     *     summary="Atualizar produto",
+     *     description="Atualiza os dados de um produto existente",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="Óleo Motor 5W30 Premium"),
+     *             @OA\Property(property="description", type="string", example="Óleo lubrificante sintético premium"),
+     *             @OA\Property(property="category_id", type="integer", example=1),
+     *             @OA\Property(property="price", type="number", format="float", example=99.90),
+     *             @OA\Property(property="stock_quantity", type="integer", example=60),
+     *             @OA\Property(property="min_stock", type="integer", example=15),
+     *             @OA\Property(property="active", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produto atualizado com sucesso"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Produto não encontrado"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação"
+     *     )
+     * )
+     */
     public function update(UpdateProductRequest $request, int $id): JsonResponse
     {
         $product = $this->productRepository->update($id, $request->validated());
@@ -70,6 +174,29 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/products/{id}",
+     *     tags={"Produtos"},
+     *     summary="Excluir produto",
+     *     description="Remove um produto do sistema",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produto excluído com sucesso"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Produto não encontrado"
+     *     )
+     * )
+     */
     public function destroy(int $id): JsonResponse
     {
         $deleted = $this->productRepository->delete($id);
@@ -81,6 +208,19 @@ class ProductController extends Controller
         return $this->successResponse(null, 'Produto excluído com sucesso');
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/active/list",
+     *     tags={"Produtos"},
+     *     summary="Listar produtos ativos",
+     *     description="Retorna apenas os produtos que estão ativos no sistema",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produtos ativos listados com sucesso"
+     *     )
+     * )
+     */
     public function getActive(): JsonResponse
     {
         $products = $this->productRepository->getAllActive();
@@ -91,6 +231,25 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/category/{categoryId}",
+     *     tags={"Produtos"},
+     *     summary="Listar produtos por categoria",
+     *     description="Retorna todos os produtos de uma categoria específica",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="categoryId",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produtos da categoria listados com sucesso"
+     *     )
+     * )
+     */
     public function getByCategory(int $categoryId): JsonResponse
     {
         $products = $this->productRepository->getByCategory($categoryId);
@@ -101,6 +260,30 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/products/search/name",
+     *     tags={"Produtos"},
+     *     summary="Buscar produtos por nome",
+     *     description="Busca produtos que contenham o termo no nome",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name"},
+     *             @OA\Property(property="name", type="string", example="óleo", description="Termo de busca")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produtos encontrados"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação"
+     *     )
+     * )
+     */
     public function searchByName(Request $request): JsonResponse
     {
         $request->validate(['name' => 'required|string|max:200']);
@@ -113,6 +296,19 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/stock/low",
+     *     tags={"Produtos"},
+     *     summary="Listar produtos com estoque baixo",
+     *     description="Retorna produtos com quantidade em estoque abaixo do mínimo",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produtos com estoque baixo listados"
+     *     )
+     * )
+     */
     public function getLowStock(): JsonResponse
     {
         $products = $this->productRepository->getLowStock();
@@ -123,6 +319,41 @@ class ProductController extends Controller
         );
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/v1/products/{id}/stock",
+     *     tags={"Produtos"},
+     *     summary="Atualizar estoque do produto",
+     *     description="Atualiza a quantidade em estoque de um produto",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"quantity","type"},
+     *             @OA\Property(property="quantity", type="integer", example=10, description="Quantidade a ser adicionada/subtraída/definida"),
+     *             @OA\Property(property="type", type="string", enum={"add","subtract","set"}, example="add", description="Tipo de operação: add (adicionar), subtract (subtrair), set (definir)")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Estoque atualizado com sucesso"
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Produto não encontrado ou estoque insuficiente"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação"
+     *     )
+     * )
+     */
     public function updateStock(Request $request, int $id): JsonResponse
     {
         $request->validate([
