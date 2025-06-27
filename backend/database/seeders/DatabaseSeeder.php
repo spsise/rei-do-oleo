@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
             ServiceCenterSeeder::class,
 
             // 3. Users with roles and service center assignment
-            // UserSeeder::class, // Will be created separately if needed
+            UserSeeder::class,
 
             // 4. Sample data for testing
             // ClientSeeder::class, // Will be created separately if needed
