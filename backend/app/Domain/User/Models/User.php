@@ -170,4 +170,54 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return 'id';
     }
+
+    /**
+     * Get the highest role based on predefined hierarchy.
+     */
+    public function getHighestRole(): string
+    {
+        if ($this->roles->isEmpty()) {
+            return 'guest';
+        }
+
+        // Define role hierarchy (highest to lowest)
+        $roleHierarchy = [
+            'admin' => 4,
+            'manager' => 3,
+            'attendant' => 2,
+            'technician' => 1
+        ];
+
+        // Get user's highest role based on hierarchy
+        $highestRole = $this->roles
+            ->map(function ($role) use ($roleHierarchy) {
+                return [
+                    'name' => $role->name,
+                    'priority' => $roleHierarchy[$role->name] ?? 0
+                ];
+            })
+            ->sortByDesc('priority')
+            ->first();
+
+        return $highestRole['name'] ?? $this->roles->first()->name;
+    }
+
+    /**
+     * Check if user has higher or equal role than specified.
+     */
+    public function hasRoleLevel(string $minimumRole): bool
+    {
+        $roleHierarchy = [
+            'admin' => 4,
+            'manager' => 3,
+            'attendant' => 2,
+            'technician' => 1
+        ];
+
+        $userLevel = $roleHierarchy[$this->getHighestRole()] ?? 0;
+        $minimumLevel = $roleHierarchy[$minimumRole] ?? 0;
+
+        return $userLevel >= $minimumLevel;
+    }
+
 }

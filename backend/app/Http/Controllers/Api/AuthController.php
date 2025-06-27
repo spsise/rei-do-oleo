@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Domain\User\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Events\Verified;
@@ -183,6 +183,7 @@ class AuthController extends Controller
             ], 401);
         }
 
+        /** @var \App\Domain\User\Models\User $user */
         $user = Auth::user();
 
         // Revoke all existing tokens
@@ -194,7 +195,13 @@ class AuthController extends Controller
             'status' => 'success',
             'message' => 'Login successful',
             'data' => [
-                'user' => $user,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'highest_role' => $user->getHighestRole(),
+                    'active' => $user->active,
+                ],
                 'token' => $token,
                 'token_type' => 'Bearer'
             ]
