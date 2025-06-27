@@ -440,10 +440,18 @@ O arquivo `ClientTest.php` contém **36 testes unitários** que verificam todas 
 ./vendor/bin/phpunit tests/Unit/Models/ClientTest.php
 ```
 
+```bash
+php artisan test --filter=ClientTest
+```
+
 ### **Teste específico:**
 
 ```bash
 ./vendor/bin/phpunit tests/Unit/Models/ClientTest.php --filter="nome_do_teste"
+```
+
+```bash
+php artisan test --filter=ClientTest::total_services_attribute_counts_client_services
 ```
 
 ### **Com detalhes:**
