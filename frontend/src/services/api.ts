@@ -1,14 +1,25 @@
-import axios from "axios";
-import { useAuthStore } from "../stores/authStore";
+import axios from 'axios';
+import { useAuthStore } from '../stores/authStore';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8100/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8100';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  withCredentials: true, // Importante para cookies CSRF
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
+
+// Instância separada para CSRF cookie (sem Bearer token)
+export const csrfApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  withCredentials: true,
+  headers: {
+    Accept: 'application/json',
   },
 });
 
@@ -16,7 +27,7 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const { token, tokenType } = useAuthStore.getState();
   if (token) {
-    const authType = tokenType || "Bearer";
+    const authType = tokenType || 'Bearer';
     config.headers.Authorization = `${authType} ${token}`;
   }
   return config;
@@ -29,7 +40,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Não tentar refresh token para rotas de autenticação
-    const isAuthRoute = originalRequest.url?.includes("/auth/");
+    const isAuthRoute = originalRequest.url?.includes('/auth/');
 
     if (
       error.response?.status === 401 &&
@@ -43,13 +54,13 @@ api.interceptors.response.use(
         // Retry da requisição original
         const { token, tokenType } = useAuthStore.getState();
         if (token) {
-          const authType = tokenType || "Bearer";
+          const authType = tokenType || 'Bearer';
           originalRequest.headers.Authorization = `${authType} ${token}`;
         }
         return api.request(originalRequest);
       } catch (refreshError) {
         useAuthStore.getState().logout();
-        window.location.href = "/login";
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

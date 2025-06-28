@@ -1,15 +1,14 @@
-
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../stores/authStore";
-import { LoginForm } from "../components/forms/LoginForm";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { LoginForm } from '../components/forms/LoginForm';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);
