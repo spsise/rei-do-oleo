@@ -4,11 +4,8 @@
   "description": "Sistema completo de gestão para troca de óleo automotivo",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
-    "dev": "concurrently \"cd backend && php artisan serve --host=0.0.0.0\" \"cd frontend && npm run dev\"",
+    "dev": "concurrently \"cd backend && php artisan serve --host=0.0.0.0 --port=8000\" \"cd frontend && npm run dev\"",
     "build": "cd frontend && npm run build",
     "build:prod": "cd frontend && npm run build --mode production",
     "test": "concurrently \"cd backend && php artisan test\" \"cd frontend && npm test\"",
