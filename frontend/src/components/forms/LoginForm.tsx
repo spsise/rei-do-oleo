@@ -68,6 +68,7 @@ export function LoginForm() {
           </CardTitle>
           <CardDescription>
             Faça login para acessar o sistema
+            <br />
             {csrfInitialized && (
               <span className='ml-2 inline-flex items-center text-green-600'>
                 <Shield className='h-3 w-3 mr-1' />
@@ -151,11 +152,11 @@ export function LoginForm() {
               )}
             </Button>
 
-            <div className='text-center'>
+            {/* <div className='text-center'>
               <Button variant='link' size='sm' type='button'>
                 Esqueci minha senha
               </Button>
-            </div>
+            </div> */}
           </form>
         </CardContent>
       </Card>
