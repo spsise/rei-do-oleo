@@ -3,6 +3,7 @@
 ## 🚀 Como Usar
 
 ### Pré-requisitos
+
 - **WSL2 + Ubuntu:** Docker instalado nativamente no WSL2
 - **Windows:** Docker Desktop com WSL2 backend habilitado
 - **Linux:** Docker Engine instalado
@@ -11,7 +12,9 @@
 ### Iniciando o Dev Container
 
 #### **No WSL2 (Ubuntu):**
+
 1. **Verificar Docker está rodando:**
+
    ```bash
    sudo systemctl status docker
    # Se não estiver rodando:
@@ -19,6 +22,7 @@
    ```
 
 2. **Abrir projeto no VSCode:**
+
    ```bash
    code .
    ```
@@ -29,6 +33,7 @@
    - Aguarde a construção (primeira vez pode demorar ~10-15 minutos)
 
 #### **No Windows com Docker Desktop:**
+
 1. **Verificar Docker Desktop está rodando**
 2. **Abrir no VSCode e seguir passos 2-3 acima**
 
@@ -37,6 +42,7 @@
 Se você está usando WSL2 com Ubuntu, configure recursos adequados:
 
 **Criar/editar `~/.wslconfig` no Windows:**
+
 ```ini
 [wsl2]
 memory=8GB
@@ -45,6 +51,7 @@ swap=2GB
 ```
 
 **Reiniciar WSL2 após alterações:**
+
 ```powershell
 # No PowerShell (Windows)
 wsl --shutdown
@@ -52,6 +59,7 @@ wsl
 ```
 
 **Verificar se Docker está no grupo do usuário:**
+
 ```bash
 # No Ubuntu (WSL2)
 sudo usermod -aG docker $USER
@@ -60,15 +68,15 @@ sudo usermod -aG docker $USER
 
 ### 🔧 Serviços Disponíveis
 
-| Serviço | Porta | URL | Credenciais |
-|---------|-------|-----|------------|
-| Laravel API | 8100 | http://localhost:8100 | - |
-| React App | 3100 | http://localhost:3100 | - |
-| MySQL | 3310 | localhost:3310 | `rei_do_oleo` / `secret123` |
-| phpMyAdmin | 8110 | http://localhost:8110 | `root` / `root123` |
-| Redis | 6400 | localhost:6400 | - |
-| Redis Commander | 6410 | http://localhost:6410 | `admin` / `secret123` |
-| MailHog | 8030 | http://localhost:8030 | - |
+| Serviço         | Porta | URL                   | Credenciais                 |
+| --------------- | ----- | --------------------- | --------------------------- |
+| Laravel API     | 8000  | http://localhost:8000 | -                           |
+| React App       | 3000  | http://localhost:3000 | -                           |
+| MySQL           | 3310  | localhost:3310        | `rei_do_oleo` / `secret123` |
+| phpMyAdmin      | 8110  | http://localhost:8110 | `root` / `root123`          |
+| Redis           | 6400  | localhost:6400        | -                           |
+| Redis Commander | 6410  | http://localhost:6410 | `admin` / `secret123`       |
+| MailHog         | 8030  | http://localhost:8030 | -                           |
 
 ### 🚀 Comandos Úteis
 
@@ -91,6 +99,7 @@ redis-cli                  # Conectar ao Redis
 ### 🛠️ Desenvolvimento
 
 O container está configurado com:
+
 - ✅ PHP 8.2 + extensões essenciais
 - ✅ Composer + Laravel
 - ✅ Node.js 18 + npm/yarn
@@ -102,6 +111,7 @@ O container está configurado com:
 ### 🔍 Troubleshooting
 
 **Container não inicia (WSL2):**
+
 1. Verificar Docker está rodando: `sudo systemctl status docker`
 2. Iniciar Docker se necessário: `sudo systemctl start docker`
 3. Verificar permissões: `sudo usermod -aG docker $USER` (relogar após)
@@ -109,16 +119,19 @@ O container está configurado com:
 5. Reconstruir: `Ctrl+Shift+P` → `Dev Containers: Rebuild Container`
 
 **Container não inicia (Docker Desktop):**
+
 1. Verificar se Docker Desktop está rodando
 2. Verificar WSL2 backend está habilitado
 3. Seguir passos 4-5 acima
 
 **MySQL não conecta:**
+
 1. Aguardar inicialização completa (~60s)
 2. Verificar logs: `docker logs devcontainer-mysql-1`
 3. Verificar se o serviço subiu: `docker ps | grep mysql`
 
 **Performance lenta:**
+
 1. **WSL2:** Aumentar recursos no `.wslconfig` (8GB+ RAM)
 2. **Docker Desktop:** Aumentar recursos nas configurações
 3. Fechar outras aplicações pesadas
@@ -127,6 +140,7 @@ O container está configurado com:
 ### 📊 Status dos Serviços
 
 Verifique se todos os serviços estão rodando:
+
 ```bash
 docker ps
 ```
@@ -134,6 +148,7 @@ docker ps
 ### 🔄 Resetar Ambiente
 
 Para resetar completamente:
+
 ```bash
 # Parar containers
 docker-compose down
@@ -152,25 +167,30 @@ O conflito de portas foi resolvido! As portas foram ajustadas para evitar confli
 ## 🔌 Portas Atualizadas
 
 ### 🛠️ Serviços de Desenvolvimento
-- **Laravel API**: http://localhost:8100 (antes: 8000)
-- **React Frontend**: http://localhost:3100 (antes: 3000) 
+
+- **Laravel API**: http://localhost:8000 (antes: 8000)
+- **React Frontend**: http://localhost:3000 (antes: 3000)
 - **Vite Dev Server**: http://localhost:5200 (antes: 5173)
 
 ### 🗄️ Banco de Dados
+
 - **MySQL**: localhost:3310 (antes: 3309)
   - Database: `rei_do_oleo_dev`
   - User: `rei_do_oleo` / Password: `secret123`
   - Root Password: `root123`
 
 ### 📦 Cache & Sessions
+
 - **Redis**: localhost:6400 (antes: 6379)
 
 ### 🌐 Ferramentas Web
+
 - **phpMyAdmin**: http://localhost:8110 (antes: 8081)
 - **Redis Commander**: http://localhost:6410 (antes: 6380)
   - User: `admin` / Password: `secret123`
 
 ### 📧 Email Testing
+
 - **MailHog Web**: http://localhost:8030 (antes: 8025)
 - **MailHog SMTP**: localhost:1030 (antes: 1025)
 
@@ -204,16 +224,17 @@ code .
 Após inicializar o dev container, verifique:
 
 - [ ] ✅ MySQL conectando em localhost:3310
-- [ ] ✅ Redis respondendo em localhost:6400  
+- [ ] ✅ Redis respondendo em localhost:6400
 - [ ] ✅ phpMyAdmin acessível em http://localhost:8110
 - [ ] ✅ Redis Commander em http://localhost:6410
 - [ ] ✅ MailHog em http://localhost:8030
-- [ ] ✅ Laravel servindo em http://localhost:8100
-- [ ] ✅ React servindo em http://localhost:3100
+- [ ] ✅ Laravel servindo em http://localhost:8000
+- [ ] ✅ React servindo em http://localhost:3000
 
 ## 🛠️ Configurações de Conexão
 
 ### Laravel (.env)
+
 ```env
 DB_HOST=mysql
 DB_PORT=3306
@@ -229,11 +250,13 @@ MAIL_PORT=1025
 ```
 
 ### Cliente MySQL Externo
+
 ```bash
 mysql -h localhost -P 3310 -u rei_do_oleo -psecret123 rei_do_oleo_dev
 ```
 
 ### Redis CLI Externo
+
 ```bash
 redis-cli -h localhost -p 6400
 ```
@@ -246,4 +269,5 @@ redis-cli -h localhost -p 6400
 - **Acesso externo** agora usa as novas portas
 
 ---
-*Configuração atualizada em $(date) - Conflito de portas resolvido* ✨ 
+
+_Configuração atualizada em $(date) - Conflito de portas resolvido_ ✨

@@ -114,9 +114,11 @@ if [ ! -d "frontend" ]; then
     log "Criando projeto React com Vite..."
     npm create vite@latest frontend -- --template react-ts
 
-    # Instalar dependências
+    # Instalar dependências básicas
     log "📚 Instalando dependências React..."
     frontend_exec npm install
+
+    # Instalar dependências do projeto
     frontend_exec npm install @tanstack/react-query react-router-dom axios
     frontend_exec npm install @headlessui/react @heroicons/react
     frontend_exec npm install tailwindcss @tailwindcss/forms @tailwindcss/typography
@@ -125,17 +127,41 @@ if [ ! -d "frontend" ]; then
     frontend_exec npm install workbox-precaching workbox-routing workbox-strategies
 
     # Dependências de desenvolvimento
-    frontend_exec npm install --dev @types/react @types/react-dom
+    frontend_exec npm install --dev @vitejs/plugin-react-swc
+    frontend_exec npm install --dev @types/react @types/react-dom @types/node
     frontend_exec npm install --dev @typescript-eslint/eslint-plugin @typescript-eslint/parser
     frontend_exec npm install --dev eslint eslint-plugin-react-hooks eslint-plugin-react-refresh
     frontend_exec npm install --dev prettier @testing-library/react @testing-library/jest-dom
     frontend_exec npm install --dev @testing-library/user-event vitest jsdom autoprefixer postcss
+    frontend_exec npm install --dev typescript typescript-eslint globals
 
     success "✅ Projeto React criado com sucesso"
 else
-    log "Frontend React existente encontrado"
-    frontend_exec npm install
-    success "✅ Dependências do frontend atualizadas"
+    log "Frontend React existente encontrado - verificando dependências..."
+
+    # Verificar se package.json existe e tem dependências
+    if [ -f "frontend/package.json" ]; then
+        log "📦 Instalando dependências existentes do package.json..."
+        frontend_exec npm ci --no-audit --prefer-offline || frontend_exec npm install --no-audit
+
+        # Verificar se node_modules tem o plugin necessário
+        if [ ! -d "frontend/node_modules/@vitejs/plugin-react-swc" ]; then
+            log "🔧 Instalando plugin React SWC faltante..."
+            frontend_exec npm install --save-dev @vitejs/plugin-react-swc
+        fi
+
+        # Verificar se lovable-tagger está instalado
+        if [ ! -d "frontend/node_modules/lovable-tagger" ]; then
+            log "🔧 Instalando dependência lovable-tagger faltante..."
+            frontend_exec npm install --save-dev lovable-tagger
+        fi
+
+        success "✅ Dependências do frontend verificadas e atualizadas"
+    else
+        warn "⚠️ package.json não encontrado no frontend, reinstalando dependências..."
+        frontend_exec npm install
+        success "✅ Dependências do frontend instaladas"
+    fi
 fi
 
 # 4. Configurar variáveis de ambiente
@@ -418,7 +444,6 @@ if [ ! -f "package.json" ]; then
   "version": "1.0.0",
   "description": "Sistema de Gestão para Troca de Óleo Automotivo",
   "private": true,
-  "workspaces": ["frontend"],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && php artisan serve --host=0.0.0.0 --port=8000",
@@ -491,7 +516,19 @@ if [ "$SERVICES_READY" = true ]; then
     fi
 fi
 
-# 9. Finalização
+# 9. Verificação final do ambiente
+step "🔍 Verificação final do ambiente..."
+
+# Verificar se as dependências críticas do frontend estão instaladas
+if [ -d "frontend/node_modules/@vitejs/plugin-react-swc" ] && [ -d "frontend/node_modules/lovable-tagger" ]; then
+    success "✅ Dependências críticas do frontend verificadas"
+else
+    warn "⚠️ Algumas dependências do frontend podem estar faltando"
+    log "Reinstalando dependências do frontend..."
+    frontend_exec npm install --no-workspaces
+fi
+
+# 10. Finalização
 success "🎉 Setup completo realizado com sucesso!"
 echo -e "${GREEN}"
 cat << "EOF"
@@ -505,19 +542,22 @@ cat << "EOF"
 ║  📧 MailHog: http://localhost:8025                       ║
 ║  📦 MinIO Console: http://localhost:9001                 ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Scripts disponíveis:                                    ║
-║  npm run dev      - Iniciar desenvolvimento             ║
+║  🔧 Para iniciar desenvolvimento:                        ║
+║  npm run dev      - Iniciar ambos servidores            ║
+║                                                          ║
+║  📋 Scripts de manutenção:                               ║
 ║  npm run test     - Executar todos os testes            ║
 ║  npm run lint     - Executar análise de código          ║
 ║  npm run fix      - Corrigir problemas de formatação    ║
 ║  npm run build    - Build de produção do frontend       ║
+║  npm run setup:git - Configurar Git manualmente         ║
 ╚═══════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
 
 info "🎯 Ambiente de desenvolvimento totalmente configurado!"
 
-# 10. Configurar Git Global
+# 11. Configurar Git Global
 step "🔐 Configurando Git Global..."
 if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
     log "Configurando usuário Git: $GIT_USER_NAME <$GIT_USER_EMAIL>"
@@ -535,7 +575,7 @@ else
     info "    git config --global user.email \"seu@email.com\""
 fi
 
-# 11. Configurar SSH para Git
+# 12. Configurar SSH para Git
 step "🔐 Configurando SSH para Git..."
 if [ -f "/workspace/.devcontainer/scripts/ssh-setup.sh" ]; then
     bash /workspace/.devcontainer/scripts/ssh-setup.sh
