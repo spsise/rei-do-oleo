@@ -8,7 +8,7 @@ const API_BASE_URL =
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  withCredentials: true, // Importante para cookies CSRF
+  withCredentials: false,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

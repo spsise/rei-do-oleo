@@ -8,20 +8,17 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Shield } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../hooks/useAuth';
 import { LoginCredentials } from '../../types';
-import { useAuthContext } from '../providers/AuthProvider';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 export function LoginForm() {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
-  const { csrfInitialized, initializingCsrf } = useAuthContext();
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -42,23 +39,6 @@ export function LoginForm() {
     }
   };
 
-  // Mostrar loading enquanto CSRF está sendo inicializado
-  if (initializingCsrf) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4'>
-        <Card className='w-full max-w-md'>
-          <CardContent className='flex flex-col items-center justify-center py-8'>
-            <LoadingSpinner size='lg' className='mb-4' />
-            <p className='text-sm text-gray-600 flex items-center'>
-              <Shield className='h-4 w-4 mr-2' />
-              Inicializando segurança...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4'>
       <Card className='w-full max-w-md'>
@@ -66,16 +46,7 @@ export function LoginForm() {
           <CardTitle className='text-2xl font-bold text-gray-900'>
             Sistema Rei do Óleo
           </CardTitle>
-          <CardDescription>
-            Faça login para acessar o sistema
-            <br />
-            {csrfInitialized && (
-              <span className='ml-2 inline-flex items-center text-green-600'>
-                <Shield className='h-3 w-3 mr-1' />
-                Seguro
-              </span>
-            )}
-          </CardDescription>
+          <CardDescription>Faça login para acessar o sistema</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -106,7 +77,7 @@ export function LoginForm() {
                 <Input
                   id='password'
                   type={showPassword ? 'text' : 'password'}
-                  placeholder='MinhaSenh@123'
+                  placeholder='••••••••'
                   {...register('password', {
                     required: 'Senha é obrigatória',
                     minLength: {
@@ -116,19 +87,17 @@ export function LoginForm() {
                   })}
                   className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                 />
-                <Button
+                <button
                   type='button'
-                  variant='ghost'
-                  size='sm'
-                  className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
                   onClick={() => setShowPassword(!showPassword)}
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
                 >
                   {showPassword ? (
-                    <EyeOff className='h-4 w-4 text-gray-400' />
+                    <EyeOff className='h-4 w-4' />
                   ) : (
-                    <Eye className='h-4 w-4 text-gray-400' />
+                    <Eye className='h-4 w-4' />
                   )}
-                </Button>
+                </button>
               </div>
               {errors.password && (
                 <p className='text-sm text-red-600'>
@@ -137,26 +106,9 @@ export function LoginForm() {
               )}
             </div>
 
-            <Button
-              type='submit'
-              className='w-full'
-              disabled={loading || !csrfInitialized}
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size='sm' className='mr-2' />
-                  Entrando...
-                </>
-              ) : (
-                'Entrar'
-              )}
+            <Button type='submit' className='w-full' disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
-
-            {/* <div className='text-center'>
-              <Button variant='link' size='sm' type='button'>
-                Esqueci minha senha
-              </Button>
-            </div> */}
           </form>
         </CardContent>
       </Card>
