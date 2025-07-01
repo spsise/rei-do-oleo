@@ -2,10 +2,13 @@ import { csrfApi } from './api';
 
 /**
  * Serviço para gerenciar cookies CSRF do Laravel Sanctum
+ *
+ * ⚠️ IMPORTANTE: Este serviço é apenas para rotas WEB (/web/*),
+ * NÃO para rotas API (/api/*) que não precisam de CSRF!
  */
 export const csrfService = {
   /**
-   * Obtém o cookie CSRF necessário para autenticação SPA
+   * Obtém o cookie CSRF necessário para autenticação SPA em rotas WEB
    * Este endpoint é fornecido automaticamente pelo Laravel Sanctum
    */
   async getCsrfCookie(): Promise<void> {
@@ -20,15 +23,15 @@ export const csrfService = {
 
   /**
    * Verifica se o cookie CSRF foi obtido
-   * (útil para debug)
    */
   hasXsrfToken(): boolean {
-    return document.cookie.includes('XSRF-TOKEN');
+    const hasCookie = document.cookie.includes('XSRF-TOKEN');
+    return hasCookie;
   },
 
   /**
    * Força a obtenção de um novo cookie CSRF
-   * Útil quando o token expira ou há problemas de autenticação
+   * Útil apenas para rotas WEB que precisam de CSRF
    */
   async refreshCsrfCookie(): Promise<void> {
     await this.getCsrfCookie();
