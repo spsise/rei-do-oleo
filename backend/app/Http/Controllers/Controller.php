@@ -11,7 +11,7 @@ use Illuminate\Routing\Controller as BaseController;
  *     title="Rei do Óleo API",
  *     version="1.0.0",
  *     description="API completa para gerenciamento do sistema Rei do Óleo - Troca de óleo automotivo",
- *     termsOfService="http://localhost:8100/terms/",
+ *     termsOfService="http://localhost:8000/terms/",
  *     @OA\Contact(
  *         email="dev@reidooleo.com",
  *         name="Rei do Óleo Dev Team"
@@ -20,11 +20,6 @@ use Illuminate\Routing\Controller as BaseController;
  *         name="MIT",
  *         url="https://opensource.org/licenses/MIT"
  *     )
- * )
- *
- * @OA\Server(
- *     url="http://localhost:8100",
- *     description="Desenvolvimento - Servidor Local (Porta 8100)"
  * )
  *
  * @OA\Server(
