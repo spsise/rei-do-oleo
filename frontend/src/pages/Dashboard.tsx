@@ -1,146 +1,304 @@
 import {
-  ChartBarIcon,
-  CogIcon,
-  DocumentTextIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CurrencyDollarIcon,
+  TruckIcon,
   UsersIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline';
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../services/api';
 
-const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+interface DashboardStats {
+  totalClients: number;
+  totalVehicles: number;
+  totalServices: number;
+  totalRevenue: number;
+  servicesThisMonth: number;
+  revenueThisMonth: number;
+  recentServices: Array<{
+    id: number;
+    service_number: string;
+    client_name: string;
+    vehicle_plate: string;
+    status: string;
+    total: number;
+    created_at: string;
+  }>;
+}
 
-  const stats = [
-    {
-      name: 'Total de Usuários',
-      value: '1,234',
-      icon: UsersIcon,
-      change: '+12%',
-      changeType: 'positive',
-    },
-    {
-      name: 'Documentos',
-      value: '567',
-      icon: DocumentTextIcon,
-      change: '+8%',
-      changeType: 'positive',
-    },
-    {
-      name: 'Relatórios',
-      value: '89',
-      icon: ChartBarIcon,
-      change: '+15%',
-      changeType: 'positive',
-    },
-    {
-      name: 'Configurações',
-      value: '12',
-      icon: CogIcon,
-      change: '+3%',
-      changeType: 'positive',
-    },
-  ];
-
-  return (
-    <div className='space-y-6'>
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  change,
+  changeType = 'neutral',
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  change?: string;
+  changeType?: 'up' | 'down' | 'neutral';
+}) => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="flex items-center justify-between">
       <div>
-        <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
-          Dashboard
-        </h1>
-        <p className='text-gray-600 dark:text-gray-400'>
-          Bem-vindo de volta, {user?.name}!
-        </p>
+        <p className="text-sm font-medium text-gray-600">{title}</p>
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        {change && (
+          <div className="flex items-center mt-2">
+            {changeType === 'up' ? (
+              <ArrowUpIcon className="h-4 w-4 text-green-500" />
+            ) : changeType === 'down' ? (
+              <ArrowDownIcon className="h-4 w-4 text-red-500" />
+            ) : null}
+            <span
+              className={`text-sm font-medium ml-1 ${
+                changeType === 'up'
+                  ? 'text-green-600'
+                  : changeType === 'down'
+                    ? 'text-red-600'
+                    : 'text-gray-600'
+              }`}
+            >
+              {change}
+            </span>
+          </div>
+        )}
       </div>
+      <div className="p-3 bg-brand-50 rounded-lg">
+        <Icon className="h-6 w-6 text-brand-600" />
+      </div>
+    </div>
+  </div>
+);
 
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-        {stats.map((stat) => (
-          <div key={stat.name} className='card'>
-            <div className='flex items-center'>
-              <div className='flex-shrink-0'>
-                <stat.icon className='h-8 w-8 text-brand-500' />
-              </div>
-              <div className='ml-4 flex-1'>
-                <p className='text-sm font-medium text-gray-600 dark:text-gray-400'>
-                  {stat.name}
-                </p>
-                <p className='text-2xl font-semibold text-gray-900 dark:text-white'>
-                  {stat.value}
-                </p>
-              </div>
+const RecentServicesCard = ({
+  services,
+}: {
+  services: DashboardStats['recentServices'];
+}) => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="px-6 py-4 border-b border-gray-200">
+      <h3 className="text-lg font-medium text-gray-900">Serviços Recentes</h3>
+    </div>
+    <div className="divide-y divide-gray-200">
+      {services.map((service) => (
+        <div key={service.id} className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                #{service.service_number}
+              </p>
+              <p className="text-sm text-gray-600">{service.client_name}</p>
+              <p className="text-xs text-gray-500">{service.vehicle_plate}</p>
             </div>
-            <div className='mt-4'>
-              <span className='text-sm text-green-600 dark:text-green-400'>
-                {stat.change}
-              </span>
-              <span className='text-sm text-gray-500 dark:text-gray-400 ml-1'>
-                desde o último mês
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-900">
+                R$ {service.total.toFixed(2)}
+              </p>
+              <span
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  service.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : service.status === 'in_progress'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                }`}
+              >
+                {service.status === 'completed'
+                  ? 'Concluído'
+                  : service.status === 'in_progress'
+                    ? 'Em Andamento'
+                    : 'Pendente'}
               </span>
             </div>
           </div>
-        ))}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export const Dashboard = () => {
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const response = await apiService.getDashboardStats();
+      if (response.status === 'success' && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Erro ao carregar estatísticas');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">Erro ao carregar dashboard</p>
+      </div>
+    );
+  }
+
+  const mockStats: DashboardStats = {
+    totalClients: 1250,
+    totalVehicles: 1890,
+    totalServices: 3420,
+    totalRevenue: 125000,
+    servicesThisMonth: 156,
+    revenueThisMonth: 18500,
+    recentServices: [
+      {
+        id: 1,
+        service_number: 'SRV-2024-001',
+        client_name: 'João Silva',
+        vehicle_plate: 'ABC-1234',
+        status: 'completed',
+        total: 450.0,
+        created_at: '2024-01-15T10:30:00Z',
+      },
+      {
+        id: 2,
+        service_number: 'SRV-2024-002',
+        client_name: 'Maria Santos',
+        vehicle_plate: 'XYZ-5678',
+        status: 'in_progress',
+        total: 320.0,
+        created_at: '2024-01-15T09:15:00Z',
+      },
+      {
+        id: 3,
+        service_number: 'SRV-2024-003',
+        client_name: 'Pedro Costa',
+        vehicle_plate: 'DEF-9012',
+        status: 'pending',
+        total: 280.0,
+        created_at: '2024-01-15T08:45:00Z',
+      },
+    ],
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600">Visão geral do sistema Rei do Óleo</p>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        <div className='card'>
-          <h3 className='text-lg font-medium text-gray-900 dark:text-white mb-4'>
-            Atividades Recentes
-          </h3>
-          <div className='space-y-4'>
-            <div className='flex items-center space-x-3'>
-              <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-              <span className='text-sm text-gray-600 dark:text-gray-400'>
-                Novo usuário registrado
-              </span>
+      {/* Stats cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total de Clientes"
+          value={mockStats.totalClients.toLocaleString()}
+          icon={UsersIcon}
+          change="+12%"
+          changeType="up"
+        />
+        <StatCard
+          title="Total de Veículos"
+          value={mockStats.totalVehicles.toLocaleString()}
+          icon={TruckIcon}
+          change="+8%"
+          changeType="up"
+        />
+        <StatCard
+          title="Serviços Realizados"
+          value={mockStats.totalServices.toLocaleString()}
+          icon={WrenchScrewdriverIcon}
+          change="+15%"
+          changeType="up"
+        />
+        <StatCard
+          title="Receita Total"
+          value={`R$ ${mockStats.totalRevenue.toLocaleString()}`}
+          icon={CurrencyDollarIcon}
+          change="+22%"
+          changeType="up"
+        />
+      </div>
+
+      {/* Monthly stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Este Mês</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Serviços</span>
+              <span className="font-medium">{mockStats.servicesThisMonth}</span>
             </div>
-            <div className='flex items-center space-x-3'>
-              <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
-              <span className='text-sm text-gray-600 dark:text-gray-400'>
-                Documento atualizado
-              </span>
-            </div>
-            <div className='flex items-center space-x-3'>
-              <div className='w-2 h-2 bg-yellow-500 rounded-full'></div>
-              <span className='text-sm text-gray-600 dark:text-gray-400'>
-                Relatório gerado
+            <div className="flex justify-between">
+              <span className="text-gray-600">Receita</span>
+              <span className="font-medium">
+                R$ {mockStats.revenueThisMonth.toLocaleString()}
               </span>
             </div>
           </div>
         </div>
 
-        <div className='card'>
-          <h3 className='text-lg font-medium text-gray-900 dark:text-white mb-4'>
-            Resumo do Sistema
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Status dos Serviços
           </h3>
-          <div className='space-y-4'>
-            <div className='flex justify-between'>
-              <span className='text-sm text-gray-600 dark:text-gray-400'>
-                Status do Sistema
-              </span>
-              <span className='text-sm text-green-600 dark:text-green-400 font-medium'>
-                Online
-              </span>
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Concluídos</span>
+              <span className="font-medium text-green-600">85%</span>
             </div>
-            <div className='flex justify-between'>
-              <span className='text-sm text-gray-600 dark:text-gray-400'>
-                Última Atualização
-              </span>
-              <span className='text-sm text-gray-900 dark:text-white'>
-                Há 5 minutos
-              </span>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Em Andamento</span>
+              <span className="font-medium text-yellow-600">12%</span>
             </div>
-            <div className='flex justify-between'>
-              <span className='text-sm text-gray-600 dark:text-gray-400'>
-                Versão
-              </span>
-              <span className='text-sm text-gray-900 dark:text-white'>
-                v1.0.0
-              </span>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Pendentes</span>
+              <span className="font-medium text-red-600">3%</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent services */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentServicesCard services={mockStats.recentServices} />
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Ações Rápidas
+          </h3>
+          <div className="space-y-3">
+            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Novo Cliente</div>
+              <div className="text-sm text-gray-600">
+                Cadastrar novo cliente
+              </div>
+            </button>
+            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Novo Serviço</div>
+              <div className="text-sm text-gray-600">
+                Abrir ordem de serviço
+              </div>
+            </button>
+            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+              <div className="font-medium text-gray-900">Relatório</div>
+              <div className="text-sm text-gray-600">
+                Gerar relatório mensal
+              </div>
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
-export default Dashboard;
