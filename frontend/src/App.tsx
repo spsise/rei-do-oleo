@@ -1,34 +1,18 @@
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { MainLayout } from './components/layout/MainLayout';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { AuthProvider } from './components/providers/AuthProvider';
-import { pwaInstaller } from './utils/pwaInstaller';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import { Toaster } from "react-hot-toast";
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from "react-router-dom";
+import LoginForm from "./components/Auth/LoginForm";
+import AppLayout from "./components/Layout/AppLayout";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Dashboard from "./pages/Dashboard";
 
-// Importar interceptors para configurar CSRF automaticamente
-import './services/interceptors';
-
-// Pages
-import Agenda from './pages/Agenda';
-import ClienteDetalhes from './pages/ClienteDetalhes';
-import Clientes from './pages/Clientes';
-import Configuracoes from './pages/Configuracoes';
-import Dashboard from './pages/Dashboard';
-import Estoque from './pages/Estoque';
-import Financeiro from './pages/Financeiro';
-import Login from './pages/Login';
-import NotFound from './pages/NotFound';
-import NovoCliente from './pages/NovoCliente';
-import NovoServico from './pages/NovoServico';
-import Relatorios from './pages/Relatorios';
-import Servicos from './pages/Servicos';
-
-// Zustand persist
-
+// Configuração do React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -38,100 +22,99 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => {
-  useEffect(() => {
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then(() => console.log('SW registered'))
-        .catch(() => console.log('SW registration failed'));
-    }
+// Componente para rotas protegidas
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { user, isLoading } = useAuth();
 
-    // Initialize PWA installer
-    pwaInstaller.init();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
 
-    // Update manifest link
-    const manifestLink = document.querySelector('link[rel="manifest"]');
-    if (!manifestLink) {
-      const link = document.createElement('link');
-      link.rel = 'manifest';
-      link.href = '/manifest.json';
-      document.head.appendChild(link);
-    }
-  }, []);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
+  return <>{children}</>;
+};
+
+// Componente para rotas públicas (não autenticadas)
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+      <AuthProvider>
+        <Router>
+          <div className="App">
             <Routes>
-              <Route path='/login' element={<Login />} />
+              {/* Rota pública */}
               <Route
-                path='/'
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginForm />
+                  </PublicRoute>
+                }
+              />
+
+              {/* Rotas protegidas */}
+              <Route
+                path="/"
                 element={
                   <ProtectedRoute>
-                    <MainLayout />
+                    <AppLayout />
                   </ProtectedRoute>
                 }
               >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route
-                  index
-                  element={
-                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path='clientes' element={<Clientes />} />
-                <Route path='cliente/novo' element={<NovoCliente />} />
-                <Route path='cliente/:id' element={<ClienteDetalhes />} />
-                <Route path='servicos' element={<Servicos />} />
-                <Route path='servico/novo' element={<NovoServico />} />
-                <Route path='agenda' element={<Agenda />} />
-
-                {/* Manager-only routes */}
-                <Route
-                  path='configuracoes'
-                  element={
-                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                      <Configuracoes />
-                    </ProtectedRoute>
-                  }
+                  path="reports"
+                  element={<div className="p-6">Página de Relatórios</div>}
                 />
                 <Route
-                  path='relatorios'
-                  element={
-                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                      <Relatorios />
-                    </ProtectedRoute>
-                  }
+                  path="users"
+                  element={<div className="p-6">Página de Usuários</div>}
                 />
                 <Route
-                  path='estoque'
-                  element={
-                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                      <Estoque />
-                    </ProtectedRoute>
-                  }
+                  path="documents"
+                  element={<div className="p-6">Página de Documentos</div>}
                 />
                 <Route
-                  path='financeiro'
-                  element={
-                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                      <Financeiro />
-                    </ProtectedRoute>
-                  }
+                  path="settings"
+                  element={<div className="p-6">Página de Configurações</div>}
                 />
               </Route>
-              <Route path='*' element={<NotFound />} />
+
+              {/* Rota 404 */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
+          </div>
+        </Router>
+        <Toaster position="top-right" />
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

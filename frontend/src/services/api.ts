@@ -1,70 +1,97 @@
+import type { AxiosInstance, AxiosResponse } from 'axios';
 import axios from 'axios';
-import { useAuthStore } from '../stores/authStore';
+import type { AuthResponse } from '../types/auth';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? '' : 'http://localhost:8000');
+class ApiService {
+  private api: AxiosInstance;
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  withCredentials: false,
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
-});
+  constructor() {
+    this.api = axios.create({
+      baseURL: 'http://localhost:8000/api',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
 
-// Instância separada para CSRF cookie (sem Bearer token)
-export const csrfApi = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  withCredentials: true,
-  headers: {
-    Accept: 'application/json',
-  },
-});
-
-// Interceptor para adicionar token nas requisições
-api.interceptors.request.use((config) => {
-  const { token, tokenType } = useAuthStore.getState();
-  if (token) {
-    const authType = tokenType || 'Bearer';
-    config.headers.Authorization = `${authType} ${token}`;
-  }
-  return config;
-});
-
-// Interceptor para tratamento de erros
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Não tentar refresh token para rotas de autenticação
-    const isAuthRoute = originalRequest.url?.includes('/auth/');
-
-    if (
-      error.response?.status === 401 &&
-      !isAuthRoute &&
-      !originalRequest._retry
-    ) {
-      originalRequest._retry = true;
-
-      try {
-        await useAuthStore.getState().refreshToken();
-        // Retry da requisição original
-        const { token, tokenType } = useAuthStore.getState();
+    // Request interceptor para adicionar token
+    this.api.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('auth_token');
         if (token) {
-          const authType = tokenType || 'Bearer';
-          originalRequest.headers.Authorization = `${authType} ${token}`;
+          config.headers.Authorization = `Bearer ${token}`;
         }
-        return api.request(originalRequest);
-      } catch (refreshError) {
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
       }
-    }
-    return Promise.reject(error);
+    );
+
+    // Response interceptor para tratamento de erros
+    this.api.interceptors.response.use(
+      (response: AxiosResponse) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
   }
-);
+
+  // Métodos de autenticação
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const response = await this.api.post<AuthResponse>('/login', {
+      email,
+      password,
+    });
+    return response.data;
+  }
+
+  async register(
+    name: string,
+    email: string,
+    password: string,
+    password_confirmation: string
+  ): Promise<AuthResponse> {
+    const response = await this.api.post<AuthResponse>('/register', {
+      name,
+      email,
+      password,
+      password_confirmation,
+    });
+    return response.data;
+  }
+
+  async logout(): Promise<void> {
+    await this.api.post('/logout');
+  }
+
+  async getUser(): Promise<AuthResponse> {
+    const response = await this.api.get<AuthResponse>('/user');
+    return response.data;
+  }
+
+  // Método genérico para outras requisições
+  get<T>(url: string) {
+    return this.api.get<T>(url);
+  }
+
+  post<T>(url: string, data?: any) {
+    return this.api.post<T>(url, data);
+  }
+
+  put<T>(url: string, data?: any) {
+    return this.api.put<T>(url, data);
+  }
+
+  delete<T>(url: string) {
+    return this.api.delete<T>(url);
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;

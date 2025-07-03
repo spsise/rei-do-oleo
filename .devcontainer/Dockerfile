@@ -99,8 +99,8 @@ RUN add-apt-repository ppa:ondrej/php -y && \
 # 🎼 Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 🟢 Instalar Node.js 18.x LTS
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+# 🟢 Instalar Node.js 20.x LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
 # 🧶 Instalar Yarn
@@ -216,4 +216,4 @@ RUN mkdir -p /home/vscode/.cache/composer && \
 EXPOSE 8000 3000 5173 9000
 
 # 🎯 Comando padrão
-CMD ["sleep", "infinity"] 
+CMD ["sleep", "infinity"]

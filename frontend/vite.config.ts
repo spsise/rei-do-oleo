@@ -1,33 +1,23 @@
-import react from '@vitejs/plugin-react-swc';
-import { componentTagger } from 'lovable-tagger';
-import path from 'path';
-import { defineConfig } from 'vite';
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
   server: {
-    host: '0.0.0.0',
-    port: 3000,
-    strictPort: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/sanctum': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
+    host: "0.0.0.0",
+    port: 5173,
+    watch: {
+      usePolling: true,
     },
   },
-  plugins: [react(), mode === 'development' && componentTagger()].filter(
-    Boolean
-  ),
+  build: {
+    outDir: "dist",
+    sourcemap: true,
+  },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": "/src",
     },
   },
-}));
+});
