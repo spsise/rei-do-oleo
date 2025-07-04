@@ -12,31 +12,24 @@ class ClientResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'type' => $this->type,
-            'type_label' => $this->type === 'individual' ? 'Pessoa Física' : 'Pessoa Jurídica',
-            'document' => $this->document,
+            'type' => $this->getType(),
+            'type_label' => $this->getTypeLabel(),
+            'document' => $this->getDocument(),
             'document_formatted' => $this->getFormattedDocument(),
-            'phone' => $this->phone,
+            'phone' => $this->phone01,
             'phone_formatted' => $this->getFormattedPhone(),
-            'whatsapp' => $this->whatsapp,
-            'whatsapp_formatted' => $this->when($this->whatsapp, fn() => $this->formatPhone($this->whatsapp)),
+            'phone02' => $this->phone02,
+            'phone02_formatted' => $this->when($this->phone02, fn() => $this->formatPhone($this->phone02)),
             'email' => $this->email,
-            'birth_date' => $this->birth_date?->format('d/m/Y'),
-            'age' => $this->when($this->birth_date, fn() => $this->birth_date->age),
-            'address' => [
-                'address_line' => $this->address_line,
-                'number' => $this->number,
-                'complement' => $this->complement,
-                'neighborhood' => $this->neighborhood,
-                'city' => $this->city,
-                'state' => $this->state,
-                'zip_code' => $this->zip_code,
-                'zip_code_formatted' => $this->when($this->zip_code, fn() => $this->formatZipCode($this->zip_code)),
-                'full_address' => $this->getFullAddress()
-            ],
+            'address' => $this->address,
+            'city' => $this->city,
+            'state' => $this->state,
+            'zip_code' => $this->zip_code,
+            'zip_code_formatted' => $this->when($this->zip_code, fn() => $this->formatZipCode($this->zip_code)),
+            'full_address' => $this->getFullAddress(),
+            'notes' => $this->notes,
             'active' => $this->active,
             'active_label' => $this->active ? 'Ativo' : 'Inativo',
-            'observations' => $this->observations,
             'vehicles_count' => $this->whenCounted('vehicles'),
             'services_count' => $this->whenCounted('services'),
             'last_service_date' => $this->when($this->relationLoaded('services'), function () {
@@ -48,11 +41,27 @@ class ClientResource extends JsonResource
         ];
     }
 
+    private function getType(): string
+    {
+        return $this->cpf ? 'pessoa_fisica' : 'pessoa_juridica';
+    }
+
+    private function getTypeLabel(): string
+    {
+        return $this->cpf ? 'Pessoa Física' : 'Pessoa Jurídica';
+    }
+
+    private function getDocument(): ?string
+    {
+        return $this->cpf ?? $this->cnpj;
+    }
+
     private function getFormattedDocument(): ?string
     {
-        if (!$this->document) return null;
+        $document = $this->getDocument();
+        if (!$document) return null;
 
-        $clean = preg_replace('/\D/', '', $this->document);
+        $clean = preg_replace('/\D/', '', $document);
 
         if (strlen($clean) === 11) {
             // CPF: 000.000.000-00
@@ -62,12 +71,12 @@ class ClientResource extends JsonResource
             return preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $clean);
         }
 
-        return $this->document;
+        return $document;
     }
 
     private function getFormattedPhone(): ?string
     {
-        return $this->formatPhone($this->phone);
+        return $this->formatPhone($this->phone01);
     }
 
     private function formatPhone(?string $phone): ?string
@@ -101,10 +110,7 @@ class ClientResource extends JsonResource
     private function getFullAddress(): ?string
     {
         $parts = array_filter([
-            $this->address_line,
-            $this->number,
-            $this->complement,
-            $this->neighborhood,
+            $this->address,
             $this->city,
             $this->state
         ]);

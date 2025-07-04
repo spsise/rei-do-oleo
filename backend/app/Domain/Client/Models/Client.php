@@ -143,9 +143,9 @@ class Client extends Model
      */
     public function scopeByDocumentType($query, $type)
     {
-        if ($type === 'individual') {
+        if ($type === 'pessoa_fisica') {
             return $query->whereNotNull('cpf')->whereNull('cnpj');
-        } elseif ($type === 'company') {
+        } elseif ($type === 'pessoa_juridica') {
             return $query->whereNotNull('cnpj')->whereNull('cpf');
         }
 

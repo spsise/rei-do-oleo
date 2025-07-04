@@ -112,7 +112,9 @@ class ClientRepository implements ClientRepositoryInterface
 
     public function create(array $data): Client
     {
-        return Client::create($data);
+        $mappedData = $this->mapDocumentField($data);
+
+        return Client::create($mappedData);
     }
 
     public function update(int $id, array $data): ?Client
@@ -123,7 +125,9 @@ class ClientRepository implements ClientRepositoryInterface
             return null;
         }
 
-        $client->update($data);
+        $mappedData = $this->mapDocumentField($data);
+
+        $client->update($mappedData);
         return $client->fresh(['vehicles', 'services']);
     }
 
@@ -140,16 +144,48 @@ class ClientRepository implements ClientRepositoryInterface
 
     public function findByDocument(string $document): ?Client
     {
-        return Client::where('document', $document)
+        // Limpar o documento
+        $cleanDocument = preg_replace('/\D/', '', $document);
+
+        return Client::where('cpf', $cleanDocument)
+                     ->orWhere('cnpj', $cleanDocument)
                      ->with(['vehicles', 'services'])
                      ->first();
     }
 
     public function findByPhone(string $phone): ?Client
     {
-        return Client::where('phone', $phone)
-                     ->orWhere('whatsapp', $phone)
+        return Client::where('phone01', $phone)
+                     ->orWhere('phone02', $phone)
                      ->with(['vehicles', 'services'])
                      ->first();
+    }
+
+    /**
+     * Mapeia o campo document para cpf ou cnpj baseado no tipo
+     */
+    private function mapDocumentField(array $data): array
+    {
+        if (isset($data['document']) && isset($data['type'])) {
+            $cleanDocument = preg_replace('/\D/', '', $data['document']);
+
+            if ($data['type'] === 'pessoa_fisica') {
+                $data['cpf'] = $cleanDocument;
+                $data['cnpj'] = null;
+            } elseif ($data['type'] === 'pessoa_juridica') {
+                $data['cnpj'] = $cleanDocument;
+                $data['cpf'] = null;
+            }
+
+            unset($data['document'], $data['type']);
+        }
+
+        // Mapear phone para phone01
+        if (isset($data['phone'])) {
+            $data['phone01'] = $data['phone'];
+            unset($data['phone']);
+        }
+
+        return $data;
     }
 }
