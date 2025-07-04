@@ -21,22 +21,6 @@ export const ClientTable: React.FC<ClientTableProps> = ({
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const formatDocument = (document: string, type: string) => {
-    const cleanDocument = document.replace(/\D/g, '');
-
-    if (type === 'pessoa_fisica') {
-      return cleanDocument.replace(
-        /(\d{3})(\d{3})(\d{3})(\d{2})/,
-        '$1.$2.$3-$4'
-      );
-    } else {
-      return cleanDocument.replace(
-        /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-        '$1.$2.$3/$4-$5'
-      );
-    }
-  };
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -198,7 +182,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDocument(client.document, client.type)}
+                  {client.document}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {client.phone || 'Não informado'}
