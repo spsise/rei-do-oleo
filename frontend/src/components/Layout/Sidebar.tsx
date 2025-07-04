@@ -9,7 +9,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Dashboard', href: '/home', icon: HomeIcon },
   { name: 'Relatórios', href: '/reports', icon: ChartBarIcon },
   { name: 'Usuários', href: '/users', icon: UsersIcon },
   { name: 'Documentos', href: '/documents', icon: DocumentTextIcon },

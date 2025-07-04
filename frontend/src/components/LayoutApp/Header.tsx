@@ -11,7 +11,7 @@ import { ProfileDropdown } from './ProfileDropdown';
 
 const getPageTitle = (pathname: string): string => {
   const titles: Record<string, string> = {
-    '/dashboard': 'Dashboard',
+    '/home': 'Dashboard',
     '/clients': 'Clientes',
     '/vehicles': 'Veículos',
     '/services': 'Serviços',

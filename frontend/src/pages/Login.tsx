@@ -30,7 +30,7 @@ export const Login = () => {
 
       if (response.status === 'success') {
         toast.success('Login realizado com sucesso!');
-        navigate('/dashboard');
+        navigate('/home');
       } else {
         toast.error(response.message || 'Erro ao fazer login');
       }

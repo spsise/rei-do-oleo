@@ -26,7 +26,7 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Dashboard', href: '/home', icon: HomeIcon },
   { name: 'Clientes', href: '/clients', icon: UsersIcon },
   { name: 'Veículos', href: '/vehicles', icon: TruckIcon },
   { name: 'Serviços', href: '/services', icon: WrenchScrewdriverIcon },

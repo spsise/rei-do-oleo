@@ -55,7 +55,7 @@ const PublicRoute = ({ children }: { children: ReactNode }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;
@@ -80,7 +80,7 @@ function App() {
 
               {/* Rotas protegidas */}
               <Route
-                path="/dashboard"
+                path="/home"
                 element={
                   <ProtectedRoute>
                     <Dashboard />
@@ -89,7 +89,7 @@ function App() {
               />
 
               {/* Redirecionar raiz para dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
 
               {/* Página 404 */}
               <Route
@@ -104,7 +104,7 @@ function App() {
                         Página não encontrada
                       </p>
                       <a
-                        href="/dashboard"
+                        href="/home"
                         className="text-brand-600 hover:text-brand-500"
                       >
                         Voltar ao Dashboard
