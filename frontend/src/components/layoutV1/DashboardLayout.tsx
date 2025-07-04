@@ -13,7 +13,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <Sidebar />
 
         {/* Main content */}
-        <div className="flex-1 lg:ml-64">
+        <div className="flex-1">
           {/* Header */}
           <Header />
 
