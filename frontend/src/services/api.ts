@@ -1,6 +1,15 @@
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import type {
+  Client,
+  ClientFilters,
+  ClientListResponse,
+  CreateClientData,
+  SearchByDocumentData,
+  SearchByPhoneData,
+  UpdateClientData,
+} from '../types/client';
 
 // Configuração base da API
 const API_BASE_URL = API_CONFIG.BASE_URL;
@@ -160,8 +169,60 @@ class ApiService {
   }
 
   // Métodos para clientes
-  async getClients(): Promise<ApiResponse<unknown[]>> {
-    return apiCall(() => this.api.get<ApiResponse<unknown[]>>('/clients'));
+  async getClients(
+    filters?: ClientFilters
+  ): Promise<ApiResponse<ClientListResponse>> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+    }
+
+    return apiCall(() =>
+      this.api.get<ApiResponse<ClientListResponse>>(
+        `/clients?${params.toString()}`
+      )
+    );
+  }
+
+  async getClient(id: number): Promise<ApiResponse<Client>> {
+    return apiCall(() => this.api.get<ApiResponse<Client>>(`/clients/${id}`));
+  }
+
+  async createClient(data: CreateClientData): Promise<ApiResponse<Client>> {
+    return apiCall(() => this.api.post<ApiResponse<Client>>('/clients', data));
+  }
+
+  async updateClient(
+    id: number,
+    data: UpdateClientData
+  ): Promise<ApiResponse<Client>> {
+    return apiCall(() =>
+      this.api.put<ApiResponse<Client>>(`/clients/${id}`, data)
+    );
+  }
+
+  async deleteClient(id: number): Promise<ApiResponse<null>> {
+    return apiCall(() => this.api.delete<ApiResponse<null>>(`/clients/${id}`));
+  }
+
+  async searchClientByDocument(
+    data: SearchByDocumentData
+  ): Promise<ApiResponse<Client>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Client>>('/clients/search/document', data)
+    );
+  }
+
+  async searchClientByPhone(
+    data: SearchByPhoneData
+  ): Promise<ApiResponse<Client>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Client>>('/clients/search/phone', data)
+    );
   }
 
   // Métodos para veículos

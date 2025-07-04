@@ -10,6 +10,7 @@ import {
 import { DashboardLayout } from './components/LayoutApp/DashboardLayout';
 import { AuthProvider } from './contexts/AuthProvider';
 import { useAuth } from './hooks/useAuth';
+import { ClientsPage } from './pages/Clients';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
 
@@ -84,6 +85,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/clients"
+                element={
+                  <ProtectedRoute>
+                    <ClientsPage />
                   </ProtectedRoute>
                 }
               />
