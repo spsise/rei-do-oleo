@@ -121,7 +121,7 @@ export const ClientsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-10xl mx-auto px-0 sm:px-0 lg:px-0 py-0">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
@@ -206,17 +206,23 @@ export const ClientsPage: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Tabela de Clientes */}
-        <ClientTable
-          clients={clients}
-          onEdit={(client) => openModal('edit', client)}
-          onDelete={handleDeleteClient}
-          loading={isLoading}
-        />
+      {/* Tabela de Clientes - FORA do container de página */}
+      <div className="w-full overflow-x-auto">
+        <div className="max-w-7xl mx-auto">
+          <ClientTable
+            clients={clients}
+            onEdit={(client) => openModal('edit', client)}
+            onDelete={handleDeleteClient}
+            loading={isLoading}
+          />
+        </div>
+      </div>
 
-        {/* Paginação */}
-        {pagination.last_page > 1 && (
+      {/* Paginação */}
+      {pagination.last_page > 1 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Pagination
             currentPage={pagination.current_page}
             lastPage={pagination.last_page}
@@ -224,8 +230,8 @@ export const ClientsPage: React.FC = () => {
             perPage={pagination.per_page}
             onPageChange={handlePageChange}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Modal */}
       {modal.isOpen && (
