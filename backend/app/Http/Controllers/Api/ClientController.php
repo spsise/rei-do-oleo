@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Domain\Client\Repositories\ClientRepositoryInterface;
 use App\Domain\Client\Services\ClientService;
 use App\Http\Resources\ClientResource;
+use App\Http\Resources\ClientCollection;
 use App\Http\Requests\Api\Client\StoreClientRequest;
 use App\Http\Requests\Api\Client\UpdateClientRequest;
 use App\Traits\ApiResponseTrait;
@@ -42,7 +43,7 @@ class ClientController extends Controller
         $clients = $this->clientRepository->searchByFilters($filters);
 
         return $this->successResponse(
-            ClientResource::collection($clients),
+            new ClientCollection($clients),
             'Clientes listados com sucesso'
         );
     }
