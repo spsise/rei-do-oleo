@@ -98,6 +98,16 @@ rei-do-oleo/
 
 ## 📚 Documentação Específica
 
+### 🗄️ Banco de Dados
+
+- **[Visão Geral do Banco](DATABASE_OVERVIEW.md)** - Documentação completa de todas as tabelas
+- **[Resumo Executivo](DATABASE_SUMMARY.md)** - Visão rápida e consulta de referência
+- **[Documentação da Tabela Users](USERS_TABLE_DOCUMENTATION.md)** - Detalhamento completo da tabela de usuários
+- **[Documentação da Tabela Clients](CLIENTS_TABLE_DOCUMENTATION.md)** - Detalhamento completo da tabela de clientes
+- **[Sistema de Permissões](SISTEMA_PERMISSOES.md)** - Documentação do sistema de permissões com diagrama DBML
+
+### 🔧 Desenvolvimento
+
 - **[Backend API](BACKEND.md)** - Laravel 12 + Sanctum + MySQL + Redis
 - **[Suite de Testes](TESTING.md)** - Testes completos Unit + Feature + Integration
 - **[Git Workflow & Versionamento](GIT_WORKFLOW.md)** - Padrões de commit, branches e comandos Git
