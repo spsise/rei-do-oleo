@@ -18,15 +18,15 @@ const navigation = [
 
 const Sidebar: React.FC = () => {
   return (
-    <div className='w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700'>
-      <div className='flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700'>
-        <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
+    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Rei do Óleo
         </h2>
       </div>
 
-      <nav className='mt-6 px-3'>
-        <div className='space-y-1'>
+      <nav className="mt-6 px-3">
+        <div className="space-y-1">
           {navigation.map((item) => (
             <NavLink
               key={item.name}
@@ -39,7 +39,7 @@ const Sidebar: React.FC = () => {
                 }`
               }
             >
-              <item.icon className='mr-3 h-5 w-5' />
+              <item.icon className="mr-3 h-5 w-5" />
               {item.name}
             </NavLink>
           ))}

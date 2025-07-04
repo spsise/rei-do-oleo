@@ -14,6 +14,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -42,14 +43,20 @@ const menuItems: MenuItem[] = [
 export const Sidebar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
   const { logout } = useAuth();
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await logout();
+      toast.success('Logout realizado com sucesso!');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      toast.error('Erro ao fazer logout. Tente novamente.');
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -91,7 +98,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 ${collapsed ? 'w-20' : 'w-64'} bg-white shadow-xl border-gray-100 transform transition-all duration-300 ease-in-out flex flex-col lg:translate-x-0 lg:static lg:inset-0 ${
+        className={`fixed inset-y-0 left-0 z-40 ${collapsed ? 'w-20' : 'w-64'} bg-white shadow-xl border-gray-100 transform transition-all duration-300 ease-in-out flex flex-col min-h-screen lg:translate-x-0 lg:static lg:inset-0 ${
           isMobileMenuOpen
             ? 'translate-x-0'
             : '-translate-x-full lg:translate-x-0'
@@ -169,14 +176,23 @@ export const Sidebar: React.FC = () => {
 
         {/* User section */}
         <div
-          className={`p-4 border-t border-gray-100 ${collapsed ? 'flex flex-col items-center' : ''}`}
+          className={`p-4 border-t border-gray-100 ${collapsed ? 'flex flex-col items-center' : ''} mt-auto`}
         >
           <button
             onClick={handleLogout}
-            className={`flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200 ${collapsed ? 'justify-center px-2' : ''}`}
+            disabled={isLoggingOut}
+            className={`flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 active:scale-95 ${collapsed ? 'justify-center px-2' : ''} ${isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <ArrowRightOnRectangleIcon className="h-5 w-5 text-gray-400" />
-            {!collapsed && <span className="ml-2">Sair</span>}
+            {!collapsed &&
+              (isLoggingOut ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 ml-2 mr-2"></div>
+                  Saindo...
+                </>
+              ) : (
+                <span className="ml-2">Sair</span>
+              ))}
           </button>
         </div>
       </div>
