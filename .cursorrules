@@ -800,6 +800,81 @@ parameters:
 
 ## 🎨 UI/UX Guidelines
 
+### TailAdmin React - Template de Dashboard
+
+**Versão Atual**: 2.1.0
+
+**Características Principais:**
+- Template baseado em Tailwind CSS + React
+- Componentes pré-construídos e responsivos
+- Layouts otimizados para dashboards administrativos
+- Suporte a modo escuro/claro
+- Componentes acessíveis e customizáveis
+
+**Estrutura de Arquivos:**
+```
+src/
+├── components/          # Componentes reutilizáveis
+│   ├── ui/             # Componentes base (Button, Input, etc.)
+│   ├── layout/         # Layouts (Sidebar, Header, etc.)
+│   └── charts/         # Componentes de gráficos
+├── pages/              # Páginas da aplicação
+├── hooks/              # Custom hooks
+├── utils/              # Utilitários e helpers
+└── styles/             # Estilos globais e Tailwind
+```
+
+**Componentes Principais:**
+- **Layout Components**: Sidebar, Header, Footer, Breadcrumb
+- **UI Components**: Buttons, Forms, Tables, Cards, Modals
+- **Data Components**: Charts, DataTables, Filters
+- **Navigation**: Menu, Tabs, Pagination
+
+**Customização:**
+```typescript
+// Configuração de tema
+const theme = {
+  colors: {
+    primary: '#3B82F6',
+    secondary: '#64748B',
+    success: '#10B981',
+    warning: '#F59E0B',
+    danger: '#EF4444'
+  },
+  spacing: {
+    xs: '0.25rem',
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+    xl: '2rem'
+  }
+};
+
+// Uso de componentes
+import { Button, Card, DataTable } from '@/components/ui';
+
+const DashboardCard = () => (
+  <Card className="p-6">
+    <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
+    <DataTable data={data} columns={columns} />
+    <Button variant="primary" className="mt-4">
+      Ver Detalhes
+    </Button>
+  </Card>
+);
+```
+
+**Responsividade:**
+- Mobile-first approach
+- Breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px)
+- Componentes adaptáveis automaticamente
+
+**Acessibilidade:**
+- Suporte a ARIA labels
+- Navegação por teclado
+- Contraste adequado
+- Screen reader friendly
+
 ### Design System
 
 - **Cores**: Palette definida e consistente
