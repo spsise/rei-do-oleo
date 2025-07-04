@@ -530,12 +530,79 @@ jobs:
 ### Code Review Checklist
 
 - [ ] Código segue padrões estabelecidos
+- [ ] **Todo código escrito em inglês** (classes, métodos, variáveis)
+- [ ] **Comentários evitados ou em inglês quando necessários**
 - [ ] Testes unitários incluídos
 - [ ] Documentação atualizada
 - [ ] Performance considerada
 - [ ] Segurança validada
 - [ ] Acessibilidade verificada
 - [ ] Responsividade testada
+
+### 🔤 Regras de Linguagem no Código
+
+**CRÍTICO: Manter consistência linguística**
+
+#### ✅ O que fazer:
+- **Classes**: `UserController`, `OrderService`, `ProductRepository`
+- **Métodos**: `createUser()`, `processOrder()`, `validateEmail()`
+- **Variáveis**: `$userData`, `$orderTotal`, `$productList`
+- **Interfaces**: `UserInterface`, `OrderRepositoryInterface`
+- **Enums**: `OrderStatus`, `PaymentMethod`
+- **Migrations**: `create_users_table`, `add_email_to_orders_table`
+
+#### ❌ O que NÃO fazer:
+- **Classes**: `UsuarioController`, `ServicoPedido`, `RepositorioProduto`
+- **Métodos**: `criarUsuario()`, `processarPedido()`, `validarEmail()`
+- **Variáveis**: `$dadosUsuario`, `$totalPedido`, `$listaProdutos`
+- **Interfaces**: `InterfaceUsuario`, `InterfaceRepositorioPedido`
+
+#### 📝 Comentários - Regras Estritas:
+
+**EVITAR comentários quando:**
+```php
+// ❌ Comentário desnecessário
+$user = User::find($id); // Find user by ID
+
+// ❌ Comentário óbvio
+if ($user->isActive()) {
+    // Check if user is active
+    return true;
+}
+
+// ❌ Comentário em português
+// Verifica se o usuário tem permissão
+if ($user->hasPermission('admin')) {
+    // ...
+}
+```
+
+**USAR comentários apenas quando:**
+```php
+// ✅ Documentação de API
+/**
+ * Process order payment and update inventory
+ *
+ * @param Order $order
+ * @return bool
+ * @throws PaymentFailedException
+ */
+public function processPayment(Order $order): bool
+
+// ✅ Algoritmo complexo
+// Calculate shipping cost using Haversine formula for distance
+$distance = $this->calculateHaversineDistance($origin, $destination);
+
+// ✅ Workaround temporário
+// TODO: Remove this hack when legacy API is updated
+// HACK: Legacy system returns different date format
+
+// ✅ Configuração específica de negócio
+// Business rule: Orders over $1000 require manager approval
+if ($order->total > 1000) {
+    $this->requireManagerApproval($order);
+}
+```
 
 ### Database Best Practices
 
@@ -587,6 +654,13 @@ Schema::create('orders', function (Blueprint $table) {
 
 ## ⚠️ Avisos Importantes
 
+### 🔤 LINGUAGEM NO CÓDIGO - REGRA ABSOLUTA
+- **TODO código deve ser escrito em inglês** (classes, métodos, variáveis, constantes)
+- **NUNCA usar português em nomes de código**
+- **Comentários apenas em inglês e quando estritamente necessários**
+- **Evitar comentários óbvios ou desnecessários**
+
+### 🔒 Segurança e Boas Práticas
 - NUNCA commitar credenciais
 - Sempre usar variáveis de ambiente
 - Manter dependências atualizadas
@@ -595,6 +669,68 @@ Schema::create('orders', function (Blueprint $table) {
 - Código deve ser auto-documentado
 - Sempre considerar escalabilidade
 - Implementar monitoring desde o início
+
+### 📝 Exemplos de Violações Comuns
+
+```php
+// ❌ VIOLAÇÃO - Código em português
+class UsuarioController {
+    public function criarUsuario($dados) {
+        $usuario = new Usuario();
+        $usuario->nome = $dados['nome'];
+        $usuario->email = $dados['email'];
+        $usuario->salvar();
+
+        // Retorna o usuário criado
+        return $usuario;
+    }
+}
+
+// ✅ CORRETO - Código em inglês
+class UserController {
+    public function createUser($data) {
+        $user = new User();
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+        $user->save();
+
+        return $user;
+    }
+}
+```
+
+```typescript
+// ❌ VIOLAÇÃO - Código em português
+interface DadosProduto {
+  nome: string;
+  preco: number;
+  descricao: string;
+}
+
+const ComponenteProduto = ({ produto }: { produto: DadosProduto }) => {
+  const aoAdicionarAoCarrinho = () => {
+    // Adiciona produto ao carrinho
+    console.log('Produto adicionado');
+  };
+
+  return <div>{produto.nome}</div>;
+};
+
+// ✅ CORRETO - Código em inglês
+interface ProductData {
+  name: string;
+  price: number;
+  description: string;
+}
+
+const ProductComponent = ({ product }: { product: ProductData }) => {
+  const handleAddToCart = () => {
+    console.log('Product added');
+  };
+
+  return <div>{product.name}</div>;
+};
+```
 
 ## 📋 Checklist para Novas Implementações
 
@@ -618,6 +754,188 @@ Schema::create('orders', function (Blueprint $table) {
 - **DRY (Don't Repeat Yourself)**: Evitar duplicação de código
 - **YAGNI (You Aren't Gonna Need It)**: Não implementar funcionalidades desnecessárias
 - **KISS (Keep It Simple, Stupid)**: Simplicidade é a sofisticação suprema
+
+### 🔤 Padrões de Linguagem no Código
+
+**IMPORTANTE: Todo o código deve ser escrito em inglês**
+
+#### Backend (Laravel/PHP)
+```php
+// ✅ CORRETO - Nomes em inglês
+class UserController extends Controller
+{
+    public function store(CreateUserRequest $request): JsonResponse
+    {
+        $user = $this->userService->create($request->validated());
+        return new UserResource($user);
+    }
+}
+
+class OrderService
+{
+    public function processPayment(Order $order): bool
+    {
+        // Implementation
+    }
+}
+
+// ❌ INCORRETO - Nomes em português
+class UsuarioController extends Controller
+{
+    public function criar(CriarUsuarioRequest $request): JsonResponse
+    {
+        $usuario = $this->servicoUsuario->criar($request->validated());
+        return new UsuarioResource($usuario);
+    }
+}
+```
+
+#### Frontend (React/TypeScript)
+```typescript
+// ✅ CORRETO - Nomes em inglês
+interface ProductCardProps {
+  product: Product;
+  onAddToCart: (product: Product) => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
+  const handleAddToCart = useCallback(() => {
+    onAddToCart(product);
+  }, [product, onAddToCart]);
+
+  return (
+    <Card>
+      <Card.Header>{product.name}</Card.Header>
+      <Card.Body>
+        <Button onClick={handleAddToCart}>Add to Cart</Button>
+      </Card.Body>
+    </Card>
+  );
+};
+
+// ❌ INCORRETO - Nomes em português
+interface CartaoProdutoProps {
+  produto: Produto;
+  aoAdicionarAoCarrinho: (produto: Produto) => void;
+}
+```
+
+#### Comentários e Documentação
+
+**Regra Geral**: Evitar comentários desnecessários. Código deve ser auto-explicativo.
+
+```php
+// ✅ CORRETO - Comentários apenas quando necessário
+class OrderService
+{
+    /**
+     * Process order payment and update inventory
+     *
+     * @param Order $order
+     * @return bool
+     * @throws PaymentFailedException
+     */
+    public function processPayment(Order $order): bool
+    {
+        // Complex business logic that needs explanation
+        if ($order->total > $this->getUserCreditLimit($order->user_id)) {
+            throw new PaymentFailedException('Insufficient credit limit');
+        }
+
+        // Process payment
+        $paymentResult = $this->paymentGateway->charge($order->total);
+
+        if ($paymentResult->success) {
+            $this->updateInventory($order);
+            return true;
+        }
+
+        return false;
+    }
+}
+
+// ❌ INCORRETO - Comentários óbvios
+class OrderService
+{
+    public function processPayment(Order $order): bool
+    {
+        // Check if user has enough credit
+        if ($order->total > $this->getUserCreditLimit($order->user_id)) {
+            throw new PaymentFailedException('Insufficient credit limit');
+        }
+
+        // Process the payment
+        $paymentResult = $this->paymentGateway->charge($order->total);
+
+        // If payment is successful, update inventory
+        if ($paymentResult->success) {
+            $this->updateInventory($order);
+            return true;
+        }
+
+        return false;
+    }
+}
+```
+
+#### Convenções de Nomenclatura
+
+**Classes e Interfaces:**
+- ✅ `UserController`, `OrderService`, `ProductRepository`
+- ❌ `UsuarioController`, `ServicoPedido`, `RepositorioProduto`
+
+**Métodos e Funções:**
+- ✅ `createUser()`, `processOrder()`, `validateEmail()`
+- ❌ `criarUsuario()`, `processarPedido()`, `validarEmail()`
+
+**Variáveis e Propriedades:**
+- ✅ `$userData`, `$orderTotal`, `$productList`
+- ❌ `$dadosUsuario`, `$totalPedido`, `$listaProdutos`
+
+**Constantes:**
+- ✅ `MAX_RETRY_ATTEMPTS`, `DEFAULT_PAGE_SIZE`
+- ❌ `MAX_TENTATIVAS_TENTATIVA`, `TAMANHO_PAGINA_PADRAO`
+
+#### Exceções para Comentários
+
+**Comentários são aceitáveis quando:**
+1. **Documentação de API** (OpenAPI/Swagger)
+2. **Explicação de algoritmos complexos**
+3. **Workarounds temporários** (TODO, FIXME, HACK)
+4. **Configurações específicas de negócio**
+5. **Integração com sistemas externos**
+
+```php
+// ✅ Comentários úteis
+/**
+ * Calculate shipping cost based on distance and weight
+ *
+ * @param float $distance Distance in kilometers
+ * @param float $weight Weight in kilograms
+ * @return float Shipping cost
+ */
+public function calculateShippingCost(float $distance, float $weight): float
+{
+    // TODO: Implement dynamic pricing based on fuel costs
+    $baseRate = 10.0;
+    $distanceMultiplier = 2.5;
+    $weightMultiplier = 1.5;
+
+    return $baseRate + ($distance * $distanceMultiplier) + ($weight * $weightMultiplier);
+}
+
+// ✅ Workaround temporário
+public function processLegacyData(array $data): array
+{
+    // HACK: Legacy system uses different date format
+    // Remove this when legacy system is decommissioned
+    if (isset($data['created_at'])) {
+        $data['created_at'] = Carbon::parse($data['created_at'])->format('Y-m-d H:i:s');
+    }
+
+    return $data;
+}
+```
 
 ### Metodologia de Trabalho
 
