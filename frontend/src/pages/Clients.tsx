@@ -68,11 +68,6 @@ export const ClientsPage: React.FC = () => {
 
   // Excluir cliente
   const handleDeleteClient = async (client: Client) => {
-    if (
-      !confirm(`Tem certeza que deseja excluir o cliente "${client.name}"?`)
-    ) {
-      return;
-    }
     await deleteClientMutation.mutateAsync(client.id);
   };
 

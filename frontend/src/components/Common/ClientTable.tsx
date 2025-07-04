@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Client } from '../../types/client';
 
 interface ClientTableProps {
@@ -14,6 +14,9 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   onDelete,
   loading = false,
 }) => {
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -33,6 +36,63 @@ export const ClientTable: React.FC<ClientTableProps> = ({
       );
     }
   };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    await onDelete(deleteTarget);
+    setIsDeleting(false);
+    setDeleteTarget(null);
+  };
+
+  // Tooltip component
+  const Tooltip = ({
+    children,
+    label,
+  }: {
+    children: React.ReactNode;
+    label: string;
+  }) => (
+    <div className="relative group">
+      {children}
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-10 w-max min-w-[120px] rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg whitespace-nowrap">
+        {label}
+      </span>
+    </div>
+  );
+
+  // Modal de confirmação customizado
+  const ConfirmDeleteModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Excluir cliente
+        </h3>
+        <p className="text-gray-700 mb-4">
+          Tem certeza que deseja excluir o cliente{' '}
+          <span className="font-bold">{deleteTarget?.name}</span>?
+          <br />
+          Essa ação não poderá ser desfeita.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-4 py-2 rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none"
+            onClick={() => setDeleteTarget(null)}
+            disabled={isDeleting}
+          >
+            Cancelar
+          </button>
+          <button
+            className="px-4 py-2 rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-60"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Excluindo...' : 'Excluir'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -191,25 +251,28 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                         />
                       </svg>
                     </button>
-                    <button
-                      onClick={() => onDelete(client)}
-                      className="text-red-600 hover:text-red-900 transition-colors"
-                      title="Excluir cliente"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                    <Tooltip label="Excluir cliente">
+                      <button
+                        onClick={() => setDeleteTarget(client)}
+                        className="text-red-600 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-700 rounded-full p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
+                        title="Excluir cliente"
+                        disabled={isDeleting}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </Tooltip>
                   </div>
                 </td>
               </tr>
@@ -217,6 +280,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
           </tbody>
         </table>
       </div>
+      {deleteTarget && <ConfirmDeleteModal />}
     </div>
   );
 };
