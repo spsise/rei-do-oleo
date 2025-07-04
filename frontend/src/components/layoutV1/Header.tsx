@@ -7,6 +7,7 @@ import {
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { ProfileDropdown } from './ProfileDropdown';
 
 const getPageTitle = (pathname: string): string => {
   const titles: Record<string, string> = {
@@ -114,33 +115,10 @@ export const Header: React.FC = () => {
               </button>
 
               {/* Profile dropdown menu */}
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 z-50 animate-fade-in">
-                  <div className="py-1">
-                    <a
-                      href="#profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded"
-                    >
-                      Meu Perfil
-                    </a>
-                    <a
-                      href="#settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded"
-                    >
-                      Configurações
-                    </a>
-                    <div className="border-t border-gray-100 my-1" />
-                    <button
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded"
-                    >
-                      Sair
-                    </button>
-                  </div>
-                </div>
-              )}
+              <ProfileDropdown
+                isOpen={isProfileOpen}
+                onClose={() => setIsProfileOpen(false)}
+              />
             </div>
           </div>
         </div>
