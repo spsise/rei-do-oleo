@@ -50,7 +50,6 @@ export const ClientsPage: React.FC = () => {
   // Fechar modal
   const closeModal = () => {
     setModal({ isOpen: false, type: 'create' });
-    setSearchResult(null);
   };
 
   // Criar cliente
@@ -76,6 +75,7 @@ export const ClientsPage: React.FC = () => {
     try {
       const result = await searchByDocumentMutation.mutateAsync({ document });
       setSearchResult(result);
+      setModal({ isOpen: false, type: 'create' });
     } catch {
       setSearchResult(null);
     }
@@ -86,6 +86,7 @@ export const ClientsPage: React.FC = () => {
     try {
       const result = await searchByPhoneMutation.mutateAsync({ phone });
       setSearchResult(result);
+      setModal({ isOpen: false, type: 'create' });
     } catch {
       setSearchResult(null);
     }
