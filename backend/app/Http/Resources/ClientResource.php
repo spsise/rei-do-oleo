@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Helpers\DocumentMaskHelper;
 
 class ClientResource extends JsonResource
 {
@@ -14,7 +15,7 @@ class ClientResource extends JsonResource
             'name' => $this->name,
             'type' => $this->getType(),
             'type_label' => $this->getTypeLabel(),
-            'document' => $this->getDocument(),
+            'document' => DocumentMaskHelper::mask($this->getDocument()),
             'document_formatted' => $this->getFormattedDocument(),
             'phone' => $this->phone01,
             'phone_formatted' => $this->getFormattedPhone(),
