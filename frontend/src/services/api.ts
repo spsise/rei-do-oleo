@@ -2,6 +2,13 @@ import type { AxiosInstance, AxiosResponse } from 'axios';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import type {
+  Category,
+  CategoryFilters,
+  CategoryListResponse,
+  CreateCategoryData,
+  UpdateCategoryData,
+} from '../types/category';
+import type {
   Client,
   ClientFilters,
   ClientListResponse,
@@ -10,6 +17,14 @@ import type {
   SearchByPhoneData,
   UpdateClientData,
 } from '../types/client';
+import type {
+  CreateServiceData,
+  SearchServiceData,
+  Service,
+  ServiceFilters,
+  ServiceListResponse,
+  UpdateServiceData,
+} from '../types/service';
 
 // Configuração base da API
 const API_BASE_URL = API_CONFIG.BASE_URL;
@@ -225,14 +240,107 @@ class ApiService {
     );
   }
 
+  // Métodos para serviços
+  async getServices(
+    filters?: ServiceFilters
+  ): Promise<ApiResponse<ServiceListResponse>> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+    }
+
+    return apiCall(() =>
+      this.api.get<ApiResponse<ServiceListResponse>>(
+        `/services?${params.toString()}`
+      )
+    );
+  }
+
+  async getService(id: number): Promise<ApiResponse<Service>> {
+    return apiCall(() => this.api.get<ApiResponse<Service>>(`/services/${id}`));
+  }
+
+  async createService(data: CreateServiceData): Promise<ApiResponse<Service>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Service>>('/services', data)
+    );
+  }
+
+  async updateService(
+    id: number,
+    data: UpdateServiceData
+  ): Promise<ApiResponse<Service>> {
+    return apiCall(() =>
+      this.api.put<ApiResponse<Service>>(`/services/${id}`, data)
+    );
+  }
+
+  async deleteService(id: number): Promise<ApiResponse<null>> {
+    return apiCall(() => this.api.delete<ApiResponse<null>>(`/services/${id}`));
+  }
+
+  async searchService(data: SearchServiceData): Promise<ApiResponse<Service>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Service>>('/services/search', data)
+    );
+  }
+
+  // Métodos para categorias
+  async getCategories(
+    filters?: CategoryFilters
+  ): Promise<ApiResponse<CategoryListResponse>> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+    }
+
+    return apiCall(() =>
+      this.api.get<ApiResponse<CategoryListResponse>>(
+        `/categories?${params.toString()}`
+      )
+    );
+  }
+
+  async getCategory(id: number): Promise<ApiResponse<Category>> {
+    return apiCall(() =>
+      this.api.get<ApiResponse<Category>>(`/categories/${id}`)
+    );
+  }
+
+  async createCategory(
+    data: CreateCategoryData
+  ): Promise<ApiResponse<Category>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Category>>('/categories', data)
+    );
+  }
+
+  async updateCategory(
+    id: number,
+    data: UpdateCategoryData
+  ): Promise<ApiResponse<Category>> {
+    return apiCall(() =>
+      this.api.put<ApiResponse<Category>>(`/categories/${id}`, data)
+    );
+  }
+
+  async deleteCategory(id: number): Promise<ApiResponse<null>> {
+    return apiCall(() =>
+      this.api.delete<ApiResponse<null>>(`/categories/${id}`)
+    );
+  }
+
   // Métodos para veículos
   async getVehicles(): Promise<ApiResponse<unknown[]>> {
     return apiCall(() => this.api.get<ApiResponse<unknown[]>>('/vehicles'));
-  }
-
-  // Métodos para serviços
-  async getServices(): Promise<ApiResponse<unknown[]>> {
-    return apiCall(() => this.api.get<ApiResponse<unknown[]>>('/services'));
   }
 
   // Métodos para produtos

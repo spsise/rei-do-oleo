@@ -10,9 +10,11 @@ import {
 import { DashboardLayout } from './components/LayoutApp/DashboardLayout';
 import { AuthProvider } from './contexts/AuthProvider';
 import { useAuth } from './hooks/useAuth';
+import { CategoriesPage } from './pages/Categories';
 import { ClientsPage } from './pages/Clients';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
+import { ServicesPage } from './pages/Services';
 
 // Configuração do React Query
 const queryClient = new QueryClient({
@@ -94,6 +96,24 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ClientsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/services"
+                element={
+                  <ProtectedRoute>
+                    <ServicesPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/categories"
+                element={
+                  <ProtectedRoute>
+                    <CategoriesPage />
                   </ProtectedRoute>
                 }
               />

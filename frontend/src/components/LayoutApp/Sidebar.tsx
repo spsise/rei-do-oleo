@@ -8,6 +8,7 @@ import {
   Cog6ToothIcon,
   CubeIcon,
   HomeIcon,
+  TagIcon,
   TruckIcon,
   UsersIcon,
   WrenchScrewdriverIcon,
@@ -30,6 +31,7 @@ const menuItems: MenuItem[] = [
   { name: 'Clientes', href: '/clients', icon: UsersIcon },
   { name: 'Veículos', href: '/vehicles', icon: TruckIcon },
   { name: 'Serviços', href: '/services', icon: WrenchScrewdriverIcon },
+  { name: 'Categorias', href: '/categories', icon: TagIcon },
   { name: 'Produtos', href: '/products', icon: CubeIcon },
   {
     name: 'Centros de Serviço',
