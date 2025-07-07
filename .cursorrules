@@ -1,3 +1,388 @@
+## 📁 ESTRUTURA DE ARQUIVOS E MAPEAMENTO DO SISTEMA
+
+### Estrutura Completa do Monorepo
+
+```
+rei-do-oleo/
+├── backend/                           # Laravel 12 API
+│   ├── app/
+│   │   ├── Console/
+│   │   │   └── Commands/              # Artisan Commands
+│   │   ├── Events/                    # Event Classes
+│   │   ├── Exceptions/                # Custom Exceptions
+│   │   ├── Http/
+│   │   │   ├── Controllers/           # API Controllers
+│   │   │   │   ├── Api/               # API Controllers
+│   │   │   │   └── Web/               # Web Controllers
+│   │   │   ├── Middleware/            # Custom Middleware
+│   │   │   ├── Requests/              # Form Requests
+│   │   │   └── Resources/             # API Resources
+│   │   ├── Jobs/                      # Queue Jobs
+│   │   ├── Listeners/                 # Event Listeners
+│   │   ├── Mail/                      # Mail Classes
+│   │   ├── Models/                    # Eloquent Models
+│   │   │   ├── Traits/                # Model Traits
+│   │   │   └── Scopes/                # Query Scopes
+│   │   ├── Notifications/             # Notification Classes
+│   │   ├── Policies/                  # Authorization Policies
+│   │   ├── Providers/                 # Service Providers
+│   │   ├── Repositories/              # Repository Pattern
+│   │   │   ├── Interfaces/            # Repository Interfaces
+│   │   │   └── Implementations/       # Repository Implementations
+│   │   ├── Services/                  # Business Logic Services
+│   │   └── Support/                   # Helper Classes
+│   ├── bootstrap/
+│   ├── config/                        # Configuration Files
+│   ├── database/
+│   │   ├── factories/                 # Model Factories
+│   │   ├── migrations/                # Database Migrations
+│   │   └── seeders/                   # Database Seeders
+│   ├── lang/                          # Localization Files
+│   ├── public/                        # Public Assets
+│   ├── resources/
+│   │   ├── js/                        # JavaScript Assets
+│   │   ├── sass/                      # SASS Files
+│   │   └── views/                     # Blade Templates
+│   ├── routes/
+│   │   ├── api.php                    # API Routes
+│   │   ├── web.php                    # Web Routes
+│   │   └── channels.php               # Broadcasting Routes
+│   ├── storage/
+│   │   ├── app/                       # Application Storage
+│   │   ├── framework/                 # Framework Storage
+│   │   └── logs/                      # Log Files
+│   ├── tests/
+│   │   ├── Feature/                   # Feature Tests
+│   │   ├── Unit/                      # Unit Tests
+│   │   └── TestCase.php               # Base Test Case
+│   ├── .env.example                   # Environment Template
+│   ├── .env                           # Environment Variables
+│   ├── artisan                        # Artisan CLI
+│   ├── composer.json                  # PHP Dependencies
+│   └── phpunit.xml                    # PHPUnit Configuration
+├── frontend/                          # React 18 + TypeScript + Vite
+│   ├── public/
+│   │   ├── index.html                 # Main HTML File
+│   │   ├── favicon.ico                # Favicon
+│   │   └── manifest.json              # PWA Manifest
+│   ├── src/
+│   │   ├── components/                # React Components
+│   │   │   ├── ui/                    # Base UI Components
+│   │   │   │   ├── Button/            # Button Component
+│   │   │   │   ├── Input/             # Input Component
+│   │   │   │   ├── Modal/             # Modal Component
+│   │   │   │   ├── Table/             # Table Component
+│   │   │   │   └── index.ts           # UI Components Export
+│   │   │   ├── layout/                # Layout Components
+│   │   │   │   ├── Header/            # Header Component
+│   │   │   │   ├── Sidebar/           # Sidebar Component
+│   │   │   │   ├── Footer/            # Footer Component
+│   │   │   │   └── index.ts           # Layout Components Export
+│   │   │   ├── forms/                 # Form Components
+│   │   │   ├── charts/                # Chart Components
+│   │   │   └── common/                # Common Components
+│   │   ├── pages/                     # Page Components
+│   │   │   ├── Dashboard/             # Dashboard Page
+│   │   │   ├── Auth/                  # Authentication Pages
+│   │   │   ├── Products/              # Products Pages
+│   │   │   ├── Orders/                # Orders Pages
+│   │   │   └── Settings/              # Settings Pages
+│   │   ├── hooks/                     # Custom React Hooks
+│   │   │   ├── useApi.ts              # API Hook
+│   │   │   ├── useAuth.ts             # Authentication Hook
+│   │   │   ├── useLocalStorage.ts     # Local Storage Hook
+│   │   │   └── useDebounce.ts         # Debounce Hook
+│   │   ├── services/                  # API Services
+│   │   │   ├── api.ts                 # API Client
+│   │   │   ├── authService.ts         # Auth Service
+│   │   │   ├── productService.ts      # Product Service
+│   │   │   └── orderService.ts        # Order Service
+│   │   ├── store/                     # State Management
+│   │   │   ├── slices/                # Redux Slices
+│   │   │   ├── store.ts               # Redux Store
+│   │   │   └── hooks.ts               # Redux Hooks
+│   │   ├── types/                     # TypeScript Types
+│   │   │   ├── api.ts                 # API Types
+│   │   │   ├── auth.ts                # Auth Types
+│   │   │   ├── product.ts             # Product Types
+│   │   │   └── order.ts               # Order Types
+│   │   ├── utils/                     # Utility Functions
+│   │   │   ├── constants.ts           # Constants
+│   │   │   ├── helpers.ts             # Helper Functions
+│   │   │   ├── validators.ts          # Validation Functions
+│   │   │   └── formatters.ts          # Formatting Functions
+│   │   ├── styles/                    # Global Styles
+│   │   │   ├── globals.css            # Global CSS
+│   │   │   ├── tailwind.css           # Tailwind CSS
+│   │   │   └── variables.css          # CSS Variables
+│   │   ├── App.tsx                    # Main App Component
+│   │   ├── main.tsx                   # App Entry Point
+│   │   └── vite-env.d.ts              # Vite Types
+│   ├── __tests__/                     # Test Files
+│   │   ├── components/                # Component Tests
+│   │   ├── pages/                     # Page Tests
+│   │   ├── hooks/                     # Hook Tests
+│   │   └── utils/                     # Utility Tests
+│   ├── .env.example                   # Environment Template
+│   ├── .env                           # Environment Variables
+│   ├── package.json                   # Node Dependencies
+│   ├── tsconfig.json                  # TypeScript Configuration
+│   ├── vite.config.ts                 # Vite Configuration
+│   ├── tailwind.config.js             # Tailwind Configuration
+│   └── jest.config.js                 # Jest Configuration
+├── docs/                              # Documentation
+│   ├── api/                           # API Documentation
+│   ├── deployment/                    # Deployment Guides
+│   ├── development/                   # Development Guides
+│   └── architecture/                  # Architecture Diagrams
+├── scripts/                           # Automation Scripts
+│   ├── deploy.sh                      # Deployment Script
+│   ├── backup.sh                      # Backup Script
+│   ├── health-check.sh                # Health Check Script
+│   └── migrate-database.sh            # Database Migration Script
+├── docker/                            # Docker Configuration
+│   ├── Dockerfile.backend             # Backend Dockerfile
+│   ├── Dockerfile.frontend            # Frontend Dockerfile
+│   ├── docker-compose.yml             # Development Environment
+│   ├── docker-compose.prod.yml        # Production Environment
+│   ├── nginx.conf                     # Nginx Configuration
+│   └── supervisord.conf               # Supervisor Configuration
+├── k8s/                               # Kubernetes Configuration
+│   ├── deployment.yaml                # Deployment Configuration
+│   ├── service.yaml                   # Service Configuration
+│   ├── ingress.yaml                   # Ingress Configuration
+│   ├── configmap.yaml                 # ConfigMap Configuration
+│   ├── secrets.yaml                   # Secrets Configuration
+│   ├── network-policy.yaml            # Network Policy
+│   └── hpa.yaml                       # Horizontal Pod Autoscaler
+├── monitoring/                        # Monitoring Configuration
+│   ├── prometheus.yml                 # Prometheus Configuration
+│   ├── grafana-dashboard.json         # Grafana Dashboard
+│   └── alert-rules.yml                # Alert Rules
+├── logging/                           # Logging Configuration
+│   └── logstash.conf                  # Logstash Configuration
+├── .github/                           # GitHub Configuration
+│   └── workflows/                     # CI/CD Workflows
+│       ├── ci-cd.yml                  # Main CI/CD Pipeline
+│       ├── security-scan.yml          # Security Scanning
+│       └── dependency-update.yml      # Dependency Updates
+├── .gitignore                         # Git Ignore Rules
+├── docker-compose.yml                 # Root Docker Compose
+├── README.md                          # Project Documentation
+└── .cursorrules                       # Cursor AI Rules
+```
+
+### Padrões de Nomenclatura de Arquivos
+
+#### Backend (Laravel)
+- **Controllers**: `UserController.php`, `OrderController.php`
+- **Models**: `User.php`, `Order.php`, `Product.php`
+- **Services**: `UserService.php`, `OrderService.php`, `PaymentService.php`
+- **Repositories**: `UserRepository.php`, `OrderRepository.php`
+- **Requests**: `StoreUserRequest.php`, `UpdateUserRequest.php`
+- **Resources**: `UserResource.php`, `OrderResource.php`
+- **Migrations**: `2024_01_01_000000_create_users_table.php`
+- **Seeders**: `UserSeeder.php`, `ProductSeeder.php`
+- **Factories**: `UserFactory.php`, `ProductFactory.php`
+- **Jobs**: `ProcessOrderJob.php`, `SendEmailJob.php`
+- **Events**: `OrderCreated.php`, `UserRegistered.php`
+- **Listeners**: `SendOrderConfirmation.php`, `UpdateInventory.php`
+- **Policies**: `UserPolicy.php`, `OrderPolicy.php`
+- **Middleware**: `ApiVersionMiddleware.php`, `RateLimitMiddleware.php`
+
+#### Frontend (React/TypeScript)
+- **Components**: `UserCard.tsx`, `OrderTable.tsx`, `ProductModal.tsx`
+- **Pages**: `Dashboard.tsx`, `UserProfile.tsx`, `OrderDetails.tsx`
+- **Hooks**: `useApi.ts`, `useAuth.ts`, `useLocalStorage.ts`
+- **Services**: `userService.ts`, `orderService.ts`, `apiService.ts`
+- **Types**: `user.types.ts`, `order.types.ts`, `api.types.ts`
+- **Utils**: `constants.ts`, `helpers.ts`, `validators.ts`
+- **Tests**: `UserCard.test.tsx`, `useApi.test.ts`, `helpers.test.ts`
+
+### Estrutura de Banco de Dados
+
+#### Tabelas Principais
+```sql
+-- Users Table
+users (
+    id, name, email, email_verified_at, password, 
+    remember_token, created_at, updated_at
+)
+
+-- Products Table
+products (
+    id, name, description, price, stock_quantity,
+    category_id, status, created_at, updated_at
+)
+
+-- Orders Table
+orders (
+    id, user_id, total_amount, status, payment_status,
+    shipping_address, created_at, updated_at
+)
+
+-- Order Items Table
+order_items (
+    id, order_id, product_id, quantity, unit_price,
+    total_price, created_at, updated_at
+)
+
+-- Categories Table
+categories (
+    id, name, description, parent_id, created_at, updated_at
+)
+```
+
+### Mapeamento de Rotas da API
+
+#### Rotas de Autenticação
+- `POST /api/auth/login` - Login do usuário
+- `POST /api/auth/register` - Registro de usuário
+- `POST /api/auth/logout` - Logout do usuário
+- `POST /api/auth/refresh` - Refresh do token
+- `GET /api/auth/me` - Dados do usuário logado
+
+#### Rotas de Usuários
+- `GET /api/users` - Listar usuários
+- `GET /api/users/{id}` - Buscar usuário específico
+- `POST /api/users` - Criar usuário
+- `PUT /api/users/{id}` - Atualizar usuário
+- `DELETE /api/users/{id}` - Deletar usuário
+
+#### Rotas de Produtos
+- `GET /api/products` - Listar produtos
+- `GET /api/products/{id}` - Buscar produto específico
+- `POST /api/products` - Criar produto
+- `PUT /api/products/{id}` - Atualizar produto
+- `DELETE /api/products/{id}` - Deletar produto
+
+#### Rotas de Pedidos
+- `GET /api/orders` - Listar pedidos
+- `GET /api/orders/{id}` - Buscar pedido específico
+- `POST /api/orders` - Criar pedido
+- `PUT /api/orders/{id}` - Atualizar pedido
+- `DELETE /api/orders/{id}` - Deletar pedido
+
+### Estrutura de Componentes React
+
+#### Componentes Base (UI)
+- `Button` - Botão reutilizável com variantes
+- `Input` - Campo de entrada com validação
+- `Modal` - Modal reutilizável
+- `Table` - Tabela com paginação
+- `Card` - Card container
+- `Badge` - Badge para status
+- `Spinner` - Loading spinner
+- `Alert` - Alertas e notificações
+
+#### Componentes de Layout
+- `Header` - Cabeçalho da aplicação
+- `Sidebar` - Menu lateral
+- `Footer` - Rodapé
+- `Breadcrumb` - Navegação breadcrumb
+- `Layout` - Layout principal
+
+#### Componentes de Formulário
+- `Form` - Formulário base
+- `FormField` - Campo de formulário
+- `FormSelect` - Select dropdown
+- `FormCheckbox` - Checkbox
+- `FormRadio` - Radio button
+
+### Configurações de Ambiente
+
+#### Backend (.env)
+```env
+APP_NAME="Rei do Óleo"
+APP_ENV=local
+APP_KEY=base64:...
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=rei_do_oleo
+DB_USERNAME=root
+DB_PASSWORD=
+
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=smtp
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+#### Frontend (.env)
+```env
+VITE_APP_NAME="Rei do Óleo"
+VITE_API_URL=http://localhost:8000/api
+VITE_APP_URL=http://localhost:3000
+VITE_APP_ENV=development
+```
+
+### Dependências Principais
+
+#### Backend (composer.json)
+```json
+{
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^12.0",
+    "laravel/sanctum": "^4.0",
+    "laravel/telescope": "^5.0",
+    "predis/predis": "^2.0",
+    "spatie/laravel-permission": "^6.0",
+    "spatie/laravel-activitylog": "^5.0"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.9.1",
+    "laravel/pint": "^1.0",
+    "laravel/sail": "^1.18",
+    "mockery/mockery": "^1.4.4",
+    "nunomaduro/collision": "^8.1",
+    "phpunit/phpunit": "^10.1",
+    "spatie/laravel-ignition": "^2.0"
+  }
+}
+```
+
+#### Frontend (package.json)
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "@tanstack/react-query": "^5.0.0",
+    "axios": "^1.6.0",
+    "tailwindcss": "^3.3.0",
+    "@headlessui/react": "^1.7.0",
+    "@heroicons/react": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "jest": "^29.0.0",
+    "@testing-library/react": "^14.0.0"
+  }
+}
+```
+
 ## 👨‍💻 Perfil de Desenvolvimento
 
 ### Desenvolvedor Laravel 12 Senior
@@ -131,6 +516,378 @@ Card.Body = ({ children }) => <main>{children}</main>;
 - **Database**: Repository Pattern + Active Record
 - **Caching**: Multi-layer caching strategy
 
+## 🎯 CONTEXTO DO SISTEMA E FUNCIONALIDADES
+
+### Domínio do Negócio - Sistema de Gestão de Óleos
+
+#### Entidades Principais
+- **Users**: Usuários do sistema (clientes, administradores, vendedores)
+- **Products**: Produtos de óleo (óleos automotivos, industriais, especiais)
+- **Orders**: Pedidos de clientes
+- **Categories**: Categorias de produtos (automotivo, industrial, etc.)
+- **Suppliers**: Fornecedores de produtos
+- **Inventory**: Controle de estoque
+- **Payments**: Processamento de pagamentos
+- **Shipping**: Logística e entrega
+
+#### Funcionalidades Core
+1. **Gestão de Usuários**
+   - Registro e autenticação
+   - Perfis de usuário
+   - Controle de acesso (RBAC)
+   - Histórico de atividades
+
+2. **Catálogo de Produtos**
+   - Cadastro de produtos
+   - Categorização
+   - Gestão de preços
+   - Controle de estoque
+   - Imagens e descrições
+
+3. **Sistema de Pedidos**
+   - Carrinho de compras
+   - Processamento de pedidos
+   - Status de pedidos
+   - Histórico de compras
+
+4. **Gestão de Estoque**
+   - Controle de entrada/saída
+   - Alertas de estoque baixo
+   - Relatórios de movimentação
+   - Previsão de demanda
+
+5. **Relatórios e Analytics**
+   - Vendas por período
+   - Produtos mais vendidos
+   - Performance de vendedores
+   - Análise de clientes
+
+### Mapeamento de Funcionalidades por Módulo
+
+#### Módulo de Autenticação
+- **Arquivos**: `AuthController`, `LoginRequest`, `RegisterRequest`, `UserPolicy`
+- **Rotas**: `/api/auth/*`
+- **Componentes**: `LoginForm`, `RegisterForm`, `ForgotPassword`
+- **Hooks**: `useAuth`, `usePermissions`
+
+#### Módulo de Usuários
+- **Arquivos**: `UserController`, `UserService`, `UserRepository`, `UserResource`
+- **Rotas**: `/api/users/*`
+- **Componentes**: `UserList`, `UserForm`, `UserProfile`, `UserCard`
+- **Hooks**: `useUsers`, `useUserProfile`
+
+#### Módulo de Produtos
+- **Arquivos**: `ProductController`, `ProductService`, `ProductRepository`, `ProductResource`
+- **Rotas**: `/api/products/*`
+- **Componentes**: `ProductList`, `ProductForm`, `ProductCard`, `ProductModal`
+- **Hooks**: `useProducts`, `useProductCategories`
+
+#### Módulo de Pedidos
+- **Arquivos**: `OrderController`, `OrderService`, `OrderRepository`, `OrderResource`
+- **Rotas**: `/api/orders/*`
+- **Componentes**: `OrderList`, `OrderForm`, `OrderDetails`, `OrderStatus`
+- **Hooks**: `useOrders`, `useOrderStatus`
+
+#### Módulo de Estoque
+- **Arquivos**: `InventoryController`, `InventoryService`, `InventoryRepository`
+- **Rotas**: `/api/inventory/*`
+- **Componentes**: `InventoryList`, `StockAlert`, `MovementHistory`
+- **Hooks**: `useInventory`, `useStockAlerts`
+
+### Padrões de Implementação por Funcionalidade
+
+#### CRUD Operations
+```php
+// Controller Pattern
+class ProductController extends Controller
+{
+    public function index(ProductIndexRequest $request): JsonResponse
+    {
+        $products = $this->productService->getPaginated($request->validated());
+        return ProductResource::collection($products);
+    }
+
+    public function store(StoreProductRequest $request): JsonResponse
+    {
+        $product = $this->productService->create($request->validated());
+        return new ProductResource($product);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        return new ProductResource($product);
+    }
+
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse
+    {
+        $product = $this->productService->update($product, $request->validated());
+        return new ProductResource($product);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        $this->productService->delete($product);
+        return response()->json(['message' => 'Product deleted successfully']);
+    }
+}
+```
+
+#### Service Layer Pattern
+```php
+class ProductService
+{
+    public function __construct(
+        private ProductRepository $productRepository,
+        private FileService $fileService,
+        private CacheService $cacheService
+    ) {}
+
+    public function getPaginated(array $filters): LengthAwarePaginator
+    {
+        $cacheKey = 'products_paginated_' . md5(serialize($filters));
+        
+        return $this->cacheService->remember($cacheKey, 300, function () use ($filters) {
+            return $this->productRepository->getPaginated($filters);
+        });
+    }
+
+    public function create(array $data): Product
+    {
+        DB::beginTransaction();
+        
+        try {
+            if (isset($data['image'])) {
+                $data['image_url'] = $this->fileService->uploadImage($data['image']);
+            }
+            
+            $product = $this->productRepository->create($data);
+            
+            event(new ProductCreated($product));
+            
+            DB::commit();
+            return $product;
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+}
+```
+
+#### Repository Pattern
+```php
+interface ProductRepositoryInterface
+{
+    public function getPaginated(array $filters): LengthAwarePaginator;
+    public function findById(int $id): ?Product;
+    public function create(array $data): Product;
+    public function update(Product $product, array $data): Product;
+    public function delete(Product $product): bool;
+    public function findByCategory(int $categoryId): Collection;
+    public function search(string $query): Collection;
+}
+
+class ProductRepository implements ProductRepositoryInterface
+{
+    public function getPaginated(array $filters): LengthAwarePaginator
+    {
+        $query = Product::query()
+            ->with(['category', 'supplier'])
+            ->when(isset($filters['search']), function ($query) use ($filters) {
+                $query->where('name', 'like', '%' . $filters['search'] . '%');
+            })
+            ->when(isset($filters['category_id']), function ($query) use ($filters) {
+                $query->where('category_id', $filters['category_id']);
+            })
+            ->when(isset($filters['status']), function ($query) use ($filters) {
+                $query->where('status', $filters['status']);
+            });
+
+        return $query->orderBy('created_at', 'desc')->paginate($filters['per_page'] ?? 15);
+    }
+}
+```
+
+### Componentes React por Funcionalidade
+
+#### Listagem de Dados
+```typescript
+// ProductList Component
+interface ProductListProps {
+  filters?: ProductFilters;
+  onProductSelect?: (product: Product) => void;
+}
+
+const ProductList: React.FC<ProductListProps> = ({ filters, onProductSelect }) => {
+  const { data: products, isLoading, error } = useProducts(filters);
+  const { mutate: deleteProduct } = useDeleteProduct();
+
+  const handleDelete = (productId: number) => {
+    deleteProduct(productId, {
+      onSuccess: () => {
+        toast.success('Product deleted successfully');
+      },
+      onError: () => {
+        toast.error('Failed to delete product');
+      }
+    });
+  };
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error.message} />;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {products?.data.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          onSelect={onProductSelect}
+          onDelete={handleDelete}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+#### Formulários
+```typescript
+// ProductForm Component
+interface ProductFormProps {
+  product?: Product;
+  onSubmit: (data: ProductFormData) => void;
+  onCancel: () => void;
+}
+
+const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }) => {
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<ProductFormData>({
+    defaultValues: product ? {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category_id: product.category_id,
+      stock_quantity: product.stock_quantity
+    } : {}
+  });
+
+  const { data: categories } = useProductCategories();
+
+  const handleFormSubmit = (data: ProductFormData) => {
+    onSubmit(data);
+    reset();
+  };
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <FormField
+        label="Name"
+        error={errors.name?.message}
+      >
+        <Input
+          {...register('name', { required: 'Name is required' })}
+          placeholder="Product name"
+        />
+      </FormField>
+
+      <FormField
+        label="Category"
+        error={errors.category_id?.message}
+      >
+        <Select
+          {...register('category_id', { required: 'Category is required' })}
+        >
+          <option value="">Select category</option>
+          {categories?.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+
+      <div className="flex justify-end space-x-4">
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          {product ? 'Update' : 'Create'} Product
+        </Button>
+      </div>
+    </form>
+  );
+};
+```
+
+### Hooks Customizados por Funcionalidade
+
+#### API Hooks
+```typescript
+// useProducts Hook
+export const useProducts = (filters?: ProductFilters) => {
+  return useQuery({
+    queryKey: ['products', filters],
+    queryFn: () => productService.getProducts(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+// useCreateProduct Hook
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: productService.createProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Product created successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to create product');
+    }
+  });
+};
+```
+
+#### State Management Hooks
+```typescript
+// useAuth Hook
+export const useAuth = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const login = async (credentials: LoginCredentials) => {
+    try {
+      const response = await authService.login(credentials);
+      setUser(response.user);
+      localStorage.setItem('token', response.token);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('token');
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      authService.getProfile()
+        .then(setUser)
+        .catch(() => localStorage.removeItem('token'))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  return { user, loading, login, logout };
+};
+```
+
 ## 💻 Desenvolvimento
 
 ### Padrões de Código Laravel
@@ -206,6 +963,496 @@ const ProductCard: React.FC<ProductCardProps> = memo(
 - **Husky**: Git hooks
 - **lint-staged**: Pre-commit linting
 - **CommitLint**: Conventional commits
+
+## 🛠️ CONFIGURAÇÕES E FERRAMENTAS DE DESENVOLVIMENTO
+
+### Configurações de IDE e Editores
+
+#### VS Code Extensions Recomendadas
+```json
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.vscode-json",
+    "ms-vscode.vscode-eslint",
+    "ms-vscode.vscode-php-debug",
+    "ms-vscode.vscode-php-intellisense",
+    "onecentlin.laravel-blade",
+    "onecentlin.laravel-extension-pack",
+    "ryannaddy.laravel-artisan",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "ms-vscode.vscode-todo-highlight",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}
+```
+
+#### VS Code Settings
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true
+  },
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "php.validate.enable": true,
+  "php.suggest.basic": false,
+  "files.associations": {
+    "*.blade.php": "blade"
+  },
+  "emmet.includeLanguages": {
+    "blade": "html"
+  }
+}
+```
+
+### Configurações de Linting e Formatação
+
+#### ESLint Configuration (Frontend)
+```json
+{
+  "extends": [
+    "next/core-web-vitals",
+    "@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "plugins": ["@typescript-eslint", "react-hooks"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "prefer-const": "error",
+    "no-console": "warn",
+    "max-len": ["error", { "code": 100 }],
+    "complexity": ["error", 10]
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}
+```
+
+#### Prettier Configuration
+```json
+{
+  "semi": true,
+  "trailingComma": "es5",
+  "singleQuote": true,
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf"
+}
+```
+
+#### PHP CS Fixer Configuration (Backend)
+```php
+<?php
+
+$finder = PhpCsFixer\Finder::create()
+    ->in([
+        __DIR__ . '/app',
+        __DIR__ . '/config',
+        __DIR__ . '/database',
+        __DIR__ . '/routes',
+        __DIR__ . '/tests',
+    ])
+    ->name('*.php')
+    ->notName('*.blade.php')
+    ->ignoreDotFiles(true)
+    ->ignoreVCS(true);
+
+return (new PhpCsFixer\Config())
+    ->setRules([
+        '@PSR12' => true,
+        'array_syntax' => ['syntax' => 'short'],
+        'ordered_imports' => ['sort_algorithm' => 'alpha'],
+        'no_unused_imports' => true,
+        'not_operator_with_successor_space' => true,
+        'trailing_comma_in_multiline' => true,
+        'phpdoc_scalar' => true,
+        'unary_operator_spaces' => true,
+        'binary_operator_spaces' => true,
+        'blank_line_before_statement' => [
+            'statements' => ['break', 'continue', 'declare', 'return', 'throw', 'try'],
+        ],
+        'phpdoc_single_line_var_spacing' => true,
+        'phpdoc_var_without_name' => true,
+        'method_argument_space' => [
+            'on_multiline' => 'ensure_fully_multiline',
+            'keep_multiple_spaces_after_comma' => true,
+        ],
+        'single_trait_insert_per_statement' => true,
+    ])
+    ->setFinder($finder);
+```
+
+### Configurações de Git
+
+#### .gitignore Configuration
+```gitignore
+# Dependencies
+node_modules/
+vendor/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+public/hot
+public/storage
+storage/*.key
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Laravel specific
+bootstrap/cache/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+storage/logs/
+
+# Composer
+composer.phar
+
+# PHPUnit
+.phpunit.result.cache
+
+# PHP CS Fixer
+.php-cs-fixer.cache
+
+# PHPStan
+.phpstan.result.cache
+```
+
+#### Git Hooks (Husky)
+```json
+{
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{php}": [
+      "./vendor/bin/php-cs-fixer fix"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  }
+}
+```
+
+### Configurações de Testes
+
+#### Jest Configuration (Frontend)
+```javascript
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+  },
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/index.tsx',
+    '!src/serviceWorker.ts',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+  testMatch: [
+    '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
+    '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
+  ],
+};
+```
+
+#### PHPUnit Configuration (Backend)
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory suffix="Test.php">./tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./app/Console</directory>
+            <directory suffix=".php">./app/Exceptions</directory>
+        </exclude>
+    </coverage>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+    </php>
+</phpunit>
+```
+
+### Scripts de Desenvolvimento
+
+#### Package.json Scripts (Frontend)
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "type-check": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  }
+}
+```
+
+#### Composer Scripts (Backend)
+```json
+{
+  "scripts": {
+    "test": "php artisan test",
+    "test:coverage": "php artisan test --coverage",
+    "test:unit": "php artisan test --testsuite=Unit",
+    "test:feature": "php artisan test --testsuite=Feature",
+    "lint": "php-cs-fixer fix --dry-run --diff",
+    "lint:fix": "php-cs-fixer fix",
+    "analyse": "phpstan analyse",
+    "migrate": "php artisan migrate",
+    "migrate:fresh": "php artisan migrate:fresh --seed",
+    "seed": "php artisan db:seed",
+    "optimize": "php artisan optimize",
+    "cache:clear": "php artisan cache:clear",
+    "config:cache": "php artisan config:cache",
+    "route:cache": "php artisan route:cache",
+    "view:cache": "php artisan view:cache"
+  }
+}
+```
+
+### Configurações de Banco de Dados
+
+#### Migrations Structure
+```php
+// Example Migration Structure
+Schema::create('products', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->text('description')->nullable();
+    $table->decimal('price', 10, 2);
+    $table->integer('stock_quantity')->default(0);
+    $table->foreignId('category_id')->constrained()->onDelete('cascade');
+    $table->foreignId('supplier_id')->constrained()->onDelete('cascade');
+    $table->enum('status', ['active', 'inactive'])->default('active');
+    $table->string('sku')->unique();
+    $table->string('image_url')->nullable();
+    $table->json('specifications')->nullable();
+    $table->timestamps();
+    
+    $table->index(['category_id', 'status']);
+    $table->index(['supplier_id']);
+    $table->index(['sku']);
+});
+```
+
+#### Seeders Structure
+```php
+// Example Seeder Structure
+class ProductSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $categories = Category::all();
+        $suppliers = Supplier::all();
+
+        Product::factory(100)->create()->each(function ($product) use ($categories, $suppliers) {
+            $product->update([
+                'category_id' => $categories->random()->id,
+                'supplier_id' => $suppliers->random()->id,
+                'sku' => 'SKU-' . str_pad($product->id, 6, '0', STR_PAD_LEFT),
+            ]);
+        });
+    }
+}
+```
+
+### Configurações de Cache e Performance
+
+#### Redis Configuration
+```php
+// config/cache.php
+'default' => env('CACHE_DRIVER', 'redis'),
+
+'stores' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => 'cache',
+        'lock_connection' => 'default',
+    ],
+],
+
+// config/database.php
+'redis' => [
+    'client' => env('REDIS_CLIENT', 'phpredis'),
+    'default' => [
+        'host' => env('REDIS_HOST', '127.0.0.1'),
+        'password' => env('REDIS_PASSWORD'),
+        'port' => env('REDIS_PORT', 6379),
+        'database' => env('REDIS_DB', 0),
+    ],
+    'cache' => [
+        'host' => env('REDIS_HOST', '127.0.0.1'),
+        'password' => env('REDIS_PASSWORD'),
+        'port' => env('REDIS_PORT', 6379),
+        'database' => env('REDIS_CACHE_DB', 1),
+    ],
+],
+```
+
+#### Queue Configuration
+```php
+// config/queue.php
+'default' => env('QUEUE_CONNECTION', 'redis'),
+
+'connections' => [
+    'redis' => [
+        'driver' => 'redis',
+        'connection' => 'default',
+        'queue' => env('REDIS_QUEUE', 'default'),
+        'retry_after' => 90,
+        'block_for' => null,
+    ],
+],
+```
 
 ==== Versionamento e Commits ====
 
@@ -997,29 +2244,81 @@ const worker = new Worker('./calculation.worker.js');
 worker.postMessage({ data: heavyCalculationData });
 ```
 
-## 🔍 Debug e Troubleshooting
+## 🔍 DEBUG E TROUBLESHOOTING
 
-### Laravel Debug
+### Debugging Laravel
 
+#### Telescope Configuration
 ```php
-// Telescope para desenvolvimento
-php artisan telescope:install
+// config/telescope.php
+'watchers' => [
+    Watchers\CacheWatcher::class => env('TELESCOPE_CACHE_WATCHER', true),
+    Watchers\CommandWatcher::class => env('TELESCOPE_COMMAND_WATCHER', true),
+    Watchers\ExceptionWatcher::class => env('TELESCOPE_EXCEPTION_WATCHER', true),
+    Watchers\JobWatcher::class => env('TELESCOPE_JOB_WATCHER', true),
+    Watchers\LogWatcher::class => env('TELESCOPE_LOG_WATCHER', true),
+    Watchers\MailWatcher::class => env('TELESCOPE_MAIL_WATCHER', true),
+    Watchers\ModelWatcher::class => env('TELESCOPE_MODEL_WATCHER', true),
+    Watchers\NotificationWatcher::class => env('TELESCOPE_NOTIFICATION_WATCHER', true),
+    Watchers\QueryWatcher::class => env('TELESCOPE_QUERY_WATCHER', true),
+    Watchers\RequestWatcher::class => env('TELESCOPE_REQUEST_WATCHER', true),
+    Watchers\ScheduleWatcher::class => env('TELESCOPE_SCHEDULE_WATCHER', true),
+],
 
 // Debug SQL Queries
 DB::listen(function ($query) {
-    Log::info($query->sql, $query->bindings);
+    Log::info($query->sql, [
+        'bindings' => $query->bindings,
+        'time' => $query->time,
+    ]);
 });
 
 // Custom Debugbar
 if (app()->environment('local')) {
     app('debugbar')->info('Debug info here');
 }
+
+// Logging Strategy
+Log::channel('debug')->info('Debug message', [
+    'user_id' => auth()->id(),
+    'action' => 'product_created',
+    'data' => $request->all(),
+]);
 ```
 
-### React Debug
+#### Common Laravel Issues and Solutions
 
+```php
+// 1. Memory Issues
+// Add to .env
+MEMORY_LIMIT=512M
+
+// 2. Query Performance
+// Use query logging
+DB::enableQueryLog();
+// ... your queries
+$queries = DB::getQueryLog();
+
+// 3. Cache Issues
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+
+// 4. Permission Issues
+chmod -R 755 storage/
+chmod -R 755 bootstrap/cache/
+
+// 5. Queue Issues
+php artisan queue:work --verbose
+php artisan queue:failed
+php artisan queue:retry all
+```
+
+### Debugging React
+
+#### React Developer Tools
 ```typescript
-// React Developer Tools
 // Chrome Extension: React Developer Tools
 
 // Performance Profiling
@@ -1035,11 +2334,614 @@ const onRenderCallback = (id, phase, actualDuration) => {
 
 // Error Boundaries
 class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
   componentDidCatch(error, errorInfo) {
     console.error('Error caught:', error, errorInfo);
+    this.setState({ error, errorInfo });
     // Send to error reporting service
   }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback error={this.state.error} />;
+    }
+    return this.props.children;
+  }
 }
+
+// Debug Hooks
+const useDebugValue = (value, label) => {
+  useEffect(() => {
+    console.log(`${label}:`, value);
+  }, [value, label]);
+};
+```
+
+#### Common React Issues and Solutions
+
+```typescript
+// 1. Memory Leaks
+useEffect(() => {
+  const controller = new AbortController();
+  
+  fetch('/api/data', { signal: controller.signal })
+    .then(response => response.json())
+    .then(data => setData(data));
+  
+  return () => controller.abort();
+}, []);
+
+// 2. Infinite Re-renders
+const memoizedValue = useMemo(() => expensiveCalculation(a, b), [a, b]);
+const memoizedCallback = useCallback(() => doSomething(a, b), [a, b]);
+
+// 3. State Updates
+const [state, setState] = useState(initialState);
+setState(prevState => ({ ...prevState, newValue }));
+
+// 4. Async State Updates
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState(null);
+
+const fetchData = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await api.getData();
+    setData(data);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+### Performance Monitoring
+
+#### Laravel Performance
+```php
+// Query Performance
+DB::listen(function ($query) {
+    if ($query->time > 100) { // Log slow queries
+        Log::warning('Slow query detected', [
+            'sql' => $query->sql,
+            'time' => $query->time,
+            'bindings' => $query->bindings,
+        ]);
+    }
+});
+
+// Memory Usage
+$memoryUsage = memory_get_usage(true);
+$peakMemoryUsage = memory_get_peak_usage(true);
+
+Log::info('Memory usage', [
+    'current' => $memoryUsage,
+    'peak' => $peakMemoryUsage,
+]);
+
+// Cache Performance
+Cache::remember('expensive_operation', 3600, function () {
+    return expensiveOperation();
+});
+```
+
+#### React Performance
+```typescript
+// Component Performance
+import { memo, useMemo, useCallback } from 'react';
+
+const ExpensiveComponent = memo(({ data, onAction }) => {
+  const processedData = useMemo(() => {
+    return data.map(item => expensiveOperation(item));
+  }, [data]);
+
+  const handleAction = useCallback((id) => {
+    onAction(id);
+  }, [onAction]);
+
+  return (
+    <div>
+      {processedData.map(item => (
+        <Item key={item.id} item={item} onAction={handleAction} />
+      ))}
+    </div>
+  );
+});
+
+// Bundle Analysis
+// Add to package.json
+"analyze": "source-map-explorer 'build/static/js/*.js'"
+
+// Performance Monitoring
+const usePerformanceMonitor = (componentName) => {
+  useEffect(() => {
+    const startTime = performance.now();
+    
+    return () => {
+      const endTime = performance.now();
+      console.log(`${componentName} render time:`, endTime - startTime);
+    };
+  });
+};
+```
+
+### Error Tracking and Monitoring
+
+#### Laravel Error Tracking
+```php
+// Custom Exception Handler
+class Handler extends ExceptionHandler
+{
+    public function report(Throwable $e): void
+    {
+        if ($this->shouldReport($e)) {
+            // Send to external service (Sentry, Bugsnag, etc.)
+            Log::error('Application error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => auth()->id(),
+                'request_url' => request()->fullUrl(),
+                'request_method' => request()->method(),
+            ]);
+        }
+        
+        parent::report($e);
+    }
+}
+
+// Health Check Endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now(),
+        'version' => config('app.version'),
+        'environment' => config('app.env'),
+    ]);
+});
+```
+
+#### React Error Tracking
+```typescript
+// Error Boundary with Error Reporting
+class ErrorBoundary extends Component {
+  componentDidCatch(error, errorInfo) {
+    // Send to error reporting service
+    errorReportingService.captureException(error, {
+      extra: errorInfo,
+      user: getCurrentUser(),
+      tags: {
+        component: this.props.componentName,
+        environment: process.env.NODE_ENV,
+      },
+    });
+  }
+}
+
+// Global Error Handler
+window.addEventListener('error', (event) => {
+  errorReportingService.captureException(event.error, {
+    extra: {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    },
+  });
+});
+
+// Unhandled Promise Rejection
+window.addEventListener('unhandledrejection', (event) => {
+  errorReportingService.captureException(event.reason, {
+    extra: {
+      type: 'unhandled_promise_rejection',
+    },
+  });
+});
+```
+
+### Development Tools and Extensions
+
+#### VS Code Extensions for Debugging
+```json
+{
+  "recommendations": [
+    "ms-vscode.vscode-js-debug",
+    "ms-vscode.vscode-php-debug",
+    "ms-vscode.vscode-json",
+    "ms-vscode.vscode-eslint",
+    "ms-vscode.vscode-prettier",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-todo-highlight",
+    "streetsidesoftware.code-spell-checker",
+    "ms-vscode.vscode-gitlens",
+    "ms-vscode.vscode-thunder-client"
+  ]
+}
+```
+
+#### Browser Extensions for Debugging
+- **React Developer Tools**: Component inspection and profiling
+- **Redux DevTools**: State management debugging
+- **Lighthouse**: Performance auditing
+- **Web Vitals**: Core Web Vitals monitoring
+- **JSON Formatter**: API response formatting
+
+### Common Development Commands
+
+#### Laravel Commands
+```bash
+# Development
+php artisan serve
+php artisan migrate:fresh --seed
+php artisan queue:work
+php artisan telescope:install
+
+# Debugging
+php artisan tinker
+php artisan route:list
+php artisan config:cache
+php artisan view:cache
+
+# Testing
+php artisan test
+php artisan test --coverage
+php artisan test --filter=UserTest
+
+# Maintenance
+php artisan down
+php artisan up
+php artisan optimize
+```
+
+#### React Commands
+```bash
+# Development
+npm run dev
+npm run build
+npm run preview
+
+# Testing
+npm test
+npm run test:watch
+npm run test:coverage
+
+# Linting
+npm run lint
+npm run lint:fix
+npm run type-check
+
+# Storybook
+npm run storybook
+npm run build-storybook
+```
+
+### Performance Optimization Checklist
+
+#### Backend Optimization
+- [ ] Database indexes on frequently queried columns
+- [ ] Eager loading to prevent N+1 queries
+- [ ] Query caching for expensive operations
+- [ ] Redis for session and cache storage
+- [ ] Queue jobs for heavy operations
+- [ ] Image optimization and CDN usage
+- [ ] API response compression
+- [ ] Database connection pooling
+
+#### Frontend Optimization
+- [ ] Code splitting and lazy loading
+- [ ] Image optimization and WebP format
+- [ ] Bundle size optimization
+- [ ] Memoization of expensive calculations
+- [ ] Virtual scrolling for large lists
+- [ ] Service Worker for caching
+- [ ] Critical CSS inlining
+- [ ] Tree shaking for unused code
+
+## 🔍 VERIFICAÇÃO DE CONSISTÊNCIA DO FRONTEND
+
+### Build Validation - Regra Obrigatória
+
+**IMPORTANTE**: Sempre que for necessário verificar a consistência do frontend, fazer o build para validação.
+
+#### Comandos de Verificação de Build
+
+```bash
+# Verificação completa de build
+npm run build
+
+# Verificação de tipos TypeScript
+npm run type-check
+
+# Verificação de linting
+npm run lint
+
+# Verificação de testes
+npm test
+
+# Análise de bundle
+npm run analyze
+```
+
+#### Checklist de Verificação de Build
+
+```bash
+# 1. Limpar cache e node_modules (se necessário)
+rm -rf node_modules package-lock.json
+npm install
+
+# 2. Verificar tipos TypeScript
+npm run type-check
+
+# 3. Verificar linting
+npm run lint
+
+# 4. Rodar testes
+npm test
+
+# 5. Fazer build de produção
+npm run build
+
+# 6. Verificar se o build foi gerado corretamente
+ls -la dist/
+
+# 7. Testar build localmente
+npm run preview
+```
+
+#### Validação de Build em CI/CD
+
+```yaml
+# .github/workflows/frontend-build-check.yml
+name: Frontend Build Validation
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      - name: Type check
+        run: |
+          cd frontend
+          npm run type-check
+          
+      - name: Lint check
+        run: |
+          cd frontend
+          npm run lint
+          
+      - name: Run tests
+        run: |
+          cd frontend
+          npm test -- --coverage --watchAll=false
+          
+      - name: Build check
+        run: |
+          cd frontend
+          npm run build
+          
+      - name: Verify build output
+        run: |
+          cd frontend
+          ls -la dist/
+          test -f dist/index.html
+          test -f dist/assets/index-*.js
+          test -f dist/assets/index-*.css
+```
+
+#### Scripts de Validação Automática
+
+```json
+{
+  "scripts": {
+    "validate": "npm run type-check && npm run lint && npm test && npm run build",
+    "validate:quick": "npm run type-check && npm run lint",
+    "validate:full": "npm run validate && npm run analyze",
+    "pre-commit": "npm run validate:quick",
+    "pre-push": "npm run validate"
+  }
+}
+```
+
+#### Verificação de Dependências
+
+```bash
+# Verificar dependências desatualizadas
+npm outdated
+
+# Verificar vulnerabilidades
+npm audit
+
+# Verificar dependências não utilizadas
+npx depcheck
+
+# Verificar tamanho do bundle
+npm run analyze
+```
+
+#### Validação de Performance
+
+```bash
+# Lighthouse CI para performance
+npm install -g @lhci/cli
+lhci autorun
+
+# Bundle analyzer
+npm run analyze
+
+# Verificar Core Web Vitals
+npm run build
+npx serve dist/
+# Executar Lighthouse no navegador
+```
+
+#### Troubleshooting de Build
+
+```bash
+# Problemas comuns e soluções
+
+# 1. Erro de tipos TypeScript
+npm run type-check
+# Corrigir erros de tipo antes do build
+
+# 2. Erro de linting
+npm run lint:fix
+# Corrigir automaticamente problemas de linting
+
+# 3. Erro de dependências
+rm -rf node_modules package-lock.json
+npm install
+
+# 4. Erro de cache do Vite
+rm -rf node_modules/.vite
+npm run build
+
+# 5. Erro de memória
+export NODE_OPTIONS="--max-old-space-size=4096"
+npm run build
+
+# 6. Verificar versões de Node.js
+node --version
+npm --version
+# Garantir compatibilidade com package.json
+```
+
+#### Validação de Produção
+
+```bash
+# Build de produção com otimizações
+npm run build
+
+# Verificar arquivos gerados
+ls -la dist/
+du -sh dist/
+
+# Testar build localmente
+npm run preview
+
+# Verificar se não há console.log em produção
+grep -r "console.log" dist/ || echo "No console.log found in build"
+
+# Verificar se não há debugger em produção
+grep -r "debugger" dist/ || echo "No debugger found in build"
+```
+
+#### Monitoramento de Build
+
+```bash
+# Verificar tempo de build
+time npm run build
+
+# Verificar tamanho do bundle
+npm run analyze
+
+# Verificar dependências
+npm ls --depth=0
+
+# Verificar scripts disponíveis
+npm run
+```
+
+### Regras de Validação
+
+#### Antes de Cada Commit
+- [ ] `npm run type-check` - Verificar tipos TypeScript
+- [ ] `npm run lint` - Verificar linting
+- [ ] `npm test` - Rodar testes
+- [ ] `npm run build` - Verificar build
+
+#### Antes de Cada Push
+- [ ] `npm run validate` - Validação completa
+- [ ] Verificar se não há erros de build
+- [ ] Verificar se o bundle está otimizado
+
+#### Antes de Cada Deploy
+- [ ] `npm run validate:full` - Validação completa + análise
+- [ ] Verificar performance com Lighthouse
+- [ ] Verificar compatibilidade de browsers
+- [ ] Verificar acessibilidade
+
+### Integração com Git Hooks
+
+```json
+{
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run pre-commit",
+      "pre-push": "npm run pre-push"
+    }
+  }
+}
+```
+
+### Configuração de Vite para Validação
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    // Configurações para validação
+    sourcemap: false, // Desabilitar em produção
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remover console.log
+        drop_debugger: true, // Remover debugger
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          utils: ['lodash', 'axios'],
+        },
+      },
+    },
+  },
+  // Validação em desenvolvimento
+  server: {
+    port: 3000,
+    strictPort: true,
+  },
+})
 ```
 
 ## 📚 Documentação Avançada
