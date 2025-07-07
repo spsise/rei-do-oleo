@@ -20,6 +20,174 @@ npm run validate:quick  # Type check + lint
 npm run build          # Build de produção
 ```
 
+### 🔍 DIRETRIZES DE DESENVOLVIMENTO INTELIGENTE 🚨 CRÍTICO
+
+#### Verificação Automática Antes de Desenvolver
+
+**IMPORTANTE**: Sempre que for solicitado para criar funcionalidades, o Cursor AI deve:
+
+1. **Verificar Backend (Laravel) Primeiro**:
+   - Verificar se existem Models relacionados
+   - Verificar se existem Controllers para a funcionalidade
+   - Verificar se existem Rotas da API
+   - Verificar se existem Migrations para as tabelas necessárias
+   - Verificar se existem Services e Repositories
+
+2. **Verificar Frontend (React) Depois**:
+   - Verificar se existem componentes relacionados
+   - Verificar se existem páginas para a funcionalidade
+   - Verificar se existem hooks customizados
+   - Verificar se existem tipos TypeScript
+   - Verificar se existem serviços de API
+
+3. **Criar Backend Se Necessário**:
+   - Se não existir Model → Criar Model com relacionamentos
+   - Se não existir Controller → Criar Controller com métodos CRUD
+   - Se não existir Rotas → Adicionar rotas na API
+   - Se não existir Migration → Criar migration para tabelas
+   - Se não existir Service → Criar service com lógica de negócio
+
+4. **Criar Frontend Se Necessário**:
+   - Se não existir componente → Criar componente reutilizável
+   - Se não existir página → Criar página com layout
+   - Se não existir hook → Criar hook customizado
+   - Se não existir tipo → Criar interfaces TypeScript
+   - Se não existir serviço → Criar serviço de API
+
+#### Fluxo de Desenvolvimento Inteligente
+
+```bash
+# Exemplo: "Crie a tela de dashboard com as principais informações do sistema"
+
+# 1. Verificar Backend
+ls backend/app/Models/User.php
+ls backend/app/Http/Controllers/Api/DashboardController.php
+ls backend/routes/api.php
+ls backend/database/migrations/*_create_users_table.php
+
+# 2. Verificar Frontend
+ls frontend/src/pages/Dashboard/
+ls frontend/src/components/Dashboard/
+ls frontend/src/hooks/useDashboard.ts
+ls frontend/src/services/dashboardService.ts
+ls frontend/src/types/dashboard.types.ts
+
+# 3. Criar Backend se necessário
+# - DashboardController com métodos para estatísticas
+# - Rotas da API para dashboard
+# - Services para calcular métricas
+
+# 4. Criar Frontend se necessário
+# - Página Dashboard com layout
+# - Componentes para cards de estatísticas
+# - Hooks para buscar dados
+# - Tipos TypeScript
+# - Serviços de API
+```
+
+#### Padrões de Verificação por Funcionalidade
+
+**Para Dashboard**:
+- Backend: `DashboardController`, rotas `/api/dashboard/*`, métodos para estatísticas
+- Frontend: `Dashboard.tsx`, `DashboardCard.tsx`, `useDashboard.ts`, `dashboardService.ts`
+
+**Para Usuários**:
+- Backend: `UserController`, rotas `/api/users/*`, `UserService`, `UserRepository`
+- Frontend: `UserList.tsx`, `UserForm.tsx`, `useUsers.ts`, `userService.ts`
+
+**Para Produtos**:
+- Backend: `ProductController`, rotas `/api/products/*`, `ProductService`, `ProductRepository`
+- Frontend: `ProductList.tsx`, `ProductForm.tsx`, `useProducts.ts`, `productService.ts`
+
+**Para Pedidos**:
+- Backend: `OrderController`, rotas `/api/orders/*`, `OrderService`, `OrderRepository`
+- Frontend: `OrderList.tsx`, `OrderForm.tsx`, `useOrders.ts`, `orderService.ts`
+
+#### Estrutura de Verificação Automática
+
+```typescript
+// Exemplo de verificação automática
+interface DevelopmentCheck {
+  backend: {
+    models: string[];
+    controllers: string[];
+    routes: string[];
+    migrations: string[];
+    services: string[];
+  };
+  frontend: {
+    pages: string[];
+    components: string[];
+    hooks: string[];
+    services: string[];
+    types: string[];
+  };
+}
+
+// Verificar e criar se necessário
+const checkAndCreate = async (feature: string) => {
+  // 1. Verificar backend
+  const backendExists = await checkBackendFiles(feature);
+  if (!backendExists) {
+    await createBackendFiles(feature);
+  }
+  
+  // 2. Verificar frontend
+  const frontendExists = await checkFrontendFiles(feature);
+  if (!frontendExists) {
+    await createFrontendFiles(feature);
+  }
+};
+```
+
+#### Comandos de Verificação Rápida
+
+```bash
+# Verificar estrutura do backend
+find backend/app/Models -name "*.php" | head -10
+find backend/app/Http/Controllers/Api -name "*.php" | head -10
+grep -r "Route::" backend/routes/api.php
+
+# Verificar estrutura do frontend
+find frontend/src/pages -name "*.tsx" | head -10
+find frontend/src/components -name "*.tsx" | head -10
+find frontend/src/hooks -name "*.ts" | head -10
+find frontend/src/services -name "*.ts" | head -10
+```
+
+#### Regras de Criação Inteligente
+
+1. **Sempre verificar existência antes de criar**
+2. **Criar backend completo se não existir**
+3. **Criar frontend completo se não existir**
+4. **Manter consistência entre backend e frontend**
+5. **Seguir padrões estabelecidos no projeto**
+6. **Usar nomenclatura em inglês**
+7. **Implementar validações adequadas**
+8. **Adicionar tipos TypeScript**
+9. **Criar testes quando apropriado**
+10. **Documentar APIs criadas**
+
+### Regras Críticas (SEMPRE SEGUIR)
+
+```bash
+
+# 1. Backend (Laravel)
+cd backend
+php artisan serve
+# 2. Frontend (React) - Em outro terminal
+cd frontend
+npm run dev
+
+# 3. Verificação Rápida
+npm run validate:quick  # Type check + lint
+npm run build          # Build de produção
+
+# 4. Verificação Rápida
+npm run validate:quick  # Type check + lint
+npm run build          # Build de produção
+```
+
 ### Regras Críticas (SEMPRE SEGUIR)
 
 #### 🔤 Linguagem no Código
@@ -56,6 +224,7 @@ rei-do-oleo/
 ## 📋 ÍNDICE RÁPIDO - NAVEGAÇÃO
 
 ### 🚨 CRÍTICO (Sempre Consultar)
+- [🔍 Diretrizes de Desenvolvimento Inteligente](#-diretrizes-de-desenvolvimento-inteligente-)
 - [📁 Estrutura de Arquivos](#-estrutura-de-arquivos-e-mapeamento-do-sistema)
 - [🔤 Regras de Linguagem](#-regras-de-linguagem-no-código)
 - [🔍 Verificação Frontend](#-verificação-de-consistência-do-frontend)
@@ -4099,10 +4268,11 @@ export default function () {
 ## 📋 RESUMO RÁPIDO - CONSULTA RÁPIDA
 
 ### 🚨 REGRAS CRÍTICAS (SEMPRE SEGUIR)
-1. **Código em inglês**: Classes, métodos, variáveis
-2. **Build validation**: Sempre fazer build antes de commits importantes
-3. **Padrões de commit**: `🐘 Backend ✨ feat: Descrição`
-4. **TypeScript**: Validar tipos antes de push
+1. **Verificação Inteligente**: Sempre verificar backend e frontend antes de criar funcionalidades
+2. **Código em inglês**: Classes, métodos, variáveis
+3. **Build validation**: Sempre fazer build antes de commits importantes
+4. **Padrões de commit**: `🐘 Backend ✨ feat: Descrição`
+5. **TypeScript**: Validar tipos antes de push
 
 ### ⚡ COMANDOS MAIS USADOS
 ```bash
@@ -4119,6 +4289,12 @@ npm run validate:quick
 # Docker
 docker-compose up -d
 docker-compose down
+
+# Verificação Automática
+find backend/app/Models -name "*.php" | head -5
+find backend/app/Http/Controllers/Api -name "*.php" | head -5
+find frontend/src/pages -name "*.tsx" | head -5
+find frontend/src/components -name "*.tsx" | head -5
 ```
 
 ### 📁 ESTRUTURA PRINCIPAL
@@ -4147,6 +4323,7 @@ rei-do-oleo/
 - **Interfaces**: `UserInterface`, `OrderRepositoryInterface`
 
 ### 🎯 CHECKLIST RÁPIDO
+- [ ] Verificação inteligente (backend + frontend)
 - [ ] Código em inglês
 - [ ] Build funcionando
 - [ ] Testes passando
