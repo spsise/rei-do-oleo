@@ -54,6 +54,15 @@ export interface Service {
     name: string;
     code: string;
   };
+  technician?: {
+    id: number;
+    name: string;
+    specialties?: string[];
+  };
+  attendant?: {
+    id: number;
+    name: string;
+  };
   warranty_months?: number;
   observations?: string;
   internal_notes?: string;

@@ -1,10 +1,5 @@
 import { createContext } from 'react';
-import type {
-  ApiResponse,
-  LoginData,
-  RegisterData,
-  User,
-} from '../services/api';
+import type { ApiResponse, LoginData, RegisterData, User } from '../services';
 
 interface AuthContextType {
   user: User | null;

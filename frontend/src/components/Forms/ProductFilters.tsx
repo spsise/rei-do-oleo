@@ -41,7 +41,7 @@ export const ProductFiltersComponent: React.FC<
   const debouncedBrand = useDebounce(brandInput, 500);
   const debouncedSupplier = useDebounce(supplierInput, 500);
 
-  const categories = categoriesData?.data || [];
+  const categories = categoriesData || [];
 
   // Define handleFilterChange before using it in useEffect
   const handleFilterChange = useCallback(

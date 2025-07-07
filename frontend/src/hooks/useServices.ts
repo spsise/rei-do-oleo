@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { serviceService } from '../services';
 import type {
   CreateServiceData,
-  SearchServiceData,
   Service,
   ServiceFilters,
   UpdateServiceData,
@@ -179,13 +178,9 @@ export const useDeleteService = () => {
 // Buscar serviço
 export const useSearchService = () => {
   return useMutation({
-    mutationFn: async (data: SearchServiceData): Promise<Service> => {
+    mutationFn: async (data: { service_number: string }) => {
       const response = await serviceService.searchService(data);
-      return response.data!;
-    },
-    onError: (error: ApiError) => {
-      console.error('Erro ao buscar serviço:', error);
-      throw error;
+      return response.data;
     },
   });
 };

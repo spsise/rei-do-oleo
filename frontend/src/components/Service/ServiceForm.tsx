@@ -19,29 +19,36 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
   loading = false,
 }) => {
   const [formData, setFormData] = useState<CreateServiceData>({
-    service_center_id: 1,
-    client_id: 0,
-    vehicle_id: 0,
-    description: '',
+    service_center_id: service?.service_center?.id ?? 0,
+    client_id: service?.client?.id ?? 0,
+    vehicle_id: service?.vehicle?.id ?? 0,
+    description: service?.description ?? '',
     complaint: '',
     diagnosis: '',
     solution: '',
     scheduled_date: '',
     started_at: '',
     finished_at: '',
-    technician_id: undefined,
-    attendant_id: undefined,
-    status_id: 1,
-    payment_method_id: undefined,
-    labor_cost: 0,
-    discount: 0,
-    total_amount: 0,
-    mileage: 0,
-    fuel_level: '1/2',
+    technician_id: service?.technician?.id,
+    attendant_id: service?.attendant?.id,
+    status_id: service?.status?.id ?? 0,
+    payment_method_id: service?.payment_method?.id ?? 0,
+    labor_cost: service?.financial?.labor_cost ?? 0,
+    discount: service?.financial?.discount ?? 0,
+    total_amount: Number(service?.financial?.total_amount ?? 0),
+    mileage: service?.vehicle?.mileage_at_service ?? 0,
+    fuel_level:
+      (service?.vehicle?.fuel_level as
+        | 'empty'
+        | '1/4'
+        | '1/2'
+        | '3/4'
+        | 'full') ?? '1/2',
     observations: '',
     internal_notes: '',
     warranty_months: 0,
-    priority: 'normal',
+    priority:
+      (service?.priority as 'low' | 'normal' | 'high' | 'urgent') ?? 'normal',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,34 +56,45 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
   useEffect(() => {
     if (service) {
       setFormData({
-        service_center_id: service.service_center_id,
-        client_id: service.client_id,
-        vehicle_id: service.vehicle_id,
-        description: service.description,
+        service_center_id: service.service_center?.id ?? 0,
+        client_id: service.client?.id ?? 0,
+        vehicle_id: service.vehicle?.id ?? 0,
+        description: service.description ?? '',
         complaint: service.complaint || '',
         diagnosis: service.diagnosis || '',
         solution: service.solution || '',
         scheduled_date: service.scheduled_date || '',
         started_at: service.started_at || '',
         finished_at: service.finished_at || '',
-        technician_id: service.technician_id,
-        attendant_id: service.attendant_id,
-        status_id: service.status_id,
-        payment_method_id: service.payment_method_id,
-        labor_cost: service.labor_cost || 0,
-        discount: service.discount || 0,
-        total_amount: service.total_amount || 0,
-        mileage: service.mileage || 0,
-        fuel_level: service.fuel_level || '1/2',
+        technician_id: service.technician?.id,
+        attendant_id: service.attendant?.id,
+        status_id: service.status?.id ?? 0,
+        payment_method_id: service.payment_method?.id ?? 0,
+        labor_cost: service.financial?.labor_cost ?? 0,
+        discount: service.financial?.discount ?? 0,
+        total_amount: Number(service.financial?.total_amount ?? 0),
+        mileage: service.vehicle?.mileage_at_service ?? 0,
+        fuel_level:
+          (service.vehicle?.fuel_level as
+            | 'empty'
+            | '1/4'
+            | '1/2'
+            | '3/4'
+            | 'full') ?? '1/2',
         observations: service.observations || '',
         internal_notes: service.internal_notes || '',
         warranty_months: service.warranty_months || 0,
-        priority: service.priority || 'normal',
+        priority:
+          (service.priority as 'low' | 'normal' | 'high' | 'urgent') ??
+          'normal',
       });
     }
   }, [service]);
 
-  const handleInputChange = (field: keyof CreateServiceData, value: any) => {
+  const handleInputChange = (
+    field: keyof CreateServiceData,
+    value: string | number | undefined
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Clear error when user starts typing
@@ -130,13 +148,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
     if (validateForm()) {
       onSubmit(formData);
     }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
   };
 
   return (

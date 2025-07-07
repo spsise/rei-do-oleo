@@ -78,12 +78,12 @@ export const CategoriesPage: React.FC = () => {
     setFilters((prev) => ({ ...prev, page }));
   };
 
-  const categories = categoriesData?.data || [];
+  const categories = categoriesData || [];
   const pagination = {
-    current_page: categoriesData?.current_page || 1,
-    last_page: categoriesData?.last_page || 1,
-    per_page: categoriesData?.per_page || 15,
-    total: categoriesData?.total || 0,
+    current_page: 1,
+    last_page: 1,
+    per_page: categories.length,
+    total: categories.length,
   };
 
   return (

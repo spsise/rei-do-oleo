@@ -115,7 +115,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
           maxLength={500}
         />
         <p className="mt-1 text-sm text-gray-500">
-          {formData.description.length}/500 caracteres
+          {formData.description?.length ?? 0}/500 caracteres
         </p>
       </div>
 

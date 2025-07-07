@@ -22,7 +22,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   backendErrors = {},
 }) => {
   const { data: categoriesData } = useCategories();
-  const categories = categoriesData?.data || [];
+  const categories = categoriesData || [];
 
   const [formData, setFormData] = useState({
     name: product?.name || '',

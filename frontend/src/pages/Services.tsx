@@ -7,7 +7,7 @@ import { ServiceTable } from '../components/Service/ServiceTable';
 import {
   useCreateService,
   useDeleteService,
-  useSearchServiceByNumber,
+  useSearchService,
   useServices,
   useUpdateService,
 } from '../hooks/useServices';
@@ -37,7 +37,7 @@ export const ServicesPage: React.FC = () => {
   const createServiceMutation = useCreateService();
   const updateServiceMutation = useUpdateService();
   const deleteServiceMutation = useDeleteService();
-  const searchByNumberMutation = useSearchServiceByNumber();
+  const searchByNumberMutation = useSearchService();
 
   // Abrir modal
   const openModal = (type: ModalState['type'], service?: Service) => {
@@ -74,7 +74,7 @@ export const ServicesPage: React.FC = () => {
       const result = await searchByNumberMutation.mutateAsync({
         service_number: serviceNumber,
       });
-      setSearchResult(result);
+      setSearchResult(result || null);
       setModal({ isOpen: false, type: 'create' });
     } catch {
       setSearchResult(null);
@@ -96,12 +96,12 @@ export const ServicesPage: React.FC = () => {
     setFilters((prev) => ({ ...prev, page }));
   };
 
-  const services = servicesData?.data || [];
+  const services = servicesData || [];
   const pagination = {
-    current_page: servicesData?.current_page || 1,
-    last_page: servicesData?.last_page || 1,
-    per_page: servicesData?.per_page || 15,
-    total: servicesData?.total || 0,
+    current_page: 1,
+    last_page: 1,
+    per_page: services.length,
+    total: services.length,
   };
 
   return (

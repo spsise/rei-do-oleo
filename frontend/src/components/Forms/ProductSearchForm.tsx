@@ -17,7 +17,7 @@ export const ProductSearchForm: React.FC<ProductSearchFormProps> = ({
   loading = false,
 }) => {
   const { data: categoriesData } = useCategories();
-  const categories = categoriesData?.data || [];
+  const categories = categoriesData || [];
 
   const [searchData, setSearchData] = useState({
     name: '',
