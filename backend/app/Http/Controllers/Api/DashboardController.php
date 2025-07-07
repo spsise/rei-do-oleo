@@ -285,7 +285,7 @@ class DashboardController extends Controller
                 $alerts[] = [
                     'type' => 'low_stock',
                     'title' => 'Produto com estoque baixo',
-                    'message' => "{$product->name} está com apenas {$product->stock_quantity} unidades em estoque",
+                    'message' => "{$product['name']} está com apenas {$product['stock_quantity']} unidades em estoque",
                     'severity' => 'warning',
                     'created_at' => now()->toISOString()
                 ];
@@ -308,4 +308,4 @@ class DashboardController extends Controller
             return $this->errorResponse('Erro ao obter alertas: ' . $e->getMessage(), 500);
         }
     }
-} 
+}
