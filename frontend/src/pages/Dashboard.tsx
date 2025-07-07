@@ -109,19 +109,6 @@ export const Dashboard = () => {
       {/* Stats Cards */}
       <DashboardStats stats={stats} />
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Services - Takes 2 columns */}
-        <div className="lg:col-span-2">
-          <RecentServices services={stats.recent_services} />
-        </div>
-
-        {/* Alerts - Takes 1 column */}
-        <div>
-          <DashboardAlerts alerts={alertsData} />
-        </div>
-      </div>
-
       {/* Additional sections can be added here */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Products */}
@@ -183,6 +170,19 @@ export const Dashboard = () => {
               <p className="text-xs text-gray-500">Gerar relatório de vendas</p>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Services - Takes 2 columns */}
+        <div className="lg:col-span-2">
+          <RecentServices services={stats.recent_services} />
+        </div>
+
+        {/* Alerts - Takes 1 column */}
+        <div>
+          <DashboardAlerts alerts={alertsData} />
         </div>
       </div>
     </div>
