@@ -4,7 +4,6 @@ import { API_CONFIG } from '../config/api';
 import type {
   Category,
   CategoryFilters,
-  CategoryListResponse,
   CreateCategoryData,
   UpdateCategoryData,
 } from '../types/category';
@@ -18,11 +17,19 @@ import type {
   UpdateClientData,
 } from '../types/client';
 import type {
+  CreateProductData,
+  Product,
+  ProductFilters,
+  ProductListResponse,
+  SearchProductData,
+  UpdateProductData,
+  UpdateStockData,
+} from '../types/product';
+import type {
   CreateServiceData,
   SearchServiceData,
   Service,
   ServiceFilters,
-  ServiceListResponse,
   UpdateServiceData,
 } from '../types/service';
 
@@ -241,9 +248,7 @@ class ApiService {
   }
 
   // Métodos para serviços
-  async getServices(
-    filters?: ServiceFilters
-  ): Promise<ApiResponse<ServiceListResponse>> {
+  async getServices(filters?: ServiceFilters): Promise<ApiResponse<Service[]>> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -254,9 +259,7 @@ class ApiService {
     }
 
     return apiCall(() =>
-      this.api.get<ApiResponse<ServiceListResponse>>(
-        `/services?${params.toString()}`
-      )
+      this.api.get<ApiResponse<Service[]>>(`/services?${params.toString()}`)
     );
   }
 
@@ -292,7 +295,7 @@ class ApiService {
   // Métodos para categorias
   async getCategories(
     filters?: CategoryFilters
-  ): Promise<ApiResponse<CategoryListResponse>> {
+  ): Promise<ApiResponse<Category[]>> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -303,9 +306,7 @@ class ApiService {
     }
 
     return apiCall(() =>
-      this.api.get<ApiResponse<CategoryListResponse>>(
-        `/categories?${params.toString()}`
-      )
+      this.api.get<ApiResponse<Category[]>>(`/categories?${params.toString()}`)
     );
   }
 
@@ -344,8 +345,83 @@ class ApiService {
   }
 
   // Métodos para produtos
-  async getProducts(): Promise<ApiResponse<unknown[]>> {
-    return apiCall(() => this.api.get<ApiResponse<unknown[]>>('/products'));
+  async getProducts(
+    filters?: ProductFilters
+  ): Promise<ApiResponse<ProductListResponse>> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+    }
+
+    return apiCall(() =>
+      this.api.get<ApiResponse<ProductListResponse>>(
+        `/products${params.toString() ? `?${params.toString()}` : ''}`
+      )
+    );
+  }
+
+  async getProduct(id: number): Promise<ApiResponse<Product>> {
+    return apiCall(() => this.api.get<ApiResponse<Product>>(`/products/${id}`));
+  }
+
+  async createProduct(data: CreateProductData): Promise<ApiResponse<Product>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Product>>('/products', data)
+    );
+  }
+
+  async updateProduct(
+    id: number,
+    data: UpdateProductData
+  ): Promise<ApiResponse<Product>> {
+    return apiCall(() =>
+      this.api.put<ApiResponse<Product>>(`/products/${id}`, data)
+    );
+  }
+
+  async deleteProduct(id: number): Promise<ApiResponse<null>> {
+    return apiCall(() => this.api.delete<ApiResponse<null>>(`/products/${id}`));
+  }
+
+  async searchProduct(
+    data: SearchProductData
+  ): Promise<ApiResponse<Product[]>> {
+    return apiCall(() =>
+      this.api.post<ApiResponse<Product[]>>('/products/search/name', data)
+    );
+  }
+
+  async getActiveProducts(): Promise<ApiResponse<Product[]>> {
+    return apiCall(() =>
+      this.api.get<ApiResponse<Product[]>>('/products/active/list')
+    );
+  }
+
+  async getLowStockProducts(): Promise<ApiResponse<Product[]>> {
+    return apiCall(() =>
+      this.api.get<ApiResponse<Product[]>>('/products/stock/low')
+    );
+  }
+
+  async updateProductStock(
+    id: number,
+    data: UpdateStockData
+  ): Promise<ApiResponse<null>> {
+    return apiCall(() =>
+      this.api.put<ApiResponse<null>>(`/products/${id}/stock`, data)
+    );
+  }
+
+  async getProductsByCategory(
+    categoryId: number
+  ): Promise<ApiResponse<Product[]>> {
+    return apiCall(() =>
+      this.api.get<ApiResponse<Product[]>>(`/products/category/${categoryId}`)
+    );
   }
 
   // Health check

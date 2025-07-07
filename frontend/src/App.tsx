@@ -14,6 +14,7 @@ import { CategoriesPage } from './pages/Categories';
 import { ClientsPage } from './pages/Clients';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
+import { ProductsPage } from './pages/Products';
 import { ServicesPage } from './pages/Services';
 
 // Configuração do React Query
@@ -96,6 +97,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ClientsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/products"
+                element={
+                  <ProtectedRoute>
+                    <ProductsPage />
                   </ProtectedRoute>
                 }
               />
