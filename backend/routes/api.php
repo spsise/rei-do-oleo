@@ -138,6 +138,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         Route::get('/category/{categoryId}', [ProductController::class, 'getByCategory']);       // GET /api/v1/products/category/{categoryId}
         Route::get('/stock/low', [ProductController::class, 'getLowStock']);                     // GET /api/v1/products/stock/low
         Route::post('/search/name', [ProductController::class, 'searchByName']);                 // POST /api/v1/products/search/name
+        
+        // Ações específicas
+        Route::put('/{id}/stock', [ProductController::class, 'updateStock']);                    // PUT /api/v1/products/{id}/stock
     });
 
     // =============================================================================
