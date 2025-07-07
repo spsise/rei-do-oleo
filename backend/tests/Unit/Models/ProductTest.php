@@ -300,4 +300,91 @@ class ProductTest extends TestCase
         $this->assertEquals(2, $results->count());
         $this->assertTrue($results->every(fn($product) => $product->supplier === 'Fornecedor A'));
     }
+    public function test_sku_is_always_uppercase_when_set()
+    {
+        $category = Category::factory()->create();
+        
+        $product = new Product();
+        $product->name = 'Test Product';
+        $product->sku = 'test-sku-123';
+        $product->category_id = $category->id;
+        $product->price = 100.00;
+        $product->stock_quantity = 10;
+        $product->unit = 'UN';
+        $product->active = true;
+        $product->save();
+
+        $this->assertEquals('TEST-SKU-123', $product->sku);
+    }
+    public function test_sku_is_uppercase_with_spaces_trimmed()
+    {
+        $category = Category::factory()->create();
+        
+        $product = new Product();
+        $product->name = 'Test Product';
+        $product->sku = '  test-sku-456  ';
+        $product->category_id = $category->id;
+        $product->price = 100.00;
+        $product->stock_quantity = 10;
+        $product->unit = 'UN';
+        $product->active = true;
+        $product->save();
+
+        $this->assertEquals('TEST-SKU-456', $product->sku);
+    }
+    public function test_sku_remains_uppercase_when_updated()
+    {
+        $category = Category::factory()->create();
+        
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'sku' => 'ORIGINAL-SKU'
+        ]);
+
+        $product->sku = 'new-sku-789';
+        $product->save();
+
+        $this->assertEquals('NEW-SKU-789', $product->sku);
+    }
+    public function test_factory_generates_uppercase_sku()
+    {
+        $category = Category::factory()->create();
+        
+        $product = Product::factory()->create([
+            'category_id' => $category->id
+        ]);
+
+        $this->assertEquals(strtoupper($product->sku), $product->sku);
+    }
+    public function test_sku_mutator_works_with_mass_assignment()
+    {
+        $category = Category::factory()->create();
+        
+        $product = Product::create([
+            'name' => 'Test Product',
+            'sku' => 'mass-assign-sku',
+            'category_id' => $category->id,
+            'price' => 100.00,
+            'stock_quantity' => 10,
+            'unit' => 'UN',
+            'active' => true
+        ]);
+
+        $this->assertEquals('MASS-ASSIGN-SKU', $product->sku);
+    }
+    public function test_sku_mutator_works_with_update()
+    {
+        $category = Category::factory()->create();
+        
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'sku' => 'ORIGINAL-SKU'
+        ]);
+
+        $product->update([
+            'sku' => 'updated-sku-123'
+        ]);
+
+        $this->assertEquals('UPDATED-SKU-123', $product->sku);
+    }
 }

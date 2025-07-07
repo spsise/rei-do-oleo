@@ -166,6 +166,14 @@ class Product extends Model
     }
 
     /**
+     * Set SKU attribute - always convert to uppercase
+     */
+    public function setSkuAttribute($value)
+    {
+        $this->attributes['sku'] = strtoupper(trim($value));
+    }
+
+    /**
      * Boot method to handle model events.
      */
     protected static function boot()
