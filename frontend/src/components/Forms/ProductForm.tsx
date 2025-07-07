@@ -5,6 +5,7 @@ import type {
   Product,
   UpdateProductData,
 } from '../../types/product';
+import { formatSku, normalizeSku } from '../../utils/sku';
 
 interface ProductFormProps {
   product?: Product;
@@ -27,7 +28,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [formData, setFormData] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    sku: product?.sku || '',
+    sku: formatSku(product?.sku || ''),
     barcode: product?.barcode || '',
     price: product?.price || 0,
     stock_quantity: product?.stock_quantity || 0,
@@ -66,6 +67,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     field: string,
     value: string | number | boolean
   ) => {
+    // Normalize SKU automatically
+    if (field === 'sku' && typeof value === 'string') {
+      value = normalizeSku(value);
+    }
+
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field] || backendErrors[field]) {
@@ -233,6 +239,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 hasFieldError('sku') ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Código SKU"
+              style={{ textTransform: 'uppercase' }}
             />
             {getFieldError('sku') && (
               <p className="text-red-500 text-xs mt-1">

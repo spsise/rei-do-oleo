@@ -76,7 +76,7 @@ export const ProductsPage: React.FC = () => {
   );
 
   // Hooks do React Query
-  const { data: productsData, isLoading } = useProducts(filters);
+  const { data: productsData, isLoading, refetch } = useProducts(filters);
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
   const deleteProductMutation = useDeleteProduct();
@@ -224,11 +224,6 @@ export const ProductsPage: React.FC = () => {
     setFilters(newFilters);
   };
 
-  // Limpar filtros
-  const handleClearFilters = () => {
-    setFilters({ per_page: 15 });
-  };
-
   // Mudar página
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
@@ -278,7 +273,11 @@ export const ProductsPage: React.FC = () => {
         <ProductFiltersComponent
           filters={filters}
           onFiltersChange={handleFiltersChange}
-          onClearFilters={handleClearFilters}
+          onSearch={() => {
+            // Trigger search when filters are applied
+            refetch();
+          }}
+          loading={isLoading}
         />
 
         {/* Resultado da busca */}

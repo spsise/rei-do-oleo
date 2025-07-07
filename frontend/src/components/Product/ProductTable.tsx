@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Product } from '../../types/product';
+import { getDisplaySku } from '../../utils/sku';
 
 interface ProductTableProps {
   products: Product[];
@@ -113,9 +114,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SKU
+                  Códigos
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
@@ -209,7 +210,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {product.sku || '-'}
+                        {getDisplaySku(product.sku)}
                       </div>
                       {product.barcode && (
                         <div className="text-xs text-gray-500">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCategories } from '../../hooks/useCategories';
+import { normalizeSku } from '../../utils/sku';
 
 interface ProductSearchFormProps {
   onSearchByName: (name: string) => void;
@@ -31,6 +32,11 @@ export const ProductSearchForm: React.FC<ProductSearchFormProps> = ({
   >('name');
 
   const handleInputChange = (field: string, value: string | number) => {
+    // Normalize SKU automatically
+    if (field === 'sku' && typeof value === 'string') {
+      value = normalizeSku(value);
+    }
+
     setSearchData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -155,6 +161,7 @@ export const ProductSearchForm: React.FC<ProductSearchFormProps> = ({
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Digite o código SKU..."
                 disabled={loading}
+                style={{ textTransform: 'uppercase' }}
               />
               <button
                 onClick={handleSearch}
@@ -231,13 +238,13 @@ export const ProductSearchForm: React.FC<ProductSearchFormProps> = ({
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Lista todos os produtos de uma categoria específica
+              Lista todos os produtos da categoria selecionada
             </p>
           </div>
         )}
       </div>
 
-      {/* Instructions */}
+      {/* Help Information */}
       <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
         <div className="flex">
           <div className="flex-shrink-0">

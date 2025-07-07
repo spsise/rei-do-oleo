@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import type { ProductFilters } from '../../types/product';
+import { normalizeSku } from '../../utils/sku';
 
 interface ProductFiltersComponentProps {
   filters: ProductFilters;
   onFiltersChange: (filters: ProductFilters) => void;
-  onClearFilters: () => void;
+  onSearch: () => void;
+  loading?: boolean;
 }
 
 // Hook personalizado para debounce
@@ -27,7 +29,7 @@ const useDebounce = (value: string, delay: number) => {
 
 export const ProductFiltersComponent: React.FC<
   ProductFiltersComponentProps
-> = ({ filters, onFiltersChange, onClearFilters }) => {
+> = ({ filters, onFiltersChange, onSearch, loading = false }) => {
   const { data: categoriesData } = useCategories();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -80,6 +82,13 @@ export const ProductFiltersComponent: React.FC<
   // Handlers para campos com debounce
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
+    // Normalize SKU if it looks like a SKU (contains uppercase letters and numbers)
+    if (value.match(/[A-Z]/i)) {
+      const normalizedValue = normalizeSku(value);
+      handleFilterChange('search', normalizedValue);
+    } else {
+      handleFilterChange('search', value);
+    }
   };
 
   const handleBrandChange = (value: string) => {
@@ -114,7 +123,13 @@ export const ProductFiltersComponent: React.FC<
   };
 
   const handleClearFilters = () => {
-    onClearFilters();
+    onFiltersChange({
+      search: undefined,
+      category_id: undefined,
+      active: undefined,
+      low_stock: undefined,
+      per_page: 15,
+    });
     setIsExpanded(false);
     // Limpar também os estados locais
     setSearchInput('');
@@ -122,19 +137,21 @@ export const ProductFiltersComponent: React.FC<
     setSupplierInput('');
   };
 
-  const hasActiveFilters = Object.keys(filters).some(
-    (key) =>
-      key !== 'per_page' &&
-      key !== 'page' &&
-      filters[key as keyof ProductFilters]
-  );
+  const hasActiveFilters = () => {
+    return !!(
+      filters.search ||
+      filters.category_id ||
+      filters.active !== undefined ||
+      filters.low_stock !== undefined
+    );
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border mb-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium text-gray-900">Filtros</h3>
         <div className="flex space-x-2">
-          {hasActiveFilters && (
+          {hasActiveFilters() && (
             <button
               onClick={handleClearFilters}
               className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
@@ -155,7 +172,10 @@ export const ProductFiltersComponent: React.FC<
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Buscar
+            Buscar{' '}
+            <span className="text-xs text-gray-500">
+              (Nome, SKU, código de barras)
+            </span>
           </label>
           <input
             type="text"
@@ -164,6 +184,7 @@ export const ProductFiltersComponent: React.FC<
             onKeyPress={(e) => handleKeyPress(e, 'search')}
             placeholder="Nome, SKU, código de barras... (Enter para buscar)"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            style={{ textTransform: 'uppercase' }}
           />
         </div>
 
@@ -320,7 +341,7 @@ export const ProductFiltersComponent: React.FC<
       )}
 
       {/* Indicador de filtros ativos */}
-      {hasActiveFilters && (
+      {hasActiveFilters() && (
         <div className="mt-4 pt-4 border-t">
           <div className="flex flex-wrap gap-2">
             <span className="text-sm text-gray-500">Filtros ativos:</span>
@@ -414,6 +435,16 @@ export const ProductFiltersComponent: React.FC<
           </div>
         </div>
       )}
+
+      <div className="flex justify-end">
+        <button
+          onClick={onSearch}
+          disabled={loading}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          {loading ? 'Buscando...' : 'Aplicar Filtros'}
+        </button>
+      </div>
     </div>
   );
 };

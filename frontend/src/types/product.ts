@@ -100,6 +100,7 @@ export interface SearchProductData {
 export interface UpdateStockData {
   quantity: number;
   type: 'add' | 'subtract' | 'set';
+  reason?: string;
 }
 
 export interface ProductListResponse {
