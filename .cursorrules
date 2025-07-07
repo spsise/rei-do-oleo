@@ -131,7 +131,7 @@ const checkAndCreate = async (feature: string) => {
   if (!backendExists) {
     await createBackendFiles(feature);
   }
-  
+
   // 2. Verificar frontend
   const frontendExists = await checkFrontendFiles(feature);
   if (!frontendExists) {
@@ -171,6 +171,119 @@ find frontend/src/services -name "*.ts" | head -10
 ### Regras Críticas (SEMPRE SEGUIR)
 
 ```bash
+
+## 📝 VERSIONAMENTO E COMMITS 🚨 CRÍTICO
+
+==== Versionamento e Commits ====
+
+=== Estrutura de Commits ===
+
+- Padrão de commits para o Frontend
+  ⚛️ Frontend ✨ feat: Implementa tela de login
+  ⚛️ Frontend 🐛 fix: Corrige responsividade do menu
+  ⚛️ Frontend 🎨 style: Atualiza tema e cores do sistema
+  ⚛️ Frontend ♻️ refactor: Converte componentes para TypeScript
+  ⚛️ Frontend 🔧 chore: Atualiza dependências do npm
+  ⚛️ Frontend 📱 mobile: Ajusta layout para dispositivos móveis
+  ⚛️ Frontend 🧪 test: Adiciona testes para componente Button
+
+- Padrão de commits para o backend
+  🐘 Backend ✨ feat: Adiciona autenticação via Sanctum
+  🐘 Backend 🐛 fix: Corrige validação de email no registro
+  🐘 Backend ♻️ refactor: Reorganiza estrutura de controllers
+  🐘 Backend 🔧 chore: Atualiza dependências do Composer
+  🐘 Backend 🧪 test: Adiciona testes para AuthController
+  🐘 Backend 📊 perf: Otimiza queries do usuário
+  🐘 Backend 🔒 security: Implementa rate limiting na API
+
+- Padrão de commits para o DevOps
+  🐳 DevOps 🚀 deploy: Configura pipeline CI/CD no GitHub Actions
+  🐳 DevOps 🔧 chore: Atualiza configuração do Docker
+  🐳 DevOps 📊 monitoring: Adiciona Prometheus e Grafana
+  🐳 DevOps 🔒 security: Configura SSL e certificados
+  🐳 DevOps 🏗️ infra: Provisiona recursos na AWS com Terraform
+  🐳 DevOps 🔄 backup: Implementa rotina automática de backup
+
+- Padrão de commits para o
+  📝 Docs ✨ feat: Adiciona documentação da API
+  📝 Docs 🔄 update: Atualiza README com instruções
+  📝 Docs 🐛 fix: Corrige links quebrados na documentação
+  📝 Docs 📊 diagram: Adiciona diagrama de arquitetura
+
+- Usar prefixos para categorizar:
+  - 📝 `docs`: Alterações em documentação
+  - ✨ `feat`: Novas funcionalidades
+  - 🐛 `fix`: Correções de bugs
+  - ♻️ `refactor`: Refatoração de código
+  - 🎨 `style`: Formatação e estilo
+  - ⚡ `perf`: Melhorias de performance
+  - 🔧 `chore`: Tarefas de manutenção
+  - 🔥 `remove`: Remoção de código/arquivos
+  - 🚀 `deploy`: Alterações de deploy
+
+=== Mensagens de Commit ===
+
+- Formato padrão:
+  - Adicione algo que defina o commit é sobre o backend, frontend, devops ou outros
+  - Título e breve descrição: Resumo curto (máximo 20 palavras)
+- Exemplo:
+  - 🐘 Backend ✨ feat: Adiciona sistema de busca
+  - Closes #123
+
+=== Boas Práticas de Commit ===
+
+- Fazer commits atômicos (uma alteração por commit)
+- Usar tempo verbal no presente
+- Ser claro e objetivo na descrição
+- Referenciar issues relacionadas
+- Incluir contexto quando necessário
+- Revisar alterações antes do commit
+- Não commitar arquivos temporários
+
+=== Organização de Branches ===
+
+- Branches principais:
+  - `main`: Código em produção
+  - `develop`: Desenvolvimento contínuo
+  - `release/*`: Preparação para release
+  - `hotfix/*`: Correções urgentes
+  - `feature/*`: Novas funcionalidades
+- Nomenclatura:
+  - Usar kebab-case: feature/nova-funcionalidade
+  - Incluir prefixo do tipo: hotfix/correcao-urgente
+  - Adicionar identificador: feature/123-busca-avancada
+
+=== Fluxo de Trabalho ===
+
+- Criar branch específica para cada tarefa
+- Manter branches atualizadas com rebase
+- Fazer squash de commits relacionados
+- Testar alterações antes do merge
+- Deletar branches após merge
+- Usar tags para releases
+- Manter histórico limpo e organizado
+
+=== Revisão de Código ===
+
+- Verificar:
+  - Qualidade do código
+  - Padrões de formatação
+  - Documentação atualizada
+  - Testes implementados
+  - Conflitos resolvidos
+- Fazer code review antes do merge
+- Solicitar feedback quando necessário
+
+=== Segurança e Backup ===
+
+- Não commitar:
+  - Senhas e chaves
+  - Arquivos de configuração local
+  - Dados sensíveis
+  - Arquivos grandes
+- Manter backup do repositório
+- Usar .gitignore adequadamente
+- Configurar hooks de segurança
 
 # 1. Backend (Laravel)
 cd backend
@@ -456,7 +569,7 @@ rei-do-oleo/
 ```sql
 -- Users Table
 users (
-    id, name, email, email_verified_at, password, 
+    id, name, email, email_verified_at, password,
     remember_token, created_at, updated_at
 )
 
@@ -896,7 +1009,7 @@ class ProductService
     public function getPaginated(array $filters): LengthAwarePaginator
     {
         $cacheKey = 'products_paginated_' . md5(serialize($filters));
-        
+
         return $this->cacheService->remember($cacheKey, 300, function () use ($filters) {
             return $this->productRepository->getPaginated($filters);
         });
@@ -905,16 +1018,16 @@ class ProductService
     public function create(array $data): Product
     {
         DB::beginTransaction();
-        
+
         try {
             if (isset($data['image'])) {
                 $data['image_url'] = $this->fileService->uploadImage($data['image']);
             }
-            
+
             $product = $this->productRepository->create($data);
-            
+
             event(new ProductCreated($product));
-            
+
             DB::commit();
             return $product;
         } catch (Exception $e) {
@@ -1628,7 +1741,7 @@ Schema::create('products', function (Blueprint $table) {
     $table->string('image_url')->nullable();
     $table->json('specifications')->nullable();
     $table->timestamps();
-    
+
     $table->index(['category_id', 'status']);
     $table->index(['supplier_id']);
     $table->index(['sku']);
@@ -1704,119 +1817,6 @@ class ProductSeeder extends Seeder
     ],
 ],
 ```
-
-## 📝 VERSIONAMENTO E COMMITS 🚨 CRÍTICO
-
-==== Versionamento e Commits ====
-
-=== Estrutura de Commits ===
-
-- Padrão de commits para o Frontend
-  ⚛️ Frontend ✨ feat: Implementa tela de login
-  ⚛️ Frontend 🐛 fix: Corrige responsividade do menu
-  ⚛️ Frontend 🎨 style: Atualiza tema e cores do sistema
-  ⚛️ Frontend ♻️ refactor: Converte componentes para TypeScript
-  ⚛️ Frontend 🔧 chore: Atualiza dependências do npm
-  ⚛️ Frontend 📱 mobile: Ajusta layout para dispositivos móveis
-  ⚛️ Frontend 🧪 test: Adiciona testes para componente Button
-
-- Padrão de commits para o backend
-  🐘 Backend ✨ feat: Adiciona autenticação via Sanctum
-  🐘 Backend 🐛 fix: Corrige validação de email no registro
-  🐘 Backend ♻️ refactor: Reorganiza estrutura de controllers
-  🐘 Backend 🔧 chore: Atualiza dependências do Composer
-  🐘 Backend 🧪 test: Adiciona testes para AuthController
-  🐘 Backend 📊 perf: Otimiza queries do usuário
-  🐘 Backend 🔒 security: Implementa rate limiting na API
-
-- Padrão de commits para o DevOps
-  🐳 DevOps 🚀 deploy: Configura pipeline CI/CD no GitHub Actions
-  🐳 DevOps 🔧 chore: Atualiza configuração do Docker
-  🐳 DevOps 📊 monitoring: Adiciona Prometheus e Grafana
-  🐳 DevOps 🔒 security: Configura SSL e certificados
-  🐳 DevOps 🏗️ infra: Provisiona recursos na AWS com Terraform
-  🐳 DevOps 🔄 backup: Implementa rotina automática de backup
-
-- Padrão de commits para o
-  📝 Docs ✨ feat: Adiciona documentação da API
-  📝 Docs 🔄 update: Atualiza README com instruções
-  📝 Docs 🐛 fix: Corrige links quebrados na documentação
-  📝 Docs 📊 diagram: Adiciona diagrama de arquitetura
-
-- Usar prefixos para categorizar:
-  - 📝 `docs`: Alterações em documentação
-  - ✨ `feat`: Novas funcionalidades
-  - 🐛 `fix`: Correções de bugs
-  - ♻️ `refactor`: Refatoração de código
-  - 🎨 `style`: Formatação e estilo
-  - ⚡ `perf`: Melhorias de performance
-  - 🔧 `chore`: Tarefas de manutenção
-  - 🔥 `remove`: Remoção de código/arquivos
-  - 🚀 `deploy`: Alterações de deploy
-
-=== Mensagens de Commit ===
-
-- Formato padrão:
-  - Adicione algo que defina o commit é sobre o backend, frontend, devops ou outros
-  - Título e breve descrição: Resumo curto (máximo 20 palavras)
-- Exemplo:
-  - 🐘 Backend ✨ feat: Adiciona sistema de busca
-  - Closes #123
-
-=== Boas Práticas de Commit ===
-
-- Fazer commits atômicos (uma alteração por commit)
-- Usar tempo verbal no presente
-- Ser claro e objetivo na descrição
-- Referenciar issues relacionadas
-- Incluir contexto quando necessário
-- Revisar alterações antes do commit
-- Não commitar arquivos temporários
-
-=== Organização de Branches ===
-
-- Branches principais:
-  - `main`: Código em produção
-  - `develop`: Desenvolvimento contínuo
-  - `release/*`: Preparação para release
-  - `hotfix/*`: Correções urgentes
-  - `feature/*`: Novas funcionalidades
-- Nomenclatura:
-  - Usar kebab-case: feature/nova-funcionalidade
-  - Incluir prefixo do tipo: hotfix/correcao-urgente
-  - Adicionar identificador: feature/123-busca-avancada
-
-=== Fluxo de Trabalho ===
-
-- Criar branch específica para cada tarefa
-- Manter branches atualizadas com rebase
-- Fazer squash de commits relacionados
-- Testar alterações antes do merge
-- Deletar branches após merge
-- Usar tags para releases
-- Manter histórico limpo e organizado
-
-=== Revisão de Código ===
-
-- Verificar:
-  - Qualidade do código
-  - Padrões de formatação
-  - Documentação atualizada
-  - Testes implementados
-  - Conflitos resolvidos
-- Fazer code review antes do merge
-- Solicitar feedback quando necessário
-
-=== Segurança e Backup ===
-
-- Não commitar:
-  - Senhas e chaves
-  - Arquivos de configuração local
-  - Dados sensíveis
-  - Arquivos grandes
-- Manter backup do repositório
-- Usar .gitignore adequadamente
-- Configurar hooks de segurança
 
 ## 🔒 Segurança Avançada 📚 REFERÊNCIA
 
@@ -2624,11 +2624,11 @@ const useDebugValue = (value, label) => {
 // 1. Memory Leaks
 useEffect(() => {
   const controller = new AbortController();
-  
+
   fetch('/api/data', { signal: controller.signal })
     .then(response => response.json())
     .then(data => setData(data));
-  
+
   return () => controller.abort();
 }, []);
 
@@ -2719,7 +2719,7 @@ const ExpensiveComponent = memo(({ data, onAction }) => {
 const usePerformanceMonitor = (componentName) => {
   useEffect(() => {
     const startTime = performance.now();
-    
+
     return () => {
       const endTime = performance.now();
       console.log(`${componentName} render time:`, endTime - startTime);
@@ -2749,7 +2749,7 @@ class Handler extends ExceptionHandler
                 'request_method' => request()->method(),
             ]);
         }
-        
+
         parent::report($e);
     }
 }
@@ -2972,43 +2972,43 @@ on:
 jobs:
   frontend-build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-          
+
       - name: Install dependencies
         run: |
           cd frontend
           npm ci
-          
+
       - name: Type check
         run: |
           cd frontend
           npm run type-check
-          
+
       - name: Lint check
         run: |
           cd frontend
           npm run lint
-          
+
       - name: Run tests
         run: |
           cd frontend
           npm test -- --coverage --watchAll=false
-          
+
       - name: Build check
         run: |
           cd frontend
           npm run build
-          
+
       - name: Verify build output
         run: |
           cd frontend
