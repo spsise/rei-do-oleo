@@ -31,6 +31,8 @@ class Service extends Model
         'vehicle_id',
         'user_id',
         'service_center_id',
+        'technician_id',
+        'attendant_id',
         'service_number',
         'scheduled_at',
         'started_at',
@@ -106,6 +108,22 @@ class Service extends Model
     public function paymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class);
+    }
+
+    /**
+     * Get the technician assigned to the service.
+     */
+    public function technician()
+    {
+        return $this->belongsTo(User::class, 'technician_id');
+    }
+
+    /**
+     * Get the attendant assigned to the service.
+     */
+    public function attendant()
+    {
+        return $this->belongsTo(User::class, 'attendant_id');
     }
 
     /**

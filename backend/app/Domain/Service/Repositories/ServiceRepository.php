@@ -28,6 +28,8 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'vehicle',
                 'serviceCenter',
                 'serviceStatus',
+                'technician',
+                'attendant',
                 'serviceItems.product'
             ]);
         });
@@ -85,6 +87,8 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'vehicle',
                 'serviceCenter',
                 'serviceStatus',
+                'technician',
+                'attendant',
                 'serviceItems.product'
             ])
             ->orderBy('scheduled_at', 'desc')
@@ -103,6 +107,8 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'client',
                 'vehicle',
                 'serviceStatus',
+                'technician',
+                'attendant',
                 'serviceItems.product'
             ])
             ->orderBy('scheduled_at', 'desc')
@@ -126,6 +132,8 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'vehicle',
                 'serviceCenter',
                 'serviceStatus',
+                'technician',
+                'attendant',
                 'serviceItems.product'
             ])
             ->paginate($perPage);
@@ -138,6 +146,8 @@ class ServiceRepository implements ServiceRepositoryInterface
             'vehicle',
             'serviceCenter',
             'serviceStatus',
+            'technician',
+            'attendant',
             'serviceItems.product'
         ]);
 
@@ -182,6 +192,8 @@ class ServiceRepository implements ServiceRepositoryInterface
             'serviceCenter',
             'serviceStatus',
             'paymentMethod',
+            'technician',
+            'attendant',
             'serviceItems.product.category'
         ])->find($id);
     }
