@@ -16,6 +16,11 @@ export const QUERY_KEYS = {
   SERVICE: 'service',
   DASHBOARD_STATS: 'dashboard-stats',
 
+  // Dashboard
+  DASHBOARD_OVERVIEW: 'dashboard-overview',
+  DASHBOARD_CHARTS: 'dashboard-charts',
+  DASHBOARD_ALERTS: 'dashboard-alerts',
+
   // Categories
   CATEGORIES: 'categories',
   CATEGORY: 'category',

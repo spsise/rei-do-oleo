@@ -2,6 +2,7 @@
 export { authService } from './auth.service';
 export { categoryService } from './category.service';
 export { clientService } from './client.service';
+export { dashboardService } from './dashboard.service';
 export { healthService } from './health.service';
 export { productService } from './product.service';
 export { serviceService } from './service.service';
@@ -14,5 +15,10 @@ export type {
   RegisterData,
   User,
 } from './auth.service';
+export type {
+  DashboardAlert,
+  DashboardCharts,
+  DashboardOverview,
+} from './dashboard.service';
 export { apiCall, httpClient } from './http-client';
 export type { ApiResponse } from './http-client';
