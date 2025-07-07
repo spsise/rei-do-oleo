@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignId('vehicle_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_center_id')->constrained()->onDelete('cascade');
+            $table->foreignId('technician_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('attendant_id')->nullable()->constrained('users')->onDelete('set null');
             $table->string('service_number', 20)->unique();
 
             // Timing
@@ -49,6 +51,8 @@ return new class extends Migration
             $table->index(['client_id']);
             $table->index(['vehicle_id']);
             $table->index(['service_center_id']);
+            $table->index(['technician_id']);
+            $table->index(['attendant_id']);
             $table->index(['service_status_id']);
             $table->index(['scheduled_at']);
             $table->index(['service_status_id', 'scheduled_at']);

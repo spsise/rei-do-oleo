@@ -15,10 +15,30 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone', 20)->nullable();
+            $table->string('whatsapp', 20)->nullable();
+            $table->string('document', 20)->nullable();
+            $table->date('birth_date')->nullable();
+            $table->date('hire_date')->nullable();
+            $table->decimal('salary', 10, 2)->nullable();
+            $table->decimal('commission_rate', 5, 2)->nullable();
+            $table->json('specialties')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('active')->default(true);
+            $table->timestamp('last_login_at')->nullable();
+            $table->unsignedBigInteger('service_center_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
+
+            // Indexes for performance
+            $table->index(['phone']);
+            $table->index(['document']);
+            $table->index(['active']);
+            $table->index(['service_center_id']);
+            $table->index(['created_at']);
+            $table->index(['active', 'service_center_id']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
