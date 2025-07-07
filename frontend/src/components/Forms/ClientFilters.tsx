@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { ClientFilters } from '../../types/client';
 
 interface ClientFiltersProps {
@@ -6,6 +6,23 @@ interface ClientFiltersProps {
   onFiltersChange: (filters: ClientFilters) => void;
   onClearFilters: () => void;
 }
+
+// Hook personalizado para debounce
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 export const ClientFiltersComponent: React.FC<ClientFiltersProps> = ({
   filters,
@@ -15,28 +32,66 @@ export const ClientFiltersComponent: React.FC<ClientFiltersProps> = ({
   const [localFilters, setLocalFilters] = useState<ClientFilters>(filters);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Estado local para campo de busca com debounce
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+
+  // Debounce para o campo de busca (500ms)
+  const debouncedSearch = useDebounce(searchInput, 500);
+
   useEffect(() => {
     setLocalFilters(filters);
   }, [filters]);
 
-  const handleFilterChange = (
-    key: keyof ClientFilters,
-    value: string | boolean | number | undefined
-  ) => {
-    const newFilters = {
-      ...localFilters,
-      [key]: value,
-    };
-    setLocalFilters(newFilters);
+  // Aplicar filtro de busca com debounce
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      const newFilters = {
+        ...localFilters,
+        search: debouncedSearch,
+        page: 1, // Reset to first page when search changes
+      };
+      onFiltersChange(newFilters);
+    }
+  }, [debouncedSearch]);
+
+  const handleFilterChange = useCallback(
+    (
+      key: keyof ClientFilters,
+      value: string | boolean | number | undefined
+    ) => {
+      const newFilters = {
+        ...localFilters,
+        [key]: value,
+        page: 1, // Reset to first page when filters change
+      };
+      setLocalFilters(newFilters);
+      onFiltersChange(newFilters);
+    },
+    [localFilters, onFiltersChange]
+  );
+
+  // Handler para campo de busca com debounce
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
   };
 
-  const handleApplyFilters = () => {
-    onFiltersChange(localFilters);
+  // Handler para pressionar Enter (busca imediata)
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newFilters = {
+        ...localFilters,
+        search: searchInput,
+        page: 1,
+      };
+      onFiltersChange(newFilters);
+    }
   };
 
   const handleClearFilters = () => {
     const emptyFilters: ClientFilters = {};
     setLocalFilters(emptyFilters);
+    setSearchInput('');
     onClearFilters();
   };
 
@@ -71,12 +126,11 @@ export const ClientFiltersComponent: React.FC<ClientFiltersProps> = ({
               <input
                 type="text"
                 id="search"
-                value={localFilters.search || ''}
-                onChange={(e) =>
-                  handleFilterChange('search', e.target.value || undefined)
-                }
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                placeholder="Nome, email..."
+                placeholder="Nome, email... (Enter para buscar)"
               />
             </div>
 
@@ -170,13 +224,6 @@ export const ClientFiltersComponent: React.FC<ClientFiltersProps> = ({
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Limpar
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyFilters}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Aplicar Filtros
               </button>
             </div>
           </div>

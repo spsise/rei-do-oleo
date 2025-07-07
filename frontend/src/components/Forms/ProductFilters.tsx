@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import type { ProductFilters } from '../../types/product';
 
@@ -8,25 +8,118 @@ interface ProductFiltersComponentProps {
   onClearFilters: () => void;
 }
 
+// Hook personalizado para debounce
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 export const ProductFiltersComponent: React.FC<
   ProductFiltersComponentProps
 > = ({ filters, onFiltersChange, onClearFilters }) => {
   const { data: categoriesData } = useCategories();
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Estados locais para campos com debounce
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+  const [brandInput, setBrandInput] = useState(filters.brand || '');
+  const [supplierInput, setSupplierInput] = useState(filters.supplier || '');
+
+  // Debounce para os campos de texto (500ms)
+  const debouncedSearch = useDebounce(searchInput, 500);
+  const debouncedBrand = useDebounce(brandInput, 500);
+  const debouncedSupplier = useDebounce(supplierInput, 500);
+
   const categories = categoriesData?.data || [];
 
-  const handleFilterChange = (key: keyof ProductFilters, value: any) => {
-    onFiltersChange({
-      ...filters,
-      [key]: value,
-      page: 1, // Reset to first page when filters change
-    });
+  // Define handleFilterChange before using it in useEffect
+  const handleFilterChange = useCallback(
+    (
+      key: keyof ProductFilters,
+      value: string | number | boolean | undefined
+    ) => {
+      onFiltersChange({
+        ...filters,
+        [key]: value,
+        page: 1, // Reset to first page when filters change
+      });
+    },
+    [filters, onFiltersChange]
+  );
+
+  // Aplicar filtros com debounce
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      handleFilterChange('search', debouncedSearch);
+    }
+  }, [debouncedSearch, filters.search, handleFilterChange]);
+
+  useEffect(() => {
+    if (debouncedBrand !== filters.brand) {
+      handleFilterChange('brand', debouncedBrand);
+    }
+  }, [debouncedBrand, filters.brand, handleFilterChange]);
+
+  useEffect(() => {
+    if (debouncedSupplier !== filters.supplier) {
+      handleFilterChange('supplier', debouncedSupplier);
+    }
+  }, [debouncedSupplier, filters.supplier, handleFilterChange]);
+
+  // Handlers para campos com debounce
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+  };
+
+  const handleBrandChange = (value: string) => {
+    setBrandInput(value);
+  };
+
+  const handleSupplierChange = (value: string) => {
+    setSupplierInput(value);
+  };
+
+  // Handler para pressionar Enter (busca imediata)
+  const handleKeyPress = (
+    e: React.KeyboardEvent,
+    field: 'search' | 'brand' | 'supplier'
+  ) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      let value = '';
+      switch (field) {
+        case 'search':
+          value = searchInput;
+          break;
+        case 'brand':
+          value = brandInput;
+          break;
+        case 'supplier':
+          value = supplierInput;
+          break;
+      }
+      handleFilterChange(field, value);
+    }
   };
 
   const handleClearFilters = () => {
     onClearFilters();
     setIsExpanded(false);
+    // Limpar também os estados locais
+    setSearchInput('');
+    setBrandInput('');
+    setSupplierInput('');
   };
 
   const hasActiveFilters = Object.keys(filters).some(
@@ -66,9 +159,10 @@ export const ProductFiltersComponent: React.FC<
           </label>
           <input
             type="text"
-            value={filters.search || ''}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            placeholder="Nome, SKU, código de barras..."
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyPress={(e) => handleKeyPress(e, 'search')}
+            placeholder="Nome, SKU, código de barras... (Enter para buscar)"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -181,9 +275,10 @@ export const ProductFiltersComponent: React.FC<
               </label>
               <input
                 type="text"
-                value={filters.brand || ''}
-                onChange={(e) => handleFilterChange('brand', e.target.value)}
-                placeholder="Filtrar por marca..."
+                value={brandInput}
+                onChange={(e) => handleBrandChange(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, 'brand')}
+                placeholder="Filtrar por marca... (Enter para buscar)"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -194,9 +289,10 @@ export const ProductFiltersComponent: React.FC<
               </label>
               <input
                 type="text"
-                value={filters.supplier || ''}
-                onChange={(e) => handleFilterChange('supplier', e.target.value)}
-                placeholder="Filtrar por fornecedor..."
+                value={supplierInput}
+                onChange={(e) => handleSupplierChange(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, 'supplier')}
+                placeholder="Filtrar por fornecedor... (Enter para buscar)"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -232,7 +328,10 @@ export const ProductFiltersComponent: React.FC<
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 Busca: {filters.search}
                 <button
-                  onClick={() => handleFilterChange('search', '')}
+                  onClick={() => {
+                    handleFilterChange('search', '');
+                    setSearchInput('');
+                  }}
                   className="ml-1 text-blue-600 hover:text-blue-800"
                 >
                   ×
@@ -288,7 +387,10 @@ export const ProductFiltersComponent: React.FC<
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                 Marca: {filters.brand}
                 <button
-                  onClick={() => handleFilterChange('brand', '')}
+                  onClick={() => {
+                    handleFilterChange('brand', '');
+                    setBrandInput('');
+                  }}
                   className="ml-1 text-indigo-600 hover:text-indigo-800"
                 >
                   ×
@@ -299,7 +401,10 @@ export const ProductFiltersComponent: React.FC<
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
                 Fornecedor: {filters.supplier}
                 <button
-                  onClick={() => handleFilterChange('supplier', '')}
+                  onClick={() => {
+                    handleFilterChange('supplier', '');
+                    setSupplierInput('');
+                  }}
                   className="ml-1 text-pink-600 hover:text-pink-800"
                 >
                   ×
