@@ -27,4 +27,24 @@ interface VehicleRepositoryInterface
     public function update(int $id, array $data): ?Vehicle;
 
     public function delete(int $id): bool;
+
+    /**
+     * Get popular vehicle brands with statistics
+     */
+    public function getPopularBrands(int $limit = 10, ?int $serviceCenterId = null): Collection;
+
+    /**
+     * Get vehicle chart data for dashboard
+     */
+    public function getVehicleChartData(string $period = '30d', ?int $serviceCenterId = null): array;
+
+    /**
+     * Get recent vehicles with service information
+     */
+    public function getRecentVehicles(int $limit = 10, ?int $serviceCenterId = null): Collection;
+
+    /**
+     * Get vehicles with service statistics
+     */
+    public function getVehiclesWithServiceStats(int $limit = 10, ?int $serviceCenterId = null): Collection;
 }

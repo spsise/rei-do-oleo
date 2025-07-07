@@ -31,4 +31,19 @@ interface ProductRepositoryInterface
     public function getLowStock(): Collection;
 
     public function updateStock(int $id, int $quantity, string $type): bool;
+
+    /**
+     * Get top selling products based on service items
+     */
+    public function getTopSellingProducts(int $limit = 10, ?int $serviceCenterId = null): Collection;
+
+    /**
+     * Get product sales statistics for charts
+     */
+    public function getProductSalesStats(string $period = '30d', ?int $serviceCenterId = null): array;
+
+    /**
+     * Get products with sales data for dashboard
+     */
+    public function getProductsWithSalesData(int $limit = 10, ?int $serviceCenterId = null): Collection;
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Client\Repositories\VehicleRepositoryInterface;
+use App\Domain\Vehicle\Services\VehicleService;
 use App\Http\Resources\VehicleResource;
 use App\Http\Requests\Api\Vehicle\StoreVehicleRequest;
 use App\Http\Requests\Api\Vehicle\UpdateVehicleRequest;
@@ -16,7 +17,8 @@ class VehicleController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private VehicleRepositoryInterface $vehicleRepository
+        private VehicleRepositoryInterface $vehicleRepository,
+        private VehicleService $vehicleService
     ) {}
 
     /**
@@ -178,22 +180,9 @@ class VehicleController extends Controller
      *     path="/api/v1/vehicles/{id}",
      *     tags={"Veículos"},
      *     summary="Excluir veículo",
-     *     description="Remove um veículo do sistema",
      *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Veículo excluído com sucesso"
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Veículo não encontrado"
-     *     )
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Veículo excluído com sucesso")
      * )
      */
     public function destroy(int $id): JsonResponse
@@ -349,11 +338,107 @@ class VehicleController extends Controller
      */
     public function getByClient(int $clientId): JsonResponse
     {
-        $vehicles = $this->vehicleRepository->getByClientId($clientId);
+        $vehicles = $this->vehicleRepository->getByClient($clientId);
 
         return $this->successResponse(
             VehicleResource::collection($vehicles),
             'Veículos do cliente listados'
         );
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/vehicles/dashboard/stats",
+     *     tags={"Veículos"},
+     *     summary="Obter estatísticas do dashboard de veículos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Estatísticas obtidas com sucesso")
+     * )
+     */
+    public function getDashboardStats(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->get('service_center_id');
+        $stats = $this->vehicleService->getDashboardStats($serviceCenterId);
+
+        return $this->successResponse($stats, 'Estatísticas obtidas com sucesso');
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/vehicles/chart-data",
+     *     tags={"Veículos"},
+     *     summary="Obter dados para gráficos de veículos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="period", in="query", required=false, @OA\Schema(type="string", enum={"7d", "30d", "90d", "1y"})),
+     *     @OA\Response(response=200, description="Dados obtidos com sucesso")
+     * )
+     */
+    public function getChartData(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->get('service_center_id');
+        $period = $request->get('period', '30d');
+        $chartData = $this->vehicleService->getVehiclesChartData($serviceCenterId, $period);
+
+        return $this->successResponse($chartData, 'Dados do gráfico obtidos com sucesso');
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/vehicles/recent",
+     *     tags={"Veículos"},
+     *     summary="Obter veículos recentes",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Veículos recentes obtidos com sucesso")
+     * )
+     */
+    public function getRecentVehicles(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->get('service_center_id');
+        $limit = $request->get('limit', 10);
+        $recentVehicles = $this->vehicleService->getRecentVehicles($serviceCenterId, $limit);
+
+        return $this->successResponse($recentVehicles, 'Veículos recentes obtidos com sucesso');
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/vehicles/service-stats",
+     *     tags={"Veículos"},
+     *     summary="Obter veículos com estatísticas de serviços",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Veículos com estatísticas obtidos com sucesso")
+     * )
+     */
+    public function getVehiclesWithServiceStats(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->get('service_center_id');
+        $limit = $request->get('limit', 10);
+        $vehicles = $this->vehicleService->getVehiclesWithServiceStats($serviceCenterId, $limit);
+
+        return $this->successResponse($vehicles, 'Veículos com estatísticas obtidos com sucesso');
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/vehicles/performance-metrics",
+     *     tags={"Veículos"},
+     *     summary="Obter métricas de performance de veículos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Métricas obtidas com sucesso")
+     * )
+     */
+    public function getPerformanceMetrics(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->get('service_center_id');
+        $metrics = $this->vehicleService->getVehiclePerformanceMetrics($serviceCenterId);
+
+        return $this->successResponse($metrics, 'Métricas de performance obtidas com sucesso');
     }
 }

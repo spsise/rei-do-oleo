@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Product\Repositories\ProductRepositoryInterface;
+use App\Domain\Product\Services\ProductService;
 use App\Http\Resources\ProductResource;
 use App\Http\Requests\Api\Product\StoreProductRequest;
 use App\Http\Requests\Api\Product\UpdateProductRequest;
@@ -17,7 +18,8 @@ class ProductController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private ProductRepositoryInterface $productRepository
+        private ProductRepositoryInterface $productRepository,
+        private ProductService $productService
     ) {}
 
     /**
@@ -372,5 +374,75 @@ class ProductController extends Controller
         }
 
         return $this->successResponse(null, 'Estoque atualizado com sucesso');
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/with-sales-data",
+     *     tags={"Produtos"},
+     *     summary="Listar produtos com dados de vendas",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Produtos com dados de vendas obtidos com sucesso")
+     * )
+     */
+    public function withSalesData(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->query('service_center_id');
+        $limit = $request->query('limit', 10);
+
+        $products = $this->productService->getProductsWithSalesData($serviceCenterId, $limit);
+
+        return $this->successResponse(
+            $products,
+            'Produtos com dados de vendas obtidos com sucesso'
+        );
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/performance-metrics",
+     *     tags={"Produtos"},
+     *     summary="Obter métricas de performance dos produtos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Métricas de performance obtidas com sucesso")
+     * )
+     */
+    public function performanceMetrics(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->query('service_center_id');
+
+        $metrics = $this->productService->getProductPerformanceMetrics($serviceCenterId);
+
+        return $this->successResponse(
+            $metrics,
+            'Métricas de performance obtidas com sucesso'
+        );
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/products/chart-data",
+     *     tags={"Produtos"},
+     *     summary="Obter dados para gráficos de produtos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="service_center_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="period", in="query", required=false, @OA\Schema(type="string", enum={"7d", "30d", "90d", "1y"})),
+     *     @OA\Response(response=200, description="Dados para gráficos obtidos com sucesso")
+     * )
+     */
+    public function chartData(Request $request): JsonResponse
+    {
+        $serviceCenterId = $request->query('service_center_id');
+        $period = $request->query('period', '30d');
+
+        $chartData = $this->productService->getProductsChartData($serviceCenterId, $period);
+
+        return $this->successResponse(
+            $chartData,
+            'Dados para gráficos obtidos com sucesso'
+        );
     }
 }

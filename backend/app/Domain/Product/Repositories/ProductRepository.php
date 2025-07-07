@@ -3,8 +3,10 @@
 namespace App\Domain\Product\Repositories;
 
 use App\Domain\Product\Models\Product;
+use App\Domain\Service\Models\ServiceItem;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 
@@ -115,5 +117,82 @@ class ProductRepository implements ProductRepositoryInterface
 
         $product->clearCache();
         return true;
+    }
+
+    public function getTopSellingProducts(int $limit = 10, ?int $serviceCenterId = null): Collection
+    {
+        $query = Product::select([
+                'products.*',
+                DB::raw('COALESCE(SUM(service_items.quantity), 0) as total_quantity_sold'),
+                DB::raw('COALESCE(SUM(service_items.total_price), 0) as total_revenue'),
+                DB::raw('COUNT(DISTINCT service_items.service_id) as sales_count')
+            ])
+            ->leftJoin('service_items', 'products.id', '=', 'service_items.product_id')
+            ->leftJoin('services', 'service_items.service_id', '=', 'services.id')
+            ->where('products.active', true)
+            ->groupBy('products.id', 'products.category_id', 'products.name', 'products.slug', 'products.description', 'products.sku', 'products.price', 'products.stock_quantity', 'products.min_stock', 'products.unit', 'products.active', 'products.created_at', 'products.updated_at')
+            ->orderBy('total_quantity_sold', 'desc')
+            ->orderBy('total_revenue', 'desc')
+            ->limit($limit);
+
+        if ($serviceCenterId) {
+            $query->where('services.service_center_id', $serviceCenterId);
+        }
+
+        return $query->with('category')->get();
+    }
+
+    public function getProductSalesStats(string $period = '30d', ?int $serviceCenterId = null): array
+    {
+        $dateFilter = match($period) {
+            '7d' => now()->subDays(7),
+            '30d' => now()->subDays(30),
+            '90d' => now()->subDays(90),
+            '1y' => now()->subYear(),
+            default => now()->subDays(30)
+        };
+
+        $query = Product::select([
+                'products.id',
+                'products.name',
+                DB::raw('COALESCE(SUM(service_items.quantity), 0) as total_quantity_sold'),
+                DB::raw('COALESCE(SUM(service_items.total_price), 0) as total_revenue'),
+                DB::raw('COUNT(DISTINCT service_items.service_id) as sales_count')
+            ])
+            ->leftJoin('service_items', 'products.id', '=', 'service_items.product_id')
+            ->leftJoin('services', 'service_items.service_id', '=', 'services.id')
+            ->where('products.active', true)
+            ->where('service_items.created_at', '>=', $dateFilter)
+            ->groupBy('products.id', 'products.name')
+            ->orderBy('total_quantity_sold', 'desc')
+            ->orderBy('total_revenue', 'desc');
+
+        if ($serviceCenterId) {
+            $query->where('services.service_center_id', $serviceCenterId);
+        }
+
+        return $query->get()->toArray();
+    }
+
+    public function getProductsWithSalesData(int $limit = 10, ?int $serviceCenterId = null): Collection
+    {
+        $query = Product::select([
+                'products.*',
+                DB::raw('COALESCE(SUM(service_items.quantity), 0) as total_quantity_sold'),
+                DB::raw('COALESCE(SUM(service_items.total_price), 0) as total_revenue'),
+                DB::raw('COUNT(DISTINCT service_items.service_id) as sales_count')
+            ])
+            ->leftJoin('service_items', 'products.id', '=', 'service_items.product_id')
+            ->leftJoin('services', 'service_items.service_id', '=', 'services.id')
+            ->where('products.active', true)
+            ->groupBy('products.id', 'products.category_id', 'products.name', 'products.slug', 'products.description', 'products.sku', 'products.price', 'products.stock_quantity', 'products.min_stock', 'products.unit', 'products.active', 'products.created_at', 'products.updated_at')
+            ->orderBy('total_quantity_sold', 'desc')
+            ->limit($limit);
+
+        if ($serviceCenterId) {
+            $query->where('services.service_center_id', $serviceCenterId);
+        }
+
+        return $query->with('category')->get();
     }
 }

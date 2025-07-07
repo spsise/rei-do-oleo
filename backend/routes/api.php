@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceItemController;
 use App\Http\Controllers\Api\ServiceCenterController;
+use App\Http\Controllers\Api\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -105,6 +106,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         Route::post('/search/license-plate', [VehicleController::class, 'searchByLicensePlate']); // POST /api/v1/vehicles/search/license-plate
         Route::get('/client/{clientId}', [VehicleController::class, 'getByClient']);              // GET /api/v1/vehicles/client/{clientId}
         Route::put('/{id}/mileage', [VehicleController::class, 'updateMileage']);                 // PUT /api/v1/vehicles/{id}/mileage
+
+        // Analytics e relatórios
+        Route::get('/dashboard/stats', [VehicleController::class, 'getDashboardStats']);          // GET /api/v1/vehicles/dashboard/stats
+        Route::get('/chart-data', [VehicleController::class, 'getChartData']);                    // GET /api/v1/vehicles/chart-data
+        Route::get('/recent', [VehicleController::class, 'getRecentVehicles']);                   // GET /api/v1/vehicles/recent
+        Route::get('/service-stats', [VehicleController::class, 'getVehiclesWithServiceStats']);  // GET /api/v1/vehicles/service-stats
+        Route::get('/performance-metrics', [VehicleController::class, 'getPerformanceMetrics']);  // GET /api/v1/vehicles/performance-metrics
     });
 
     // =============================================================================
@@ -141,6 +149,11 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         
         // Ações específicas
         Route::put('/{id}/stock', [ProductController::class, 'updateStock']);                    // PUT /api/v1/products/{id}/stock
+
+        // Analytics e relatórios
+        Route::get('/with-sales-data', [ProductController::class, 'withSalesData']);             // GET /api/v1/products/with-sales-data
+        Route::get('/performance-metrics', [ProductController::class, 'performanceMetrics']);     // GET /api/v1/products/performance-metrics
+        Route::get('/chart-data', [ProductController::class, 'chartData']);                      // GET /api/v1/products/chart-data
     });
 
     // =============================================================================
@@ -187,6 +200,15 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // Ações específicas
         Route::put('/{id}/status', [ServiceController::class, 'updateStatus']);                            // PUT /api/v1/services/{id}/status
         Route::get('/dashboard/stats', [ServiceController::class, 'getDashboardStats']);                   // GET /api/v1/services/dashboard/stats
+    });
+
+    // =============================================================================
+    // DASHBOARD ROUTES
+    // =============================================================================
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/overview', [DashboardController::class, 'getOverview']);                              // GET /api/v1/dashboard/overview
+        Route::get('/charts', [DashboardController::class, 'getCharts']);                                   // GET /api/v1/dashboard/charts
+        Route::get('/alerts', [DashboardController::class, 'getAlerts']);                                   // GET /api/v1/dashboard/alerts
     });
 
     // =============================================================================

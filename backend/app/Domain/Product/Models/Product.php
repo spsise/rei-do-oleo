@@ -166,6 +166,14 @@ class Product extends Model
     }
 
     /**
+     * Clear product cache
+     */
+    public function clearCache(): void
+    {
+        Cache::forget('active_products');
+    }
+
+    /**
      * Set SKU attribute - always convert to uppercase
      */
     public function setSkuAttribute($value)

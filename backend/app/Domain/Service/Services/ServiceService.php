@@ -23,7 +23,6 @@ class ServiceService
     public function createService(array $data): Service
     {
         return DB::transaction(function () use ($data) {
-            // Validate client and vehicle exist
             $client = $this->clientRepository->find($data['client_id']);
             $vehicle = $this->vehicleRepository->find($data['vehicle_id']);
 
@@ -35,14 +34,12 @@ class ServiceService
                 throw new \InvalidArgumentException('Veículo não encontrado');
             }
 
-            // Ensure vehicle belongs to client
             if ($vehicle->client_id !== $client->id) {
                 throw new \InvalidArgumentException('Veículo não pertence ao cliente informado');
             }
 
             $service = $this->serviceRepository->createService($data);
 
-            // Clear related caches
             $this->clearServiceCaches($service);
 
             return $service;
@@ -180,6 +177,28 @@ class ServiceService
                                           ->sum('final_amount'),
                 'average_service_time' => $services->where('serviceStatus.name', 'completed')
                                                   ->avg('duration_in_minutes'),
+                'services_this_month' => $services->where('serviceStatus.name', 'completed')->count(),
+                'revenue_this_month' => $services->where('serviceStatus.name', 'completed')
+                                                ->sum('final_amount'),
+                'pending_services' => $services->where('serviceStatus.name', 'scheduled')->count(),
+                'completed_today' => $services->where('serviceStatus.name', 'completed')
+                                             ->filter(function ($service) {
+                                                 return $service->completed_at && $service->completed_at->isToday();
+                                             })
+                                             ->count(),
+                'recent_services' => $services->take(5)->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'service_number' => $service->service_number,
+                        'client_name' => $service->client->name ?? 'N/A',
+                        'vehicle_plate' => $service->vehicle->license_plate ?? 'N/A',
+                        'status' => $service->serviceStatus->name ?? 'N/A',
+                        'total' => $service->final_amount ?? 0,
+                        'created_at' => $service->created_at->toISOString()
+                    ];
+                })->toArray(),
+                'trends' => [],
+                'revenue_trends' => []
             ];
         });
     }
@@ -235,5 +254,127 @@ class ServiceService
         $today = now()->toDateString();
         $yesterday = now()->subDay()->toDateString();
         Cache::forget("services_range_{$yesterday}_{$today}");
+    }
+
+    /**
+     * Obter dados para gráficos de serviços
+     */
+    public function getServicesChartData(?int $serviceCenterId = null, string $period = '30d'): array
+    {
+        $cacheKey = "services_chart_data_{$serviceCenterId}_{$period}";
+        
+        return Cache::remember($cacheKey, 600, function () use ($serviceCenterId, $period) {
+            // Calculate period based on parameter
+            $days = match($period) {
+                '7d' => 7,
+                '30d' => 30,
+                '90d' => 90,
+                default => 30
+            };
+            
+            $startDate = now()->subDays($days);
+            $endDate = now();
+            
+            // Get services for the period
+            $services = $this->serviceRepository->getServicesByDateRange(
+                $startDate->toDateString(),
+                $endDate->toDateString()
+            );
+            
+            // Group by date
+            $groupedServices = $services->groupBy(function ($service) {
+                return $service->created_at->format('Y-m-d');
+            });
+            
+            $chartData = [];
+            
+            // Generate data for each day of the period
+            for ($i = $days; $i >= 0; $i--) {
+                $date = now()->subDays($i)->format('Y-m-d');
+                $dayServices = $groupedServices->get($date, collect());
+                
+                $chartData[] = [
+                    'date' => $date,
+                    'completed' => $dayServices->where('serviceStatus.name', 'completed')->count(),
+                    'pending' => $dayServices->where('serviceStatus.name', 'pending')->count(),
+                    'in_progress' => $dayServices->where('serviceStatus.name', 'in_progress')->count(),
+                    'cancelled' => $dayServices->where('serviceStatus.name', 'cancelled')->count(),
+                ];
+            }
+            
+            return $chartData;
+        });
+    }
+
+    /**
+     * Get revenue chart data
+     */
+    public function getRevenueChartData(?int $serviceCenterId = null, string $period = '30d'): array
+    {
+        $cacheKey = "revenue_chart_data_{$serviceCenterId}_{$period}";
+        
+        return Cache::remember($cacheKey, 600, function () use ($serviceCenterId, $period) {
+            // Calculate period based on parameter
+            $days = match($period) {
+                '7d' => 7,
+                '30d' => 30,
+                '90d' => 90,
+                default => 30
+            };
+            
+            $startDate = now()->subDays($days);
+            $endDate = now();
+            
+            // Get services for the period
+            $services = $this->serviceRepository->getServicesByDateRange(
+                $startDate->toDateString(),
+                $endDate->toDateString()
+            );
+            
+            // Group by date
+            $groupedServices = $services->groupBy(function ($service) {
+                return $service->created_at->format('Y-m-d');
+            });
+            
+            $chartData = [];
+            
+            // Generate data for each day of the period
+            for ($i = $days; $i >= 0; $i--) {
+                $date = now()->subDays($i)->format('Y-m-d');
+                $dayServices = $groupedServices->get($date, collect());
+                
+                $chartData[] = [
+                    'date' => $date,
+                    'revenue' => $dayServices->where('serviceStatus.name', 'completed')->sum('final_amount'),
+                ];
+            }
+            
+            return $chartData;
+        });
+    }
+
+    /**
+     * Get long pending services
+     */
+    public function getLongPendingServices(?int $serviceCenterId = null): array
+    {
+        $cacheKey = "long_pending_services_{$serviceCenterId}";
+        
+        return Cache::remember($cacheKey, 300, function () use ($serviceCenterId) {
+            // Get services pending for more than 3 days
+            $pendingServices = $this->serviceRepository->searchByFilters([
+                'status' => 'pending',
+                'per_page' => 1000
+            ])->getCollection();
+            
+            return $pendingServices->filter(function ($service) {
+                return $service->created_at->diffInDays(now()) > 3;
+            })->map(function ($service) {
+                return (object) [
+                    'service_number' => $service->service_number,
+                    'days_pending' => $service->created_at->diffInDays(now()),
+                ];
+            })->take(10)->toArray();
+        });
     }
 }

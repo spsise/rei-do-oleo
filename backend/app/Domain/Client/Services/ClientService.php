@@ -102,7 +102,6 @@ class ClientService
         $client = $this->clientRepository->update($id, $data);
 
         if ($client) {
-            // Clear cache
             $client->clearCache();
         }
 
@@ -157,5 +156,34 @@ class ClientService
     public function searchByName(string $name): Collection
     {
         return $this->clientRepository->searchByName($name);
+    }
+
+    /**
+     * Obter estatísticas do dashboard para clientes
+     */
+    public function getDashboardStats(?int $serviceCenterId = null): array
+    {
+        $cacheKey = "client_dashboard_stats_{$serviceCenterId}";
+        
+        return Cache::remember($cacheKey, 300, function () use ($serviceCenterId) {
+            $totalClients = $this->clientRepository->getAllPaginated(1)->total();
+            
+            $activeClients = $this->clientRepository->getActiveClients()->count();
+            
+            $inactiveClients = $totalClients - $activeClients;
+            
+            $newClientsThisMonth = $this->clientRepository->searchByFilters([
+                'start_date' => now()->startOfMonth()->toDateString(),
+                'end_date' => now()->endOfMonth()->toDateString(),
+                'per_page' => 1
+            ])->total();
+            
+            return [
+                'total_clients' => $totalClients,
+                'new_clients_this_month' => $newClientsThisMonth,
+                'active_clients' => $activeClients,
+                'inactive_clients' => $inactiveClients,
+            ];
+        });
     }
 }
