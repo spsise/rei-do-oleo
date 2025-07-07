@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Pagination } from '../components/Common/Pagination';
 import { ProductFiltersComponent } from '../components/Forms/ProductFilters';
 import { ProductForm } from '../components/Forms/ProductForm';
@@ -21,6 +22,42 @@ import type {
   UpdateStockData,
 } from '../types/product';
 
+// Interface para erro da API
+interface ApiError extends Error {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+  };
+}
+
+// Função para traduzir nomes de campos para português
+const translateFieldName = (fieldName: string): string => {
+  const fieldTranslations: Record<string, string> = {
+    name: 'Nome',
+    sku: 'SKU',
+    price: 'Preço',
+    stock_quantity: 'Quantidade em Estoque',
+    min_stock: 'Estoque Mínimo',
+    unit: 'Unidade',
+    category_id: 'Categoria',
+    brand: 'Marca',
+    supplier: 'Fornecedor',
+    location: 'Localização',
+    weight: 'Peso',
+    dimensions: 'Dimensões',
+    warranty_months: 'Garantia',
+    active: 'Status',
+    featured: 'Destaque',
+    observations: 'Observações',
+    description: 'Descrição',
+    barcode: 'Código de Barras',
+  };
+
+  return fieldTranslations[fieldName] || fieldName;
+};
+
 interface ModalState {
   isOpen: boolean;
   type: 'create' | 'edit' | 'search' | 'stock';
@@ -34,6 +71,9 @@ export const ProductsPage: React.FC = () => {
   });
   const [filters, setFilters] = useState<ProductFilters>({ per_page: 15 });
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [backendErrors, setBackendErrors] = useState<Record<string, string[]>>(
+    {}
+  );
 
   // Hooks do React Query
   const { data: productsData, isLoading } = useProducts(filters);
@@ -47,29 +87,91 @@ export const ProductsPage: React.FC = () => {
   const openModal = (type: ModalState['type'], product?: Product) => {
     setModal({ isOpen: true, type, product });
     setSearchResults([]);
+    setBackendErrors({}); // Limpar erros ao abrir modal
   };
 
   // Fechar modal
   const closeModal = () => {
     setModal({ isOpen: false, type: 'create' });
+    setBackendErrors({}); // Limpar erros ao fechar modal
   };
 
   // Criar produto
   const handleCreateProduct = async (data: CreateProductData) => {
-    await createProductMutation.mutateAsync(data);
-    closeModal();
+    try {
+      await createProductMutation.mutateAsync(data);
+      toast.success('Produto criado com sucesso!');
+      closeModal();
+    } catch (error: unknown) {
+      // Tratar erros de validação do backend
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as ApiError;
+
+        if (apiError.response?.data?.errors) {
+          setBackendErrors(apiError.response.data.errors);
+
+          // Mostrar toast informando que há erros de validação
+          const errorFields = Object.keys(apiError.response.data.errors);
+          if (errorFields.length > 0) {
+            const translatedFields = errorFields.map(translateFieldName);
+            toast.error(
+              `Erro de validação: Verifique os campos ${translatedFields.join(', ')}`
+            );
+          }
+        } else if (apiError.response?.data?.message) {
+          // Exibir mensagem de erro geral se não houver erros de validação específicos
+          toast.error(apiError.response.data.message);
+        } else {
+          toast.error('Erro ao criar produto. Tente novamente.');
+        }
+      } else {
+        toast.error('Erro ao criar produto. Tente novamente.');
+      }
+    }
   };
 
   // Atualizar produto
   const handleUpdateProduct = async (data: UpdateProductData) => {
     if (!modal.product) return;
-    await updateProductMutation.mutateAsync({ id: modal.product.id, data });
-    closeModal();
+    try {
+      await updateProductMutation.mutateAsync({ id: modal.product.id, data });
+      toast.success('Produto atualizado com sucesso!');
+      closeModal();
+    } catch (error: unknown) {
+      // Tratar erros de validação do backend
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as ApiError;
+        if (apiError.response?.data?.errors) {
+          setBackendErrors(apiError.response.data.errors);
+
+          // Mostrar toast informando que há erros de validação
+          const errorFields = Object.keys(apiError.response.data.errors);
+          if (errorFields.length > 0) {
+            const translatedFields = errorFields.map(translateFieldName);
+            toast.error(
+              `Erro de validação: Verifique os campos ${translatedFields.join(', ')}`
+            );
+          }
+        } else if (apiError.response?.data?.message) {
+          // Exibir mensagem de erro geral se não houver erros de validação específicos
+          toast.error(apiError.response.data.message);
+        } else {
+          toast.error('Erro ao atualizar produto. Tente novamente.');
+        }
+      } else {
+        toast.error('Erro ao atualizar produto. Tente novamente.');
+      }
+    }
   };
 
   // Excluir produto
   const handleDeleteProduct = async (product: Product) => {
-    await deleteProductMutation.mutateAsync(product.id);
+    try {
+      await deleteProductMutation.mutateAsync(product.id);
+      toast.success('Produto excluído com sucesso!');
+    } catch {
+      toast.error('Erro ao excluir produto. Tente novamente.');
+    }
   };
 
   // Buscar por nome
@@ -78,8 +180,12 @@ export const ProductsPage: React.FC = () => {
       const results = await searchByNameMutation.mutateAsync(name);
       setSearchResults(results);
       setModal({ isOpen: false, type: 'create' });
+      if (results.length === 0) {
+        toast.error('Nenhum produto encontrado com esse nome.');
+      }
     } catch {
       setSearchResults([]);
+      toast.error('Erro ao buscar produtos. Tente novamente.');
     }
   };
 
@@ -104,8 +210,13 @@ export const ProductsPage: React.FC = () => {
   // Atualizar estoque
   const handleUpdateStock = async (data: UpdateStockData) => {
     if (!modal.product) return;
-    await updateStockMutation.mutateAsync({ id: modal.product.id, data });
-    closeModal();
+    try {
+      await updateStockMutation.mutateAsync({ id: modal.product.id, data });
+      toast.success('Estoque atualizado com sucesso!');
+      closeModal();
+    } catch {
+      toast.error('Erro ao atualizar estoque. Tente novamente.');
+    }
   };
 
   // Aplicar filtros
@@ -282,6 +393,7 @@ export const ProductsPage: React.FC = () => {
                     createProductMutation.isPending ||
                     updateProductMutation.isPending
                   }
+                  backendErrors={backendErrors}
                 />
               )}
             </div>

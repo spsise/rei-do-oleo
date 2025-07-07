@@ -9,6 +9,16 @@ import type {
   UpdateStockData,
 } from '../types/product';
 
+// Interface para erro da API
+interface ApiError extends Error {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+  };
+}
+
 // Query Keys
 const PRODUCTS_QUERY_KEY = 'products';
 const PRODUCT_QUERY_KEY = 'product';
@@ -251,7 +261,17 @@ export const useCreateProduct = () => {
   return useMutation({
     mutationFn: async (data: CreateProductData): Promise<Product> => {
       const response = await apiService.createProduct(data);
-      const product = response.data!;
+
+      // Verificar se a resposta indica erro ou se não tem dados
+      if (response.status === 'error' || !response.data) {
+        const error = new Error(
+          response.message || 'Erro ao criar produto'
+        ) as ApiError;
+        error.response = { data: response };
+        throw error;
+      }
+
+      const product = response.data;
 
       // Converter campos numéricos se necessário
       return {
@@ -308,7 +328,17 @@ export const useUpdateProduct = () => {
       data: UpdateProductData;
     }): Promise<Product> => {
       const response = await apiService.updateProduct(id, data);
-      const product = response.data!;
+
+      // Verificar se a resposta indica erro ou se não tem dados
+      if (response.status === 'error' || !response.data) {
+        const error = new Error(
+          response.message || 'Erro ao atualizar produto'
+        ) as ApiError;
+        error.response = { data: response };
+        throw error;
+      }
+
+      const product = response.data;
 
       // Converter campos numéricos se necessário
       return {

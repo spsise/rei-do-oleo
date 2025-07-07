@@ -17,34 +17,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  console.log('AuthProvider - Initial state:', { user, isLoading });
-
   // Verificar autenticação na inicialização
   useEffect(() => {
-    console.log('AuthProvider - useEffect running');
     const checkAuth = async () => {
       try {
-        console.log('AuthProvider - Checking authentication...');
         if (apiService.isAuthenticated()) {
-          console.log('AuthProvider - User is authenticated');
           const userData = apiService.getUser();
           if (userData) {
-            console.log('AuthProvider - User data found:', userData);
             setUser(userData);
           } else {
-            console.log('AuthProvider - No user data, refreshing...');
             // Token existe mas usuário não, buscar perfil
             await refreshUser();
           }
-        } else {
-          console.log('AuthProvider - User is not authenticated');
         }
       } catch (error) {
         console.error('Erro ao verificar autenticação:', error);
         // Limpar dados inválidos
         apiService.logout();
       } finally {
-        console.log('AuthProvider - Setting isLoading to false');
         setIsLoading(false);
       }
     };
@@ -119,8 +109,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
   };
-
-  console.log('AuthProvider - Current value:', value);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

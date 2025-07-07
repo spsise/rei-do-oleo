@@ -11,6 +11,7 @@ interface ProductFormProps {
   onSubmit: (data: CreateProductData | UpdateProductData) => void;
   onCancel: () => void;
   loading?: boolean;
+  backendErrors?: Record<string, string[]>;
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({
@@ -18,6 +19,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   onSubmit,
   onCancel,
   loading = false,
+  backendErrors = {},
 }) => {
   const { data: categoriesData } = useCategories();
   const categories = categoriesData?.data || [];
@@ -45,13 +47,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Função para obter erro de um campo (prioriza erros do backend)
+  const getFieldError = (fieldName: string): string => {
+    // Primeiro verifica se há erro do backend
+    if (backendErrors[fieldName] && backendErrors[fieldName].length > 0) {
+      return backendErrors[fieldName][0];
+    }
+    // Depois verifica erros locais
+    return errors[fieldName] || '';
+  };
+
+  // Função para verificar se um campo tem erro
+  const hasFieldError = (fieldName: string): boolean => {
+    return !!(backendErrors[fieldName]?.length || errors[fieldName]);
+  };
+
   const handleInputChange = (
     field: string,
     value: string | number | boolean
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
-    if (errors[field]) {
+    if (errors[field] || backendErrors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
@@ -143,12 +160,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('name') ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Nome do produto"
             />
-            {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+            {getFieldError('name') && (
+              <p className="text-red-500 text-xs mt-1">
+                {getFieldError('name')}
+              </p>
             )}
           </div>
 
@@ -162,7 +181,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 handleInputChange('category_id', Number(e.target.value))
               }
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.category_id ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('category_id')
+                  ? 'border-red-500'
+                  : 'border-gray-300'
               }`}
             >
               <option value={0}>Selecione uma categoria</option>
@@ -172,8 +193,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </option>
               ))}
             </select>
-            {errors.category_id && (
-              <p className="text-red-500 text-xs mt-1">{errors.category_id}</p>
+            {getFieldError('category_id') && (
+              <p className="text-red-500 text-xs mt-1">
+                {getFieldError('category_id')}
+              </p>
             )}
           </div>
 
@@ -207,12 +230,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               value={formData.sku}
               onChange={(e) => handleInputChange('sku', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.sku ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('sku') ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Código SKU"
             />
-            {errors.sku && (
-              <p className="text-red-500 text-xs mt-1">{errors.sku}</p>
+            {getFieldError('sku') && (
+              <p className="text-red-500 text-xs mt-1">
+                {getFieldError('sku')}
+              </p>
             )}
           </div>
 
@@ -238,12 +263,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               value={formData.unit}
               onChange={(e) => handleInputChange('unit', e.target.value)}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.unit ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('unit') ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Ex: un, kg, l"
             />
-            {errors.unit && (
-              <p className="text-red-500 text-xs mt-1">{errors.unit}</p>
+            {getFieldError('unit') && (
+              <p className="text-red-500 text-xs mt-1">
+                {getFieldError('unit')}
+              </p>
             )}
           </div>
         </div>
@@ -266,12 +293,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 handleInputChange('price', Number(e.target.value))
               }
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.price ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('price') ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="0.00"
             />
-            {errors.price && (
-              <p className="text-red-500 text-xs mt-1">{errors.price}</p>
+            {getFieldError('price') && (
+              <p className="text-red-500 text-xs mt-1">
+                {getFieldError('price')}
+              </p>
             )}
           </div>
         </div>
@@ -293,13 +322,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 handleInputChange('stock_quantity', Number(e.target.value))
               }
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.stock_quantity ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('stock_quantity')
+                  ? 'border-red-500'
+                  : 'border-gray-300'
               }`}
               placeholder="0"
             />
-            {errors.stock_quantity && (
+            {getFieldError('stock_quantity') && (
               <p className="text-red-500 text-xs mt-1">
-                {errors.stock_quantity}
+                {getFieldError('stock_quantity')}
               </p>
             )}
           </div>
@@ -316,19 +347,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 handleInputChange('min_stock', Number(e.target.value))
               }
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.min_stock ? 'border-red-500' : 'border-gray-300'
+                hasFieldError('min_stock')
+                  ? 'border-red-500'
+                  : 'border-gray-300'
               }`}
               placeholder="0"
             />
-            {errors.min_stock && (
-              <p className="text-red-500 text-xs mt-1">{errors.min_stock}</p>
+            {getFieldError('min_stock') && (
+              <p className="text-red-500 text-xs mt-1">
+                {getFieldError('min_stock')}
+              </p>
             )}
           </div>
         </div>
       </div>
 
       {/* Informações Adicionais */}
-      <div>
+      {/* <div>
         <h4 className="text-lg font-medium text-gray-900 mb-4">
           Informações Adicionais
         </h4>
@@ -432,7 +467,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             )}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Configurações */}
       <div>
