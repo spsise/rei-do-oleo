@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiService } from '../services/api';
+import { productService } from '../services';
 import type {
   CreateProductData,
   Product,
@@ -8,6 +8,11 @@ import type {
   UpdateProductData,
   UpdateStockData,
 } from '../types/product';
+import {
+  transformProductData,
+  transformProductsArray,
+} from '../utils/product-transformers';
+import { QUERY_KEYS } from './query-keys';
 
 // Interface para erro da API
 interface ApiError extends Error {
@@ -19,53 +24,18 @@ interface ApiError extends Error {
   };
 }
 
-// Query Keys
-const PRODUCTS_QUERY_KEY = 'products';
-const PRODUCT_QUERY_KEY = 'product';
-const ACTIVE_PRODUCTS_QUERY_KEY = 'active-products';
-const LOW_STOCK_PRODUCTS_QUERY_KEY = 'low-stock-products';
-
 // Listar produtos com filtros
 export const useProducts = (filters: ProductFilters = { per_page: 15 }) => {
   return useQuery({
-    queryKey: [PRODUCTS_QUERY_KEY, filters],
+    queryKey: [QUERY_KEYS.PRODUCTS, filters],
     queryFn: async (): Promise<ProductListResponse> => {
-      const response = await apiService.getProducts(filters);
+      const response = await productService.getProducts(filters);
 
       // A API retorna um array direto, não um objeto paginado
       const products = Array.isArray(response.data) ? response.data : [];
 
       // Converter campos numéricos se necessário
-      const processedProducts = products.map((product) => ({
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      }));
+      const processedProducts = transformProductsArray(products);
 
       return {
         data: processedProducts,
@@ -82,42 +52,11 @@ export const useProducts = (filters: ProductFilters = { per_page: 15 }) => {
 // Obter produto específico
 export const useProduct = (id: number) => {
   return useQuery({
-    queryKey: [PRODUCT_QUERY_KEY, id],
+    queryKey: [QUERY_KEYS.PRODUCT, id],
     queryFn: async (): Promise<Product> => {
-      const response = await apiService.getProduct(id);
+      const response = await productService.getProduct(id);
       const product = response.data!;
-
-      // Converter campos numéricos se necessário
-      return {
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      };
+      return transformProductData(product);
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
@@ -127,42 +66,11 @@ export const useProduct = (id: number) => {
 // Listar produtos ativos
 export const useActiveProducts = () => {
   return useQuery({
-    queryKey: [ACTIVE_PRODUCTS_QUERY_KEY],
+    queryKey: [QUERY_KEYS.ACTIVE_PRODUCTS],
     queryFn: async (): Promise<Product[]> => {
-      const response = await apiService.getActiveProducts();
+      const response = await productService.getActiveProducts();
       const products = response.data || [];
-
-      // Converter campos numéricos se necessário
-      return products.map((product) => ({
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      }));
+      return transformProductsArray(products);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -171,85 +79,31 @@ export const useActiveProducts = () => {
 // Listar produtos com estoque baixo
 export const useLowStockProducts = () => {
   return useQuery({
-    queryKey: [LOW_STOCK_PRODUCTS_QUERY_KEY],
+    queryKey: [QUERY_KEYS.LOW_STOCK_PRODUCTS],
     queryFn: async (): Promise<Product[]> => {
-      const response = await apiService.getLowStockProducts();
+      const response = await productService.getLowStockProducts();
       const products = response.data || [];
-
-      // Converter campos numéricos se necessário
-      return products.map((product) => ({
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      }));
+      return transformProductsArray(products);
     },
-    staleTime: 2 * 60 * 1000, // 2 minutos para estoque
+    staleTime: 5 * 60 * 1000,
   });
 };
 
 // Buscar produtos por nome
 export const useSearchProductsByName = () => {
-  return useMutation({
-    mutationFn: async (name: string): Promise<Product[]> => {
-      const response = await apiService.searchProduct({ name });
-      const products = response.data || [];
+  const queryClient = useQueryClient();
 
-      // Converter campos numéricos se necessário
-      return products.map((product) => ({
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      }));
+  return useMutation({
+    mutationFn: async (searchTerm: string): Promise<Product[]> => {
+      const response = await productService.searchProduct({ name: searchTerm });
+      const products = response.data || [];
+      return transformProductsArray(products);
+    },
+    onSuccess: () => {
+      // Invalidar cache de produtos para refletir a busca
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.PRODUCTS],
+      });
     },
   });
 };
@@ -260,57 +114,25 @@ export const useCreateProduct = () => {
 
   return useMutation({
     mutationFn: async (data: CreateProductData): Promise<Product> => {
-      const response = await apiService.createProduct(data);
-
-      // Verificar se a resposta indica erro ou se não tem dados
-      if (response.status === 'error' || !response.data) {
-        const error = new Error(
-          response.message || 'Erro ao criar produto'
-        ) as ApiError;
-        error.response = { data: response };
-        throw error;
-      }
-
-      const product = response.data;
-
-      // Converter campos numéricos se necessário
-      return {
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      };
+      const response = await productService.createProduct(data);
+      const product = response.data!;
+      return transformProductData(product);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [ACTIVE_PRODUCTS_QUERY_KEY] });
+      // Invalidar queries relacionadas a produtos
       queryClient.invalidateQueries({
-        queryKey: [LOW_STOCK_PRODUCTS_QUERY_KEY],
+        queryKey: [QUERY_KEYS.PRODUCTS],
       });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.ACTIVE_PRODUCTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.LOW_STOCK_PRODUCTS],
+      });
+    },
+    onError: (error: ApiError) => {
+      console.error('Erro ao criar produto:', error);
+      throw error;
     },
   });
 };
@@ -327,81 +149,68 @@ export const useUpdateProduct = () => {
       id: number;
       data: UpdateProductData;
     }): Promise<Product> => {
-      const response = await apiService.updateProduct(id, data);
-
-      // Verificar se a resposta indica erro ou se não tem dados
-      if (response.status === 'error' || !response.data) {
-        const error = new Error(
-          response.message || 'Erro ao atualizar produto'
-        ) as ApiError;
-        error.response = { data: response };
-        throw error;
-      }
-
-      const product = response.data;
-
-      // Converter campos numéricos se necessário
-      return {
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      };
+      const response = await productService.updateProduct(id, data);
+      const product = response.data!;
+      return transformProductData(product);
     },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [PRODUCT_QUERY_KEY, id] });
-      queryClient.invalidateQueries({ queryKey: [ACTIVE_PRODUCTS_QUERY_KEY] });
+    onSuccess: (updatedProduct) => {
+      // Atualizar cache do produto específico
+      queryClient.setQueryData(
+        [QUERY_KEYS.PRODUCT, updatedProduct.id],
+        updatedProduct
+      );
+
+      // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: [LOW_STOCK_PRODUCTS_QUERY_KEY],
+        queryKey: [QUERY_KEYS.PRODUCTS],
       });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.ACTIVE_PRODUCTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.LOW_STOCK_PRODUCTS],
+      });
+    },
+    onError: (error: ApiError) => {
+      console.error('Erro ao atualizar produto:', error);
+      throw error;
     },
   });
 };
 
-// Excluir produto
+// Deletar produto
 export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: number): Promise<void> => {
-      await apiService.deleteProduct(id);
+      await productService.deleteProduct(id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [ACTIVE_PRODUCTS_QUERY_KEY] });
-      queryClient.invalidateQueries({
-        queryKey: [LOW_STOCK_PRODUCTS_QUERY_KEY],
+    onSuccess: (_, deletedId) => {
+      // Remover produto do cache
+      queryClient.removeQueries({
+        queryKey: [QUERY_KEYS.PRODUCT, deletedId],
       });
+
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.PRODUCTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.ACTIVE_PRODUCTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.LOW_STOCK_PRODUCTS],
+      });
+    },
+    onError: (error: ApiError) => {
+      console.error('Erro ao deletar produto:', error);
+      throw error;
     },
   });
 };
 
-// Atualizar estoque
+// Atualizar estoque do produto
 export const useUpdateProductStock = () => {
   const queryClient = useQueryClient();
 
@@ -413,14 +222,23 @@ export const useUpdateProductStock = () => {
       id: number;
       data: UpdateStockData;
     }): Promise<void> => {
-      await apiService.updateProductStock(id, data);
+      await productService.updateProductStock(id, data);
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [PRODUCTS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [PRODUCT_QUERY_KEY, id] });
+      // Invalidar queries relacionadas ao produto
       queryClient.invalidateQueries({
-        queryKey: [LOW_STOCK_PRODUCTS_QUERY_KEY],
+        queryKey: [QUERY_KEYS.PRODUCT, id],
       });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.PRODUCTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.LOW_STOCK_PRODUCTS],
+      });
+    },
+    onError: (error: ApiError) => {
+      console.error('Erro ao atualizar estoque:', error);
+      throw error;
     },
   });
 };
@@ -428,42 +246,11 @@ export const useUpdateProductStock = () => {
 // Obter produtos por categoria
 export const useProductsByCategory = (categoryId: number) => {
   return useQuery({
-    queryKey: [PRODUCTS_QUERY_KEY, 'category', categoryId],
+    queryKey: [QUERY_KEYS.PRODUCTS_BY_CATEGORY, categoryId],
     queryFn: async (): Promise<Product[]> => {
-      const response = await apiService.getProductsByCategory(categoryId);
+      const response = await productService.getProductsByCategory(categoryId);
       const products = response.data || [];
-
-      // Converter campos numéricos se necessário
-      return products.map((product) => ({
-        ...product,
-        price:
-          typeof product.price === 'string'
-            ? parseFloat(product.price)
-            : product.price,
-        cost_price: product.cost_price
-          ? typeof product.cost_price === 'string'
-            ? parseFloat(product.cost_price)
-            : product.cost_price
-          : undefined,
-        stock_quantity:
-          typeof product.stock_quantity === 'string'
-            ? parseInt(product.stock_quantity)
-            : product.stock_quantity,
-        min_stock:
-          typeof product.min_stock === 'string'
-            ? parseInt(product.min_stock)
-            : product.min_stock,
-        weight: product.weight
-          ? typeof product.weight === 'string'
-            ? parseFloat(product.weight)
-            : product.weight
-          : undefined,
-        warranty_months: product.warranty_months
-          ? typeof product.warranty_months === 'string'
-            ? parseInt(product.warranty_months)
-            : product.warranty_months
-          : undefined,
-      }));
+      return transformProductsArray(products);
     },
     enabled: !!categoryId,
     staleTime: 5 * 60 * 1000,
