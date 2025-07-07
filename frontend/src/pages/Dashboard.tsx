@@ -1,13 +1,13 @@
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  CurrencyDollarIcon,
-  TruckIcon,
-  UsersIcon,
-  WrenchScrewdriverIcon,
+    ArrowDownIcon,
+    ArrowUpIcon,
+    CurrencyDollarIcon,
+    TruckIcon,
+    UsersIcon,
+    WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '../services/api';
+import { serviceService } from '../services';
 
 interface DashboardStats {
   totalClients: number;
@@ -122,13 +122,13 @@ const RecentServicesCard = ({
 
 export const Dashboard = () => {
   const {
-    data: stats,
+    data: _stats,
     isLoading,
     error,
   } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const response = await apiService.getDashboardStats();
+      const response = await serviceService.getDashboardStats();
       if (response.status === 'success' && response.data) {
         return response.data;
       }
@@ -198,25 +198,25 @@ export const Dashboard = () => {
         <p className="text-gray-600">Visão geral do sistema Rei do Óleo</p>
       </div>
 
-      {/* Stats cards */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total de Clientes"
-          value={mockStats.totalClients.toLocaleString()}
+          value={mockStats.totalClients}
           icon={UsersIcon}
           change="+12%"
           changeType="up"
         />
         <StatCard
           title="Total de Veículos"
-          value={mockStats.totalVehicles.toLocaleString()}
+          value={mockStats.totalVehicles}
           icon={TruckIcon}
           change="+8%"
           changeType="up"
         />
         <StatCard
-          title="Serviços Realizados"
-          value={mockStats.totalServices.toLocaleString()}
+          title="Total de Serviços"
+          value={mockStats.totalServices}
           icon={WrenchScrewdriverIcon}
           change="+15%"
           changeType="up"
@@ -230,75 +230,26 @@ export const Dashboard = () => {
         />
       </div>
 
-      {/* Monthly stats */}
+      {/* Monthly Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Este Mês</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Serviços</span>
-              <span className="font-medium">{mockStats.servicesThisMonth}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Receita</span>
-              <span className="font-medium">
-                R$ {mockStats.revenueThisMonth.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Status dos Serviços
-          </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Concluídos</span>
-              <span className="font-medium text-green-600">85%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Em Andamento</span>
-              <span className="font-medium text-yellow-600">12%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Pendentes</span>
-              <span className="font-medium text-red-600">3%</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title="Serviços Este Mês"
+          value={mockStats.servicesThisMonth}
+          icon={WrenchScrewdriverIcon}
+          change="+5%"
+          changeType="up"
+        />
+        <StatCard
+          title="Receita Este Mês"
+          value={`R$ ${mockStats.revenueThisMonth.toLocaleString()}`}
+          icon={CurrencyDollarIcon}
+          change="+18%"
+          changeType="up"
+        />
       </div>
 
-      {/* Recent services */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentServicesCard services={mockStats.recentServices} />
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Ações Rápidas
-          </h3>
-          <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="font-medium text-gray-900">Novo Cliente</div>
-              <div className="text-sm text-gray-600">
-                Cadastrar novo cliente
-              </div>
-            </button>
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="font-medium text-gray-900">Novo Serviço</div>
-              <div className="text-sm text-gray-600">
-                Abrir ordem de serviço
-              </div>
-            </button>
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="font-medium text-gray-900">Relatório</div>
-              <div className="text-sm text-gray-600">
-                Gerar relatório mensal
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Recent Services */}
+      <RecentServicesCard services={mockStats.recentServices} />
     </div>
   );
 };

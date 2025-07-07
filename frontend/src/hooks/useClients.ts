@@ -1,84 +1,74 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
-import { apiService } from '../services/api';
+import { clientService } from '../services';
 import type {
+  Client,
   ClientFilters,
+  ClientListResponse,
   CreateClientData,
   SearchByDocumentData,
   SearchByPhoneData,
   UpdateClientData,
 } from '../types/client';
+import { QUERY_KEYS } from './query-keys';
 
-// Chaves para cache do React Query
-export const clientKeys = {
-  all: ['clients'] as const,
-  lists: () => [...clientKeys.all, 'list'] as const,
-  list: (filters: ClientFilters) => [...clientKeys.lists(), filters] as const,
-  details: () => [...clientKeys.all, 'detail'] as const,
-  detail: (id: number) => [...clientKeys.details(), id] as const,
-};
+// Interface para erro da API
+interface ApiError extends Error {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+  };
+}
 
-// Hook para listar clientes
+// Listar clientes com filtros
 export const useClients = (filters: ClientFilters = { per_page: 15 }) => {
   return useQuery({
-    queryKey: clientKeys.list(filters),
-    queryFn: async () => {
-      const response = await apiService.getClients(filters);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao carregar clientes');
+    queryKey: [QUERY_KEYS.CLIENTS, filters],
+    queryFn: async (): Promise<ClientListResponse> => {
+      const response = await clientService.getClients(filters);
+      return response.data!;
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
   });
 };
 
-// Hook para obter um cliente específico
+// Obter cliente específico
 export const useClient = (id: number) => {
   return useQuery({
-    queryKey: clientKeys.detail(id),
-    queryFn: async () => {
-      const response = await apiService.getClient(id);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao carregar cliente');
+    queryKey: [QUERY_KEYS.CLIENT, id],
+    queryFn: async (): Promise<Client> => {
+      const response = await clientService.getClient(id);
+      return response.data!;
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
   });
 };
 
-// Hook para criar cliente
+// Criar cliente
 export const useCreateClient = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateClientData) => {
-      const response = await apiService.createClient(data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao criar cliente');
+    mutationFn: async (data: CreateClientData): Promise<Client> => {
+      const response = await clientService.createClient(data);
+      return response.data!;
     },
-    onSuccess: (newClient) => {
-      // Invalidar cache de listagem
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-
-      // Adicionar novo cliente ao cache
-      queryClient.setQueryData(clientKeys.detail(newClient.id), newClient);
-
-      toast.success('Cliente criado com sucesso!');
+    onSuccess: () => {
+      // Invalidar queries relacionadas a clientes
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CLIENTS],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao criar cliente');
+    onError: (error: ApiError) => {
+      console.error('Erro ao criar cliente:', error);
+      throw error;
     },
   });
 };
 
-// Hook para atualizar cliente
+// Atualizar cliente
 export const useUpdateClient = () => {
   const queryClient = useQueryClient();
 
@@ -89,86 +79,79 @@ export const useUpdateClient = () => {
     }: {
       id: number;
       data: UpdateClientData;
-    }) => {
-      const response = await apiService.updateClient(id, data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao atualizar cliente');
+    }): Promise<Client> => {
+      const response = await clientService.updateClient(id, data);
+      return response.data!;
     },
     onSuccess: (updatedClient) => {
       // Atualizar cache do cliente específico
       queryClient.setQueryData(
-        clientKeys.detail(updatedClient.id),
+        [QUERY_KEYS.CLIENT, updatedClient.id],
         updatedClient
       );
 
-      // Invalidar cache de listagem
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-
-      toast.success('Cliente atualizado com sucesso!');
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CLIENTS],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao atualizar cliente');
+    onError: (error: ApiError) => {
+      console.error('Erro ao atualizar cliente:', error);
+      throw error;
     },
   });
 };
 
-// Hook para excluir cliente
+// Deletar cliente
 export const useDeleteClient = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiService.deleteClient(id);
-      if (response.status === 'success') {
-        return id;
-      }
-      throw new Error(response.message || 'Erro ao excluir cliente');
+    mutationFn: async (id: number): Promise<void> => {
+      await clientService.deleteClient(id);
     },
-    onSuccess: (deletedId) => {
+    onSuccess: (_, deletedId) => {
       // Remover cliente do cache
-      queryClient.removeQueries({ queryKey: clientKeys.detail(deletedId) });
+      queryClient.removeQueries({
+        queryKey: [QUERY_KEYS.CLIENT, deletedId],
+      });
 
-      // Invalidar cache de listagem
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-
-      toast.success('Cliente excluído com sucesso!');
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CLIENTS],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao excluir cliente');
+    onError: (error: ApiError) => {
+      console.error('Erro ao deletar cliente:', error);
+      throw error;
     },
   });
 };
 
-// Hook para buscar cliente por documento
+// Buscar cliente por documento
 export const useSearchClientByDocument = () => {
   return useMutation({
-    mutationFn: async (data: SearchByDocumentData) => {
-      const response = await apiService.searchClientByDocument(data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Cliente não encontrado');
+    mutationFn: async (data: SearchByDocumentData): Promise<Client> => {
+      const response = await clientService.searchClientByDocument(data);
+      return response.data!;
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Cliente não encontrado');
+    onError: (error: ApiError) => {
+      console.error('Erro ao buscar cliente por documento:', error);
+      throw error;
     },
   });
 };
 
-// Hook para buscar cliente por telefone
+// Buscar cliente por telefone
 export const useSearchClientByPhone = () => {
   return useMutation({
-    mutationFn: async (data: SearchByPhoneData) => {
-      const response = await apiService.searchClientByPhone(data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Cliente não encontrado');
+    mutationFn: async (data: SearchByPhoneData): Promise<Client> => {
+      const response = await clientService.searchClientByPhone(data);
+      return response.data!;
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Cliente não encontrado');
+    onError: (error: ApiError) => {
+      console.error('Erro ao buscar cliente por telefone:', error);
+      throw error;
     },
   });
 };

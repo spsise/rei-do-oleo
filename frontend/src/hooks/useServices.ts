@@ -1,130 +1,96 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
-import { apiService } from '../services/api';
+import { serviceService } from '../services';
 import type {
   CreateServiceData,
-  SearchServiceByNumberData,
   SearchServiceData,
   Service,
   ServiceFilters,
   UpdateServiceData,
-  UpdateServiceStatusData,
 } from '../types/service';
+import { QUERY_KEYS } from './query-keys';
 
-// Keys para React Query
-const serviceKeys = {
-  all: ['services'] as const,
-  lists: () => [...serviceKeys.all, 'list'] as const,
-  list: (filters: ServiceFilters) => [...serviceKeys.lists(), filters] as const,
-  details: () => [...serviceKeys.all, 'detail'] as const,
-  detail: (id: number) => [...serviceKeys.details(), id] as const,
-};
+// Interface para erro da API
+interface ApiError extends Error {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+  };
+}
 
-// Listar serviços
+// Listar serviços com filtros
 export const useServices = (filters: ServiceFilters = { per_page: 15 }) => {
   return useQuery({
-    queryKey: serviceKeys.list(filters),
-    queryFn: async () => {
-      const response = await apiService.getServices(filters);
-      if (response.status === 'success' && response.data) {
-        // A API retorna um array direto em response.data
-        // Precisamos criar a estrutura de paginação esperada pelo frontend
-        const servicesArray = Array.isArray(response.data) ? response.data : [];
-        const servicesData = {
-          data: servicesArray,
-          current_page: 1,
-          last_page: 1,
-          per_page: servicesArray.length,
-          total: servicesArray.length,
-        };
-
-        return servicesData;
-      }
-      throw new Error(response.message || 'Erro ao carregar serviços');
+    queryKey: [QUERY_KEYS.SERVICES, filters],
+    queryFn: async (): Promise<Service[]> => {
+      const response = await serviceService.getServices(filters);
+      return response.data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
   });
 };
 
-// Buscar serviço por ID
+// Obter serviço específico
 export const useService = (id: number) => {
   return useQuery({
-    queryKey: serviceKeys.detail(id),
-    queryFn: async () => {
-      const response = await apiService.getService(id);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao carregar serviço');
+    queryKey: [QUERY_KEYS.SERVICE, id],
+    queryFn: async (): Promise<Service> => {
+      const response = await serviceService.getService(id);
+      return response.data!;
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
   });
 };
 
-// Buscar serviço por número
-export const useSearchServiceByNumber = () => {
-  return useMutation({
-    mutationFn: async (data: SearchServiceByNumberData) => {
-      // TODO: Implementar método específico para busca por número
-      const response = await apiService.getServices();
-      return response.data?.find(
-        (service: Service) => service.service_number === data.service_number
-      );
-    },
-  });
-};
-
-// Listar serviços por centro de serviço
-export const useServicesByServiceCenter = (serviceCenterId: number) => {
+// Listar todos os serviços (sem filtros)
+export const useAllServices = () => {
   return useQuery({
-    queryKey: [...serviceKeys.lists(), 'service-center', serviceCenterId],
-    queryFn: async () => {
-      const response = await apiService.getServices();
-      return {
-        ...response,
-        data: response.data?.filter(
-          (service: Service) => service.service_center?.id === serviceCenterId
-        ),
-      };
+    queryKey: [QUERY_KEYS.SERVICES, 'all'],
+    queryFn: async (): Promise<Service[]> => {
+      const response = await serviceService.getServices();
+      return response.data || [];
     },
-    enabled: !!serviceCenterId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Listar serviços por status
+export const useServicesByStatus = (status: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.SERVICES, 'status', status],
+    queryFn: async (): Promise<Service[]> => {
+      const response = await serviceService.getServices();
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 };
 
 // Listar serviços por cliente
 export const useServicesByClient = (clientId: number) => {
   return useQuery({
-    queryKey: [...serviceKeys.lists(), 'client', clientId],
-    queryFn: async () => {
-      const response = await apiService.getServices();
-      return {
-        ...response,
-        data: response.data?.filter(
-          (service: Service) => service.client?.id === clientId
-        ),
-      };
+    queryKey: [QUERY_KEYS.SERVICES, 'client', clientId],
+    queryFn: async (): Promise<Service[]> => {
+      const response = await serviceService.getServices();
+      return response.data || [];
     },
     enabled: !!clientId,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
 // Listar serviços por veículo
 export const useServicesByVehicle = (vehicleId: number) => {
   return useQuery({
-    queryKey: [...serviceKeys.lists(), 'vehicle', vehicleId],
-    queryFn: async () => {
-      const response = await apiService.getServices();
-      return {
-        ...response,
-        data: response.data?.filter(
-          (service: Service) => service.vehicle?.id === vehicleId
-        ),
-      };
+    queryKey: [QUERY_KEYS.SERVICES, 'vehicle', vehicleId],
+    queryFn: async (): Promise<Service[]> => {
+      const response = await serviceService.getServices();
+      return response.data || [];
     },
     enabled: !!vehicleId,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -133,24 +99,19 @@ export const useCreateService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateServiceData) => {
-      const response = await apiService.createService(data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao criar serviço');
+    mutationFn: async (data: CreateServiceData): Promise<Service> => {
+      const response = await serviceService.createService(data);
+      return response.data!;
     },
-    onSuccess: (newService) => {
-      // Invalidar cache de listagem
-      queryClient.invalidateQueries({ queryKey: serviceKeys.lists() });
-
-      // Adicionar novo serviço ao cache
-      queryClient.setQueryData(serviceKeys.detail(newService.id), newService);
-
-      toast.success('Serviço criado com sucesso!');
+    onSuccess: () => {
+      // Invalidar queries relacionadas a serviços
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SERVICES],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao criar serviço');
+    onError: (error: ApiError) => {
+      console.error('Erro ao criar serviço:', error);
+      throw error;
     },
   });
 };
@@ -166,104 +127,77 @@ export const useUpdateService = () => {
     }: {
       id: number;
       data: UpdateServiceData;
-    }) => {
-      const response = await apiService.updateService(id, data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Erro ao atualizar serviço');
+    }): Promise<Service> => {
+      const response = await serviceService.updateService(id, data);
+      return response.data!;
     },
     onSuccess: (updatedService) => {
       // Atualizar cache do serviço específico
       queryClient.setQueryData(
-        serviceKeys.detail(updatedService.id),
+        [QUERY_KEYS.SERVICE, updatedService.id],
         updatedService
       );
 
-      // Invalidar cache de listagem
-      queryClient.invalidateQueries({ queryKey: serviceKeys.lists() });
-
-      toast.success('Serviço atualizado com sucesso!');
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SERVICES],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao atualizar serviço');
+    onError: (error: ApiError) => {
+      console.error('Erro ao atualizar serviço:', error);
+      throw error;
     },
   });
 };
 
-// Excluir serviço
+// Deletar serviço
 export const useDeleteService = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiService.deleteService(id);
-      if (response.status === 'success') {
-        return id;
-      }
-      throw new Error(response.message || 'Erro ao excluir serviço');
+    mutationFn: async (id: number): Promise<void> => {
+      await serviceService.deleteService(id);
     },
-    onSuccess: (deletedId) => {
+    onSuccess: (_, deletedId) => {
       // Remover serviço do cache
-      queryClient.removeQueries({ queryKey: serviceKeys.detail(deletedId) });
+      queryClient.removeQueries({
+        queryKey: [QUERY_KEYS.SERVICE, deletedId],
+      });
 
-      // Invalidar cache de listagem
-      queryClient.invalidateQueries({ queryKey: serviceKeys.lists() });
-
-      toast.success('Serviço excluído com sucesso!');
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SERVICES],
+      });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao excluir serviço');
-    },
-  });
-};
-
-// Atualizar status do serviço
-export const useUpdateServiceStatus = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: UpdateServiceStatusData;
-    }) => {
-      // TODO: Implementar método específico para atualizar status
-      console.log('Updating service status:', id, data);
-      return { success: true };
-    },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: serviceKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: serviceKeys.detail(id) });
+    onError: (error: ApiError) => {
+      console.error('Erro ao deletar serviço:', error);
+      throw error;
     },
   });
 };
 
-// Estatísticas do dashboard
-export const useServiceDashboardStats = (serviceCenterId?: number) => {
-  return useQuery({
-    queryKey: [...serviceKeys.all, 'stats', serviceCenterId],
-    queryFn: async () => {
-      const response = await apiService.getDashboardStats();
-      return response.data;
-    },
-  });
-};
-
-// Hook para buscar serviço
+// Buscar serviço
 export const useSearchService = () => {
   return useMutation({
-    mutationFn: async (data: SearchServiceData) => {
-      const response = await apiService.searchService(data);
-      if (response.status === 'success' && response.data) {
-        return response.data;
-      }
-      throw new Error(response.message || 'Serviço não encontrado');
+    mutationFn: async (data: SearchServiceData): Promise<Service> => {
+      const response = await serviceService.searchService(data);
+      return response.data!;
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Serviço não encontrado');
+    onError: (error: ApiError) => {
+      console.error('Erro ao buscar serviço:', error);
+      throw error;
     },
+  });
+};
+
+// Obter estatísticas do dashboard
+export const useDashboardStats = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.DASHBOARD_STATS],
+    queryFn: async () => {
+      const response = await serviceService.getDashboardStats();
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos para estatísticas
   });
 };

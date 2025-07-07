@@ -1,12 +1,7 @@
 import type { ReactNode } from 'react';
 import React, { useEffect, useState } from 'react';
-import type {
-  ApiResponse,
-  LoginData,
-  RegisterData,
-  User,
-} from '../services/api';
-import { apiService } from '../services/api';
+import type { ApiResponse, LoginData, RegisterData, User } from '../services';
+import { authService } from '../services';
 import { AuthContext } from './AuthContext';
 
 interface AuthProviderProps {
@@ -21,8 +16,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (apiService.isAuthenticated()) {
-          const userData = apiService.getUser();
+        if (authService.isAuthenticated()) {
+          const userData = authService.getUser();
           if (userData) {
             setUser(userData);
           } else {
@@ -33,7 +28,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Erro ao verificar autenticação:', error);
         // Limpar dados inválidos
-        apiService.logout();
+        authService.logout();
       } finally {
         setIsLoading(false);
       }
@@ -44,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (data: LoginData): Promise<ApiResponse> => {
     try {
-      const response = await apiService.login(data);
+      const response = await authService.login(data);
 
       if (response.status === 'success' && response.data) {
         setUser(response.data.user);
@@ -59,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: RegisterData): Promise<ApiResponse> => {
     try {
-      const response = await apiService.register(data);
+      const response = await authService.register(data);
 
       if (response.status === 'success' && response.data) {
         setUser(response.data.user);
@@ -74,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     try {
-      await apiService.logout();
+      await authService.logout();
       setUser(null);
     } catch (error) {
       console.error('Erro no logout:', error);
@@ -85,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async (): Promise<void> => {
     try {
-      const response = await apiService.getProfile();
+      const response = await authService.getProfile();
 
       if (response.status === 'success' && response.data) {
         setUser(response.data);
