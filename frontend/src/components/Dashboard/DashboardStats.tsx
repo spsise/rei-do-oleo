@@ -1,6 +1,6 @@
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
+  CheckCircleIcon,
+  ClockIcon,
   CubeIcon,
   CurrencyDollarIcon,
   ExclamationTriangleIcon,
@@ -9,66 +9,7 @@ import {
   WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline';
 import React from 'react';
-
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
-  change?: string;
-  changeType?: 'up' | 'down' | 'neutral';
-  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
-}
-
-const StatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  icon: Icon,
-  change,
-  changeType = 'neutral',
-  color = 'blue',
-}) => {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-    purple: 'bg-purple-50 text-purple-600',
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {change && (
-            <div className="flex items-center mt-2">
-              {changeType === 'up' ? (
-                <ArrowUpIcon className="h-4 w-4 text-green-500" />
-              ) : changeType === 'down' ? (
-                <ArrowDownIcon className="h-4 w-4 text-red-500" />
-              ) : null}
-              <span
-                className={`text-sm font-medium ml-1 ${
-                  changeType === 'up'
-                    ? 'text-green-600'
-                    : changeType === 'down'
-                      ? 'text-red-600'
-                      : 'text-gray-600'
-                }`}
-              >
-                {change}
-              </span>
-            </div>
-          )}
-        </div>
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
-    </div>
-  );
-};
+import StatCard from '../ui/StatCard';
 
 interface DashboardStatsProps {
   stats: {
@@ -83,9 +24,13 @@ interface DashboardStatsProps {
     pending_services: number;
     completed_services_today: number;
   };
+  loading?: boolean;
 }
 
-export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
+export const DashboardStats: React.FC<DashboardStatsProps> = ({
+  stats,
+  loading = false,
+}) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -94,72 +39,132 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <StatCard
-        title="Total de Clientes"
-        value={stats.total_clients.toLocaleString('pt-BR')}
-        icon={UsersIcon}
-        color="blue"
-        change="+12% este mês"
-        changeType="up"
-      />
+    <div className="space-y-6">
+      {/* Main Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total de Clientes"
+          value={stats.total_clients.toLocaleString('pt-BR')}
+          icon={UsersIcon}
+          color="blue"
+          change="+12% este mês"
+          changeType="up"
+          description="Número total de clientes cadastrados no sistema"
+          loading={loading}
+        />
 
-      <StatCard
-        title="Total de Veículos"
-        value={stats.total_vehicles.toLocaleString('pt-BR')}
-        icon={TruckIcon}
-        color="green"
-        change="+8% este mês"
-        changeType="up"
-      />
+        <StatCard
+          title="Total de Veículos"
+          value={stats.total_vehicles.toLocaleString('pt-BR')}
+          icon={TruckIcon}
+          color="green"
+          change="+8% este mês"
+          changeType="up"
+          description="Total de veículos registrados no sistema"
+          loading={loading}
+        />
 
-      <StatCard
-        title="Total de Serviços"
-        value={stats.total_services.toLocaleString('pt-BR')}
-        icon={WrenchScrewdriverIcon}
-        color="purple"
-        change="+15% este mês"
-        changeType="up"
-      />
+        <StatCard
+          title="Serviços Hoje"
+          value={stats.completed_services_today.toLocaleString('pt-BR')}
+          icon={CheckCircleIcon}
+          color="purple"
+          change="+15% vs ontem"
+          changeType="up"
+          description="Serviços completados hoje"
+          loading={loading}
+        />
 
-      <StatCard
-        title="Receita Total"
-        value={formatCurrency(stats.total_revenue)}
-        icon={CurrencyDollarIcon}
-        color="green"
-        change="+18% este mês"
-        changeType="up"
-      />
+        <StatCard
+          title="Receita Hoje"
+          value={formatCurrency(stats.total_revenue)}
+          icon={CurrencyDollarIcon}
+          color="green"
+          change="+18% vs ontem"
+          changeType="up"
+          description="Receita total gerada hoje"
+          loading={loading}
+        />
+      </div>
 
-      <StatCard
-        title="Serviços Este Mês"
-        value={stats.services_this_month.toLocaleString('pt-BR')}
-        icon={WrenchScrewdriverIcon}
-        color="blue"
-      />
+      {/* Secondary Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Serviços Este Mês"
+          value={stats.services_this_month.toLocaleString('pt-BR')}
+          icon={WrenchScrewdriverIcon}
+          color="indigo"
+          description="Total de serviços realizados este mês"
+          loading={loading}
+        />
 
-      <StatCard
-        title="Receita Este Mês"
-        value={formatCurrency(stats.revenue_this_month)}
-        icon={CurrencyDollarIcon}
-        color="green"
-      />
+        <StatCard
+          title="Receita Este Mês"
+          value={formatCurrency(stats.revenue_this_month)}
+          icon={CurrencyDollarIcon}
+          color="green"
+          description="Receita total gerada este mês"
+          loading={loading}
+        />
 
-      <StatCard
-        title="Produtos em Estoque Baixo"
-        value={stats.low_stock_products}
-        icon={ExclamationTriangleIcon}
-        color="red"
-        change="Atenção necessária"
-        changeType="down"
-      />
+        <StatCard
+          title="Produtos em Estoque Baixo"
+          value={stats.low_stock_products}
+          icon={ExclamationTriangleIcon}
+          color="red"
+          change="Atenção necessária"
+          changeType="down"
+          description="Produtos com estoque abaixo do mínimo"
+          loading={loading}
+        />
 
-      <StatCard
-        title="Serviços Pendentes"
-        value={stats.pending_services}
-        icon={CubeIcon}
-        color="yellow"
-      />
+        <StatCard
+          title="Serviços Pendentes"
+          value={stats.pending_services}
+          icon={ClockIcon}
+          color="yellow"
+          description="Serviços aguardando execução"
+          loading={loading}
+        />
+      </div>
+
+      {/* Additional Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StatCard
+          title="Total de Produtos"
+          value={stats.total_products.toLocaleString('pt-BR')}
+          icon={CubeIcon}
+          color="pink"
+          description="Total de produtos cadastrados no sistema"
+          loading={loading}
+        />
+
+        <StatCard
+          title="Total de Serviços"
+          value={stats.total_services.toLocaleString('pt-BR')}
+          icon={WrenchScrewdriverIcon}
+          color="blue"
+          description="Total de serviços realizados no sistema"
+          loading={loading}
+        />
+
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-blue-100">
+                Taxa de Conversão
+              </p>
+              <p className="text-3xl font-bold">94.2%</p>
+              <p className="text-sm text-blue-100 mt-1">
+                +2.1% vs mês anterior
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-white/20">
+              <CheckCircleIcon className="h-7 w-7 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

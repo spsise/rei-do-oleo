@@ -107,7 +107,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <DashboardStats stats={stats} />
+      <DashboardStats stats={stats} loading={overviewLoading} />
 
       {/* Additional sections can be added here */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
