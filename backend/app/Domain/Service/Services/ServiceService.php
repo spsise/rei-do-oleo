@@ -262,7 +262,7 @@ class ServiceService
     public function getServicesChartData(?int $serviceCenterId = null, string $period = '30d'): array
     {
         $cacheKey = "services_chart_data_{$serviceCenterId}_{$period}";
-        
+
         return Cache::remember($cacheKey, 600, function () use ($serviceCenterId, $period) {
             // Calculate period based on parameter
             $days = match($period) {
@@ -271,28 +271,28 @@ class ServiceService
                 '90d' => 90,
                 default => 30
             };
-            
+
             $startDate = now()->subDays($days);
             $endDate = now();
-            
+
             // Get services for the period
             $services = $this->serviceRepository->getServicesByDateRange(
                 $startDate->toDateString(),
                 $endDate->toDateString()
             );
-            
+
             // Group by date
             $groupedServices = $services->groupBy(function ($service) {
                 return $service->created_at->format('Y-m-d');
             });
-            
+
             $chartData = [];
-            
+
             // Generate data for each day of the period
             for ($i = $days; $i >= 0; $i--) {
                 $date = now()->subDays($i)->format('Y-m-d');
                 $dayServices = $groupedServices->get($date, collect());
-                
+
                 $chartData[] = [
                     'date' => $date,
                     'completed' => $dayServices->where('serviceStatus.name', 'completed')->count(),
@@ -301,7 +301,7 @@ class ServiceService
                     'cancelled' => $dayServices->where('serviceStatus.name', 'cancelled')->count(),
                 ];
             }
-            
+
             return $chartData;
         });
     }
@@ -312,7 +312,7 @@ class ServiceService
     public function getRevenueChartData(?int $serviceCenterId = null, string $period = '30d'): array
     {
         $cacheKey = "revenue_chart_data_{$serviceCenterId}_{$period}";
-        
+
         return Cache::remember($cacheKey, 600, function () use ($serviceCenterId, $period) {
             // Calculate period based on parameter
             $days = match($period) {
@@ -321,34 +321,34 @@ class ServiceService
                 '90d' => 90,
                 default => 30
             };
-            
+
             $startDate = now()->subDays($days);
             $endDate = now();
-            
+
             // Get services for the period
             $services = $this->serviceRepository->getServicesByDateRange(
                 $startDate->toDateString(),
                 $endDate->toDateString()
             );
-            
+
             // Group by date
             $groupedServices = $services->groupBy(function ($service) {
                 return $service->created_at->format('Y-m-d');
             });
-            
+
             $chartData = [];
-            
+
             // Generate data for each day of the period
             for ($i = $days; $i >= 0; $i--) {
                 $date = now()->subDays($i)->format('Y-m-d');
                 $dayServices = $groupedServices->get($date, collect());
-                
+
                 $chartData[] = [
                     'date' => $date,
                     'revenue' => $dayServices->where('serviceStatus.name', 'completed')->sum('final_amount'),
                 ];
             }
-            
+
             return $chartData;
         });
     }
@@ -359,14 +359,14 @@ class ServiceService
     public function getLongPendingServices(?int $serviceCenterId = null): array
     {
         $cacheKey = "long_pending_services_{$serviceCenterId}";
-        
+
         return Cache::remember($cacheKey, 300, function () use ($serviceCenterId) {
             // Get services pending for more than 3 days
             $pendingServices = $this->serviceRepository->searchByFilters([
                 'status' => 'pending',
                 'per_page' => 1000
             ])->getCollection();
-            
+
             return $pendingServices->filter(function ($service) {
                 return $service->created_at->diffInDays(now()) > 3;
             })->map(function ($service) {
