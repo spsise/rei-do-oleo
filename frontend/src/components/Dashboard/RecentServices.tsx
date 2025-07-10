@@ -7,7 +7,7 @@ interface RecentService {
   client_name: string;
   vehicle_plate: string;
   status: string;
-  total: number;
+  total: number | string;
   created_at: string;
 }
 
@@ -47,11 +47,12 @@ const getStatusBadge = (status: string) => {
   );
 };
 
-const formatCurrency = (value: number) => {
+const formatCurrency = (value: number | string) => {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value);
+  }).format(numValue);
 };
 
 const formatDate = (dateString: string) => {

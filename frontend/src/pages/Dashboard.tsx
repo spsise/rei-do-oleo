@@ -1,6 +1,7 @@
 import { DashboardAlerts } from '../components/Dashboard/DashboardAlerts';
 import { DashboardStats } from '../components/Dashboard/DashboardStats';
 import { RecentServices } from '../components/Dashboard/RecentServices';
+import { TopProducts } from '../components/Dashboard/TopProducts';
 import {
   useDashboardAlerts,
   useDashboardOverview,
@@ -50,7 +51,7 @@ export const Dashboard = () => {
         client_name: 'João Silva',
         vehicle_plate: 'ABC-1234',
         status: 'completed',
-        total: 450.0,
+        total: '450.00',
         created_at: '2024-01-15T10:30:00Z',
       },
       {
@@ -59,7 +60,7 @@ export const Dashboard = () => {
         client_name: 'Maria Santos',
         vehicle_plate: 'XYZ-5678',
         status: 'in_progress',
-        total: 320.0,
+        total: '320.00',
         created_at: '2024-01-15T09:15:00Z',
       },
       {
@@ -68,11 +69,36 @@ export const Dashboard = () => {
         client_name: 'Pedro Costa',
         vehicle_plate: 'DEF-9012',
         status: 'pending',
-        total: 280.0,
+        total: '280.00',
         created_at: '2024-01-15T08:45:00Z',
       },
     ],
-    top_products: [],
+    top_products: [
+      {
+        id: 1,
+        name: 'Óleo Motor 5W30',
+        sales_count: 45,
+        revenue: 2250.0,
+        quantity_sold: 90,
+        category: 'Óleos Lubrificantes',
+      },
+      {
+        id: 2,
+        name: 'Filtro de Ar',
+        sales_count: 32,
+        revenue: 1280.0,
+        quantity_sold: 64,
+        category: 'Filtros',
+      },
+      {
+        id: 3,
+        name: 'Pneu 175/70R13',
+        sales_count: 28,
+        revenue: 4200.0,
+        quantity_sold: 28,
+        category: 'Pneus',
+      },
+    ],
     service_trends: [],
     revenue_trends: [],
   };
@@ -98,6 +124,35 @@ export const Dashboard = () => {
   const stats = overview || mockOverview;
   const alertsData = alerts || mockAlerts;
 
+  // Converter dados da API para o formato esperado pelos componentes
+  const convertedStats = {
+    ...stats,
+    recent_services: stats.recent_services?.map((service) => ({
+      ...service,
+      total:
+        typeof service.total === 'number'
+          ? service.total.toString()
+          : service.total,
+    })),
+    top_products: stats.top_products?.map((product) => {
+      // Type assertion para lidar com dados da API que podem ter campos opcionais
+      const apiProduct = product as {
+        id: number;
+        name: string;
+        sales_count: number;
+        revenue: number;
+        quantity_sold?: number;
+        category?: string;
+      };
+
+      return {
+        ...product,
+        quantity_sold: apiProduct.quantity_sold || 0,
+        category: apiProduct.category || 'Sem categoria',
+      };
+    }),
+  };
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -107,67 +162,102 @@ export const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <DashboardStats stats={stats} loading={overviewLoading} />
+      <DashboardStats stats={convertedStats} loading={overviewLoading} />
 
-      {/* Additional sections can be added here */}
+      {/* Top Products and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Products */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Produtos Mais Vendidos
-          </h3>
-          {stats.top_products && stats.top_products.length > 0 ? (
-            <div className="space-y-3">
-              {stats.top_products.map(
-                (product: {
-                  id: number;
-                  name: string;
-                  sales_count: number;
-                  revenue: number;
-                }) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {product.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {product.sales_count} vendas
-                      </p>
-                    </div>
-                    <p className="text-sm font-medium text-gray-900">
-                      R$ {product.revenue.toFixed(2)}
-                    </p>
-                  </div>
-                )
-              )}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">
-              Nenhum produto vendido ainda
-            </p>
-          )}
-        </div>
+        <TopProducts
+          products={convertedStats.top_products || []}
+          loading={overviewLoading}
+        />
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Ações Rápidas
           </h3>
           <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <p className="text-sm font-medium text-gray-900">Novo Serviço</p>
-              <p className="text-xs text-gray-500">Criar um novo serviço</p>
+            <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                    Novo Serviço
+                  </p>
+                  <p className="text-xs text-gray-500">Criar um novo serviço</p>
+                </div>
+                <div className="p-2 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-200 transition-colors">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+              </div>
             </button>
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <p className="text-sm font-medium text-gray-900">Novo Cliente</p>
-              <p className="text-xs text-gray-500">Cadastrar novo cliente</p>
+
+            <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 group-hover:text-green-600">
+                    Novo Cliente
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Cadastrar novo cliente
+                  </p>
+                </div>
+                <div className="p-2 rounded-lg bg-green-100 text-green-600 group-hover:bg-green-200 transition-colors">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                </div>
+              </div>
             </button>
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <p className="text-sm font-medium text-gray-900">Relatório</p>
-              <p className="text-xs text-gray-500">Gerar relatório de vendas</p>
+
+            <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors group">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 group-hover:text-purple-600">
+                    Relatório
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Gerar relatório de vendas
+                  </p>
+                </div>
+                <div className="p-2 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-200 transition-colors">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+              </div>
             </button>
           </div>
         </div>
@@ -177,7 +267,7 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Services - Takes 2 columns */}
         <div className="lg:col-span-2">
-          <RecentServices services={stats.recent_services} />
+          <RecentServices services={convertedStats.recent_services} />
         </div>
 
         {/* Alerts - Takes 1 column */}
