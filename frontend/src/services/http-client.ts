@@ -1,6 +1,7 @@
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { StorageManager } from '../utils/storage';
 
 // Interface para resposta da API
 export interface ApiResponse<T = unknown> {
@@ -44,7 +45,7 @@ class HttpClient {
     // Interceptor para adicionar token de autenticação
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('auth_token');
+        const token = StorageManager.getAuthToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -63,8 +64,7 @@ class HttpClient {
       (error) => {
         if (error.response?.status === 401) {
           // Token expirado ou inválido
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+          StorageManager.clearAuthData();
           window.location.href = '/login';
         }
         return Promise.reject(error);

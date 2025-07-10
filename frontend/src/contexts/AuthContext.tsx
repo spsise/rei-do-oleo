@@ -84,7 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.status === 'success' && response.data) {
         setUser(response.data);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        // Update user data in storage
+        const token = authService.getToken();
+        if (token) {
+          const rememberMe = authService.isRememberMeEnabled();
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem('user', JSON.stringify(response.data));
+        }
       } else {
         // Perfil inválido, fazer logout
         await logout();

@@ -118,7 +118,8 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             required={"email","password"},
      *             @OA\Property(property="email", type="string", format="email", example="joao@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="MinhaSenh@123")
+     *             @OA\Property(property="password", type="string", format="password", example="MinhaSenh@123"),
+     *             @OA\Property(property="remember_me", type="boolean", example=false, description="Manter usuário logado por mais tempo")
      *         )
      *     ),
      *     @OA\Response(
@@ -166,6 +167,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'remember_me' => ['sometimes', 'boolean'],
         ]);
 
         if ($validator->fails()) {
@@ -176,7 +178,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $rememberMe = $request->boolean('remember_me', false);
+
+        if (!Auth::attempt($request->only('email', 'password'), $rememberMe)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid credentials'

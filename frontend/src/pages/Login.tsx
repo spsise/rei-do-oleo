@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { StorageManager } from '../utils/storage';
 
 export const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,8 +11,21 @@ export const Login = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Check for remembered email on component mount
+  useEffect(() => {
+    const rememberedEmail = StorageManager.getRememberedEmail();
+    if (rememberedEmail) {
+      setFormData((prev) => ({
+        ...prev,
+        email: rememberedEmail,
+      }));
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,10 +40,16 @@ export const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(formData);
+      const response = await login({
+        ...formData,
+        rememberMe,
+      });
 
       if (response.status === 'success') {
-        toast.success('Login realizado com sucesso!');
+        const message = rememberMe
+          ? 'Login realizado com sucesso! Você será lembrado neste dispositivo.'
+          : 'Login realizado com sucesso!';
+        toast.success(message);
         navigate('/home');
       } else {
         toast.error(response.message || 'Erro ao fazer login');
@@ -183,6 +203,8 @@ export const Login = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded transition-colors duration-200"
                 />
                 <label
@@ -193,14 +215,14 @@ export const Login = () => {
                 </label>
               </div>
 
-              <div className="text-sm">
+              {/* <div className="text-sm">
                 <a
                   href="#"
                   className="font-semibold text-brand-600 hover:text-brand-500 transition-colors duration-200"
                 >
                   Esqueceu a senha?
                 </a>
-              </div>
+              </div> */}
             </div>
 
             {/* Submit Button */}
@@ -239,7 +261,7 @@ export const Login = () => {
             </div>
 
             {/* Divider */}
-            <div className="relative">
+            {/* <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
               </div>
@@ -248,10 +270,10 @@ export const Login = () => {
                   ou
                 </span>
               </div>
-            </div>
+            </div> */}
 
             {/* Social Login Buttons */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors duration-200"
@@ -289,10 +311,10 @@ export const Login = () => {
                 </svg>
                 <span className="ml-2">Twitter</span>
               </button>
-            </div>
+            </div> */}
 
             {/* Register Link */}
-            <div className="text-center">
+            {/* <div className="text-center">
               <p className="text-sm text-gray-600">
                 Não tem uma conta?{' '}
                 <Link
@@ -302,7 +324,7 @@ export const Login = () => {
                   Registre-se agora
                 </Link>
               </p>
-            </div>
+            </div> */}
           </form>
         </div>
 

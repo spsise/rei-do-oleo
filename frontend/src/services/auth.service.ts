@@ -1,3 +1,4 @@
+import { StorageManager } from '../utils/storage';
 import { apiCall, httpClient, type ApiResponse } from './http-client';
 
 // Interface para dados do usuário
@@ -21,6 +22,7 @@ export interface LoginResponse {
 export interface LoginData {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 // Interface para dados de registro
@@ -38,9 +40,12 @@ class AuthService {
     );
 
     if (response.status === 'success' && response.data) {
-      // Salvar token e dados do usuário
-      localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Use StorageManager to handle storage
+      StorageManager.setAuthData(
+        response.data.token,
+        response.data.user,
+        data.rememberMe || false
+      );
     }
 
     return response;
@@ -55,9 +60,8 @@ class AuthService {
     );
 
     if (response.status === 'success' && response.data) {
-      // Salvar token e dados do usuário
-      localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Always use localStorage for registration (remember me = true)
+      StorageManager.setAuthData(response.data.token, response.data.user, true);
     }
 
     return response;
@@ -69,9 +73,8 @@ class AuthService {
     } catch {
       // Ignora erros no logout
     } finally {
-      // Limpar dados locais
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
+      // Use StorageManager to clear data but preserve email if remember me was enabled
+      StorageManager.clearAuthDataPreserveEmail();
     }
 
     return {
@@ -88,23 +91,19 @@ class AuthService {
 
   // Métodos utilitários
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('auth_token');
+    return StorageManager.isAuthenticated();
   }
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return StorageManager.getAuthToken();
   }
 
   getUser(): User | null {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+    return StorageManager.getUser();
+  }
+
+  isRememberMeEnabled(): boolean {
+    return StorageManager.isRememberMeEnabled();
   }
 }
 
