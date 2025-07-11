@@ -190,8 +190,20 @@ class AuthController extends Controller
         /** @var \App\Domain\User\Models\User $user */
         $user = Auth::user();
 
-        // Revoke all existing tokens
+        // Check if user is active
+        if (!$user->active) {
+            // Logout the user since they are inactive
+            Auth::logout();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Account is inactive. Please contact administrator.'
+            ], 401);
+        }
+
+        // Revoke all existing tokens (force delete)
         $user->tokens()->delete();
+        $user->refresh(); // Garante que não há tokens antigos em cache
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -237,9 +249,22 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function logout(Request $request): JsonResponse
+        public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if ($user) {
+            // Revoke the current token
+            $token = $user->currentAccessToken();
+
+            // Only delete if it's a database token (not a TransientToken)
+            if ($token && method_exists($token, 'delete')) {
+                $token->delete();
+            }
+
+            // Force refresh the user to ensure tokens are updated
+            $user->refresh();
+        }
 
         return response()->json([
             'status' => 'success',
@@ -326,8 +351,11 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // Revoke current token
-        $request->user()->currentAccessToken()->delete();
+        // Revoke current token if it's a database token
+        $currentToken = $request->user()->currentAccessToken();
+        if ($currentToken && method_exists($currentToken, 'delete')) {
+            $currentToken->delete();
+        }
 
         // Create new token
         $token = $user->createToken('auth_token')->plainTextToken;
