@@ -507,7 +507,17 @@ else
     info "ℹ️ Husky já configurado"
 fi
 
-# 8. Criar bucket no MinIO
+# 8. Configurar banco de dados de teste
+step "🧪 Configurando banco de dados de teste..."
+if [ "$SERVICES_READY" = true ]; then
+    log "Executando setup do banco de teste..."
+    bash /workspace/.devcontainer/scripts/setup-test-db.sh
+    success "✅ Banco de dados de teste configurado"
+else
+    warn "⚠️ Serviços não prontos, configuração manual do banco de teste necessária"
+fi
+
+# 9. Criar bucket no MinIO
 step "📦 Configurando MinIO Storage..."
 if [ "$SERVICES_READY" = true ]; then
     sleep 5  # Aguardar MinIO estar pronto

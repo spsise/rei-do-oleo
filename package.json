@@ -36,7 +36,12 @@
     "shell:backend": "docker-compose exec backend bash",
     "shell:frontend": "docker-compose exec frontend sh",
     "setup:husky": "bash .devcontainer/scripts/setup-husky.sh",
-    "troubleshoot": "bash .devcontainer/scripts/troubleshoot.sh"
+    "troubleshoot": "bash .devcontainer/scripts/troubleshoot.sh",
+    "test:db:init": "bash .devcontainer/scripts/init-test-db.sh",
+    "test:db:setup": "bash .devcontainer/scripts/setup-test-db.sh",
+    "test:db:status": "cd backend && php artisan migrate:status --env=testing",
+    "test:db:fresh": "cd backend && php artisan migrate:fresh --env=testing --seed",
+    "test:db:reset": "cd backend && php artisan migrate:reset --env=testing && php artisan migrate --env=testing --seed"
   },
   "repository": {
     "type": "git",
