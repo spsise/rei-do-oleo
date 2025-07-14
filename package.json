@@ -35,7 +35,8 @@
     "optimize": "docker-compose exec backend php artisan optimize",
     "shell:backend": "docker-compose exec backend bash",
     "shell:frontend": "docker-compose exec frontend sh",
-    "prepare": "husky install"
+    "setup:husky": "bash .devcontainer/scripts/setup-husky.sh",
+    "troubleshoot": "bash .devcontainer/scripts/troubleshoot.sh"
   },
   "repository": {
     "type": "git",
@@ -117,8 +118,5 @@
       "prettier --write",
       "git add"
     ]
-  },
-  "dependencies": {
-    "axios": "^1.10.0"
   }
 }
