@@ -24,13 +24,10 @@ trait ApiResponseTrait
             $response['data'] = $data;
         }
 
-        if (config('api.response.include_timestamp', true)) {
-            $response['timestamp'] = now()->toISOString();
-        }
-
-        if (config('api.response.include_version', true)) {
-            $response['version'] = config('api.version');
-        }
+        // Include timestamp by default
+        $response['timestamp'] = now()->toISOString();
+        // Include version by default
+        $response['version'] = '1.0';
 
         return response()->json($response, $code);
     }
@@ -53,13 +50,10 @@ trait ApiResponseTrait
             $response['errors'] = $errors;
         }
 
-        if (config('api.response.include_timestamp', true)) {
-            $response['timestamp'] = now()->toISOString();
-        }
-
-        if (config('api.response.include_version', true)) {
-            $response['version'] = config('api.version');
-        }
+        // Include timestamp by default
+        $response['timestamp'] = now()->toISOString();
+        // Include version by default
+        $response['version'] = '1.0';
 
         return response()->json($response, $code);
     }

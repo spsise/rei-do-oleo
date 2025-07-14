@@ -17,11 +17,17 @@ class LoginTest extends TestCase
     #[Test]
     public function test_user_can_login_with_valid_credentials(): void
     {
+        // Create a role first
+        $role = \Spatie\Permission\Models\Role::create(['name' => 'attendant', 'guard_name' => 'web']);
+
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'password' => Hash::make('password123'),
             'active' => true
         ]);
+
+        // Assign role to user
+        $user->assignRole($role);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
@@ -147,11 +153,17 @@ class LoginTest extends TestCase
     #[Test]
     public function test_token_is_generated_on_successful_login(): void
     {
+        // Create a role first
+        $role = \Spatie\Permission\Models\Role::create(['name' => 'attendant', 'guard_name' => 'web']);
+
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'password' => Hash::make('password123'),
             'active' => true
         ]);
+
+        // Assign role to user
+        $user->assignRole($role);
 
         // Verify user has no tokens initially
         $this->assertEquals(0, $user->tokens()->count());
@@ -218,11 +230,17 @@ class LoginTest extends TestCase
     #[Test]
     public function test_existing_tokens_are_revoked_on_new_login(): void
     {
+        // Create a role first
+        $role = \Spatie\Permission\Models\Role::create(['name' => 'attendant', 'guard_name' => 'web']);
+
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'password' => Hash::make('password123'),
             'active' => true
         ]);
+
+        // Assign role to user
+        $user->assignRole($role);
 
         // Create initial token
         $initialToken = $user->createToken('initial-token')->plainTextToken;
@@ -271,11 +289,17 @@ class LoginTest extends TestCase
     #[Test]
     public function test_remember_me_functionality(): void
     {
+        // Create a role first
+        $role = \Spatie\Permission\Models\Role::create(['name' => 'attendant', 'guard_name' => 'web']);
+
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'password' => Hash::make('password123'),
             'active' => true
         ]);
+
+        // Assign role to user
+        $user->assignRole($role);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',

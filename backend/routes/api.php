@@ -47,10 +47,14 @@ Route::get('/health', function () {
 Route::prefix('v1')->group(function () {
     // Authentication Routes
     Route::prefix('auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
-        Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-        Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+        Route::post('/register', [AuthController::class, 'register'])
+            ->middleware('throttle:5,1');
+        Route::post('/login', [AuthController::class, 'login'])
+            ->middleware('throttle:5,1');
+        Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+            ->middleware('throttle:5,1');
+        Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+            ->middleware('throttle:5,1');
 
         // Email Verification
         Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
