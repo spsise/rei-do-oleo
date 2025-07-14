@@ -41,12 +41,12 @@ cd /workspace
 
 # 1. Verificar se o MySQL está disponível
 step "🔍 Verificando disponibilidade do MySQL..."
-if ! mysqladmin ping -h mysql -u root -proot123 --silent 2>/dev/null; then
+if ! mysql -h mysql -u rei_do_oleo -psecret123 -e "SELECT 1;" --silent 2>/dev/null; then
     error "❌ MySQL não está disponível. Aguardando..."
 
     # Aguardar MySQL estar pronto
     for i in {1..30}; do
-        if mysqladmin ping -h mysql -u root -proot123 --silent 2>/dev/null; then
+        if mysql -h mysql -u rei_do_oleo -psecret123 -e "SELECT 1;" --silent 2>/dev/null; then
             success "✅ MySQL está disponível!"
             break
         fi
@@ -64,24 +64,20 @@ fi
 
 # 2. Criar banco de dados de teste se não existir
 step "🗄️ Criando banco de dados de teste..."
-if ! mysql -h mysql -u root -proot123 -e "USE rei_do_oleo_test;" 2>/dev/null; then
+if ! mysql -h mysql -u rei_do_oleo -psecret123 -e "USE rei_do_oleo_test;" 2>/dev/null; then
     log "Criando banco de dados rei_do_oleo_test..."
-    mysql -h mysql -u root -proot123 -e "CREATE DATABASE IF NOT EXISTS rei_do_oleo_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    mysql -h mysql -u rei_do_oleo -psecret123 -e "CREATE DATABASE IF NOT EXISTS rei_do_oleo_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
     success "✅ Banco de dados de teste criado"
 else
     info "ℹ️ Banco de dados de teste já existe"
 fi
 
-# 3. Criar usuário de teste se não existir
-step "👤 Configurando usuário de teste..."
-if ! mysql -h mysql -u root -proot123 -e "SELECT User FROM mysql.user WHERE User='rei_do_oleo';" 2>/dev/null | grep -q "rei_do_oleo"; then
-    log "Criando usuário rei_do_oleo..."
-    mysql -h mysql -u root -proot123 -e "CREATE USER IF NOT EXISTS 'rei_do_oleo'@'%' IDENTIFIED BY 'secret123';"
-    mysql -h mysql -u root -proot123 -e "GRANT ALL PRIVILEGES ON rei_do_oleo_test.* TO 'rei_do_oleo'@'%';"
-    mysql -h mysql -u root -proot123 -e "FLUSH PRIVILEGES;"
-    success "✅ Usuário de teste criado e configurado"
+# 3. Verificar se o usuário de teste tem permissões adequadas
+step "👤 Verificando permissões do usuário de teste..."
+if mysql -h mysql -u rei_do_oleo -psecret123 -e "SHOW GRANTS FOR 'rei_do_oleo'@'%';" 2>/dev/null | grep -q "rei_do_oleo_test"; then
+    success "✅ Usuário de teste tem permissões adequadas"
 else
-    info "ℹ️ Usuário de teste já existe"
+    warn "⚠️ Usuário de teste pode não ter todas as permissões necessárias"
 fi
 
 # 4. Verificar se o arquivo .env.testing existe
