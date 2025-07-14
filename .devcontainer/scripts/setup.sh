@@ -150,11 +150,7 @@ else
             frontend_exec npm install --save-dev @vitejs/plugin-react-swc
         fi
 
-        # Verificar se lovable-tagger está instalado
-        if [ ! -d "frontend/node_modules/lovable-tagger" ]; then
-            log "🔧 Instalando dependência lovable-tagger faltante..."
-            frontend_exec npm install --save-dev lovable-tagger
-        fi
+
 
         success "✅ Dependências do frontend verificadas e atualizadas"
     else
@@ -478,13 +474,23 @@ else
     info "ℹ️ Package.json já existe, dependências atualizadas"
 fi
 
-# Instalar e configurar Husky
+# Instalar e configurar Husky (opcional no devcontainer)
 if [ ! -d ".husky" ]; then
     log "Configurando Husky para Git Hooks..."
-    npx husky install
-    npx husky add .husky/pre-commit "npx lint-staged"
 
-    # Configurar lint-staged
+    # Tentar configurar Husky, mas não falhar se não conseguir
+    if npx husky install 2>/dev/null; then
+        if npx husky add .husky/pre-commit "npx lint-staged" 2>/dev/null; then
+            success "✅ Husky configurado com sucesso"
+        else
+            warn "⚠️ Não foi possível adicionar hook pre-commit do Husky"
+        fi
+    else
+        warn "⚠️ Husky não pôde ser configurado (possível problema de permissão no devcontainer)"
+        info "ℹ️ Git hooks podem ser configurados manualmente depois"
+    fi
+
+    # Configurar lint-staged mesmo se Husky falhar
     cat > .lintstagedrc.json << 'EOF'
 {
   "backend/**/*.php": [
@@ -496,7 +502,7 @@ if [ ! -d ".husky" ]; then
   ]
 }
 EOF
-    success "✅ Husky configurado"
+    success "✅ Configuração lint-staged criada"
 else
     info "ℹ️ Husky já configurado"
 fi
@@ -520,7 +526,7 @@ fi
 step "🔍 Verificação final do ambiente..."
 
 # Verificar se as dependências críticas do frontend estão instaladas
-if [ -d "frontend/node_modules/@vitejs/plugin-react-swc" ] && [ -d "frontend/node_modules/lovable-tagger" ]; then
+if [ -d "frontend/node_modules/@vitejs/plugin-react-swc" ]; then
     success "✅ Dependências críticas do frontend verificadas"
 else
     warn "⚠️ Algumas dependências do frontend podem estar faltando"
@@ -584,3 +590,55 @@ else
 fi
 
 info "🚀 Execute 'npm run dev' para iniciar os serviços de desenvolvimento!"
+
+# ---
+# Corrigir permissões de todos os diretórios para o usuário vscode
+step "🔐 Corrigindo permissões dos diretórios..."
+log "Corrigindo permissões do diretório frontend..."
+chown -R vscode:vscode /workspace/frontend
+chmod -R u+rw /workspace/frontend
+
+log "Corrigindo permissões do diretório backend..."
+chown -R vscode:vscode /workspace/backend
+chmod -R u+rw /workspace/backend
+
+log "Corrigindo permissões do diretório scripts..."
+chown -R vscode:vscode /workspace/scripts
+chmod -R u+rw /workspace/scripts
+
+log "Corrigindo permissões do diretório docs..."
+chown -R vscode:vscode /workspace/docs
+chmod -R u+rw /workspace/docs
+
+log "Corrigindo permissões do diretório .devcontainer..."
+chown -R vscode:vscode /workspace/.devcontainer
+chmod -R u+rw /workspace/.devcontainer
+
+log "Corrigindo permissões do diretório .github..."
+chown -R vscode:vscode /workspace/.github
+chmod -R u+rw /workspace/.github
+
+log "Corrigindo permissões do diretório docker..."
+chown -R vscode:vscode /workspace/docker
+chmod -R u+rw /workspace/docker
+
+log "Corrigindo permissões do diretório .husky..."
+chown -R vscode:vscode /workspace/.husky
+chmod -R u+rw /workspace/.husky
+
+log "Corrigindo permissões do diretório .vscode..."
+chown -R vscode:vscode /workspace/.vscode
+chmod -R u+rw /workspace/.vscode
+
+# Corrigir permissões de arquivos importantes na raiz
+log "Corrigindo permissões de arquivos na raiz..."
+chown vscode:vscode /workspace/package.json /workspace/package-lock.json 2>/dev/null || true
+chown vscode:vscode /workspace/docker-compose.yml /workspace/docker-compose.prod.yml 2>/dev/null || true
+chown vscode:vscode /workspace/.prettierrc /workspace/.editorconfig 2>/dev/null || true
+chown vscode:vscode /workspace/.php-cs-fixer.php /workspace/phpstan.neon 2>/dev/null || true
+chmod u+rw /workspace/package.json /workspace/package-lock.json 2>/dev/null || true
+chmod u+rw /workspace/docker-compose.yml /workspace/docker-compose.prod.yml 2>/dev/null || true
+chmod u+rw /workspace/.prettierrc /workspace/.editorconfig 2>/dev/null || true
+chmod u+rw /workspace/.php-cs-fixer.php /workspace/phpstan.neon 2>/dev/null || true
+
+success "✅ Permissões corrigidas para todos os diretórios e arquivos importantes"

@@ -152,5 +152,4 @@ volumes:
 
 networks:
   reidooleo-dev:
-    external: true
     name: devcontainer_reidooleo-dev
