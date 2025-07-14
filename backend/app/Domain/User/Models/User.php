@@ -176,6 +176,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getHighestRole(): string
     {
+        // Ensure roles are loaded
+        if (!$this->relationLoaded('roles')) {
+            $this->load('roles');
+        }
+
         if ($this->roles->isEmpty()) {
             return 'guest';
         }
