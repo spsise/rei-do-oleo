@@ -1,0 +1,422 @@
+# 🐳 Docker Compose Otimizado - Rei do Óleo DevContainer
+# Seguindo as melhores práticas de Docker Compose 2024/2025
+# Removido o campo 'version' (obsoleto)
+
+services:
+  # 🛠️ Container Principal de Desenvolvimento
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+      args:
+        USERNAME: vscode
+        USER_UID: ${UID:-1000}
+        USER_GID: ${GID:-1000}
+    volumes:
+      - ../:/workspace:cached
+      - vscode-extensions:/home/vscode/.vscode-server/extensions
+      - composer-cache:/home/vscode/.cache/composer
+      - npm-cache:/home/vscode/.cache/npm
+      - ~/.ssh:/home/vscode/.ssh-localhost:ro
+    command: sleep infinity
+    networks:
+      - reidooleo-dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DISPLAY=:0
+      - COMPOSER_CACHE_DIR=/home/vscode/.cache/composer
+      - NPM_CONFIG_CACHE=/home/vscode/.cache/npm
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=rei_do_oleo_dev
+      - DB_USERNAME=rei_do_oleo
+      - DB_PASSWORD=secret123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=secret123
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '8000:8000'   # Laravel API
+      - '3000:3000'   # React Frontend
+      - '5173:5173'   # Vite Dev Server
+      - '9003:9003'   # Xdebug
+    # Resource limits para evitar consumo excessivo
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 1G
+          cpus: "0.5"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    # Health check para o container principal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # 🗄️ MySQL Database 8.0 Otimizado
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+      --max-connections=200
+      --bind-address=0.0.0.0
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-log-buffer-size=32M
+      --innodb-file-per-table=1
+      --innodb-flush-method=O_DIRECT
+      --query-cache-type=1
+      --query-cache-size=32M
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/mysql-slow.log
+      --long-query-time=1
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - mysql-logs:/var/log/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: rei_do_oleo_dev
+      MYSQL_USER: rei_do_oleo
+      MYSQL_PASSWORD: secret123
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+      MYSQL_RANDOM_ROOT_PASSWORD: 'no'
+    ports:
+      - '3310:3306'
+    networks:
+      - reidooleo-dev
+    # Resource limits para MySQL
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+    # Health check otimizado
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 📦 Redis Cache & Sessions 7.x Otimizado
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 20 1
+      --loglevel warning
+      --requirepass secret123
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+      --databases 16
+    volumes:
+      - redis-data:/data
+      - redis-logs:/var/log/redis
+    ports:
+      - '6400:6379'
+    networks:
+      - reidooleo-dev
+    # Resource limits para Redis
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    # Health check otimizado
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "secret123", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 💾 phpMyAdmin - Interface Web MySQL (Profile: debug)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    profiles:
+      - debug
+      - full
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root123
+      MYSQL_ROOT_PASSWORD: root123
+      PMA_ARBITRARY: 1
+      PMA_ABSOLUTE_URI: http://localhost:8110/
+      UPLOAD_LIMIT: 64M
+      MEMORY_LIMIT: 256M
+    ports:
+      - '8110:80'
+    networks:
+      - reidooleo-dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 🔍 Redis Commander - Interface Web Redis (Profile: debug)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: unless-stopped
+    profiles:
+      - debug
+      - full
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      REDIS_PASSWORD: secret123
+      HTTP_USER: admin
+      HTTP_PASSWORD: secret123
+      PORT: 8081
+    ports:
+      - '6410:8081'
+    networks:
+      - reidooleo-dev
+    depends_on:
+      redis:
+        condition: service_healthy
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 📧 MailHog - Captura de Emails (Desenvolvimento)
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    profiles:
+      - ""
+      - full
+    ports:
+      - '1030:1025'  # SMTP
+      - '8030:8025'  # Web UI
+    networks:
+      - reidooleo-dev
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 📊 Prometheus - Monitoramento (Profile: monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - reidooleo-dev
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 📈 Grafana - Visualização de Métricas (Profile: monitoring)
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - '3001:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - reidooleo-dev
+    depends_on:
+      - prometheus
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # 🧪 Test Runner (Profile: test)
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+    profiles:
+      - test
+    volumes:
+      - ../:/workspace:cached
+      - composer-cache:/home/vscode/.cache/composer
+      - npm-cache:/home/vscode/.cache/npm
+    working_dir: /workspace
+    networks:
+      - reidooleo-dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+      - APP_ENV=testing
+    command: |
+      bash -c "
+        cd backend && php artisan test --parallel --coverage
+        cd frontend && npm run test:coverage
+      "
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+
+# 📦 Volumes com Otimizações
+volumes:
+  # Extensions do VSCode
+  vscode-extensions:
+    driver: local
+  
+  # Dados do MySQL
+  mysql-data:
+    driver: local
+  
+  # Logs do MySQL
+  mysql-logs:
+    driver: local
+  
+  # Dados do Redis
+  redis-data:
+    driver: local
+  
+  # Logs do Redis
+  redis-logs:
+    driver: local
+  
+  # Cache do Composer (tmpfs para performance)
+  composer-cache:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=500m,uid=1000,gid=1000
+  
+  # Cache do NPM (tmpfs para performance)
+  npm-cache:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=500m,uid=1000,gid=1000
+  
+  # Dados do Prometheus
+  prometheus-data:
+    driver: local
+  
+  # Dados do Grafana
+  grafana-data:
+    driver: local
+
+# 🌐 Networks Otimizadas
+networks:
+  reidooleo-dev:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: reidooleo-dev
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+      com.docker.network.driver.mtu: "1500"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          ip_range: 172.20.240.0/20
+          gateway: 172.20.0.1
+
+# 🔧 Configurações Adicionais
+# Para usar profiles específicos:
+# docker-compose --profile debug up -d
+# docker-compose --profile monitoring up -d
+# docker-compose --profile test up --build
+# docker-compose --profile full up -d
+
+# Para usar múltiplos profiles:
+# docker-compose --profile debug --profile monitoring up -d
+
+# Para monitoramento completo:
+# docker-compose --profile full --profile monitoring up -d

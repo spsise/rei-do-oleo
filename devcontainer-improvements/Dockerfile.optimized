@@ -1,0 +1,247 @@
+# 🐳 Dockerfile Otimizado - Rei do Óleo DevContainer
+# Seguindo as melhores práticas de Docker 2024/2025
+
+# ===== STAGE 1: Base System =====
+FROM ubuntu:22.04 as base
+
+# Otimizações de cache e segurança
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Sao_Paulo
+ENV LANG=pt_BR.UTF-8
+ENV LANGUAGE=pt_BR:pt
+ENV LC_ALL=pt_BR.UTF-8
+
+# Usuário não-root desde o início
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+# Instalar dependências base com cache mount
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    ca-certificates \
+    lsb-release \
+    apt-transport-https \
+    gnupg2 \
+    curl \
+    wget \
+    git \
+    unzip \
+    zip \
+    tree \
+    htop \
+    nano \
+    vim \
+    zsh \
+    locales \
+    tzdata \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    openssl \
+    libssl-dev \
+    openssh-client \
+    git-extras \
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    sudo \
+    && locale-gen pt_BR.UTF-8 \
+    && update-locale LANG=pt_BR.UTF-8 \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone
+
+# Criar usuário não-root
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/zsh \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# ===== STAGE 2: PHP Installation =====
+FROM base as php-installer
+
+# Instalar PHP 8.3 com cache mount
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    add-apt-repository ppa:ondrej/php -y && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    php8.3 \
+    php8.3-cli \
+    php8.3-fpm \
+    php8.3-common \
+    php8.3-mysql \
+    php8.3-opcache \
+    php8.3-zip \
+    php8.3-gd \
+    php8.3-mbstring \
+    php8.3-curl \
+    php8.3-xml \
+    php8.3-bcmath \
+    php8.3-intl \
+    php8.3-readline \
+    php8.3-redis \
+    php8.3-xdebug \
+    libfreetype6-dev \
+    libjpeg-turbo8-dev \
+    libpng-dev \
+    libwebp-dev \
+    libxpm-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libzip-dev \
+    default-mysql-client \
+    libmysqlclient-dev \
+    redis-tools
+
+# Configurar PHP para desenvolvimento
+RUN echo "memory_limit=512M" > /etc/php/8.3/cli/conf.d/99-custom.ini && \
+    echo "upload_max_filesize=64M" >> /etc/php/8.3/cli/conf.d/99-custom.ini && \
+    echo "post_max_size=64M" >> /etc/php/8.3/cli/conf.d/99-custom.ini && \
+    echo "max_execution_time=300" >> /etc/php/8.3/cli/conf.d/99-custom.ini && \
+    echo "display_errors=On" >> /etc/php/8.3/cli/conf.d/99-custom.ini && \
+    echo "log_errors=On" >> /etc/php/8.3/cli/conf.d/99-custom.ini && \
+    echo "error_reporting=E_ALL" >> /etc/php/8.3/cli/conf.d/99-custom.ini
+
+# Configurar Xdebug
+RUN echo "xdebug.mode=debug,coverage,profile" >> /etc/php/8.3/mods-available/xdebug.ini && \
+    echo "xdebug.start_with_request=yes" >> /etc/php/8.3/mods-available/xdebug.ini && \
+    echo "xdebug.client_host=host.docker.internal" >> /etc/php/8.3/mods-available/xdebug.ini && \
+    echo "xdebug.client_port=9003" >> /etc/php/8.3/mods-available/xdebug.ini && \
+    echo "xdebug.log=/tmp/xdebug.log" >> /etc/php/8.3/mods-available/xdebug.ini
+
+# Instalar Composer com cache
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# ===== STAGE 3: Node.js Installation =====
+FROM php-installer as node-installer
+
+# Instalar Node.js 20 LTS com cache mount
+RUN --mount=type=cache,target=/tmp/node-cache \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# Instalar Yarn e ferramentas globais
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g \
+    yarn \
+    create-react-app \
+    create-vite \
+    vite \
+    typescript \
+    ts-node \
+    eslint \
+    prettier \
+    pm2 \
+    nodemon \
+    concurrently \
+    cross-env \
+    serve \
+    rimraf
+
+# ===== STAGE 4: Development Tools =====
+FROM node-installer as dev-tools
+
+# Instalar ferramentas globais PHP
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    composer global require \
+    laravel/installer \
+    friendsofphp/php-cs-fixer \
+    phpstan/phpstan \
+    squizlabs/php_codesniffer \
+    psy/psysh \
+    symfony/var-dumper \
+    --no-interaction --prefer-dist
+
+# Instalar ferramentas de desenvolvimento
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    dockerize \
+    jq \
+    fzf \
+    bat \
+    ripgrep \
+    fd-find \
+    exa
+
+# ===== STAGE 5: Final Configuration =====
+FROM dev-tools as final
+
+# Trocar para usuário não-root
+USER $USERNAME
+
+# Configurar diretório de trabalho
+WORKDIR /workspace
+
+# Instalar Oh My Zsh
+RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+# Configurar Zsh com plugins e aliases
+RUN git clone https://github.com/zsh-users/zsh-completions /home/vscode/.oh-my-zsh/custom/plugins/zsh-completions && \
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting /home/vscode/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting && \
+    git clone https://github.com/zsh-users/zsh-autosuggestions /home/vscode/.oh-my-zsh/custom/plugins/zsh-autosuggestions && \
+    sed -i 's/plugins=(git)/plugins=(git zsh-completions zsh-syntax-highlighting zsh-autosuggestions)/' /home/vscode/.zshrc
+
+# Adicionar configurações de ambiente e aliases
+RUN echo 'export PATH="/home/vscode/.composer/vendor/bin:$PATH"' >> /home/vscode/.zshrc && \
+    echo 'export PATH="/workspace/vendor/bin:$PATH"' >> /home/vscode/.zshrc && \
+    echo 'export COMPOSER_CACHE_DIR="/home/vscode/.cache/composer"' >> /home/vscode/.zshrc && \
+    echo 'export NPM_CONFIG_CACHE="/home/vscode/.cache/npm"' >> /home/vscode/.zshrc && \
+    echo '' >> /home/vscode/.zshrc && \
+    echo '# 🚀 Laravel Aliases' >> /home/vscode/.zshrc && \
+    echo 'alias art="php artisan"' >> /home/vscode/.zshrc && \
+    echo 'alias tinker="php artisan tinker"' >> /home/vscode/.zshrc && \
+    echo 'alias migrate="php artisan migrate"' >> /home/vscode/.zshrc && \
+    echo 'alias migrate:fresh="php artisan migrate:fresh --seed"' >> /home/vscode/.zshrc && \
+    echo 'alias seed="php artisan db:seed"' >> /home/vscode/.zshrc && \
+    echo 'alias serve="php artisan serve --host=0.0.0.0 --port=8000"' >> /home/vscode/.zshrc && \
+    echo 'alias queue="php artisan queue:work"' >> /home/vscode/.zshrc && \
+    echo 'alias cache:clear="php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan view:clear"' >> /home/vscode/.zshrc && \
+    echo '' >> /home/vscode/.zshrc && \
+    echo '# ⚛️ React/Node Aliases' >> /home/vscode/.zshrc && \
+    echo 'alias dev="npm run dev"' >> /home/vscode/.zshrc && \
+    echo 'alias build="npm run build"' >> /home/vscode/.zshrc && \
+    echo 'alias test="npm test"' >> /home/vscode/.zshrc && \
+    echo 'alias lint="npm run lint"' >> /home/vscode/.zshrc && \
+    echo 'alias vite="npx vite"' >> /home/vscode/.zshrc && \
+    echo '' >> /home/vscode/.zshrc && \
+    echo '# 🗄️ Database Aliases' >> /home/vscode/.zshrc && \
+    echo 'alias mysql-cli="mysql -h mysql -u rei_do_oleo -psecret123 rei_do_oleo_dev"' >> /home/vscode/.zshrc && \
+    echo 'alias mysql-root="mysql -h mysql -u root -proot123"' >> /home/vscode/.zshrc && \
+    echo 'alias redis-cli="redis-cli -h redis -a secret123"' >> /home/vscode/.zshrc && \
+    echo '' >> /home/vscode/.zshrc && \
+    echo '# 🔧 Utility Aliases' >> /home/vscode/.zshrc && \
+    echo 'alias ll="exa -alF"' >> /home/vscode/.zshrc && \
+    echo 'alias la="exa -A"' >> /home/vscode/.zshrc && \
+    echo 'alias l="exa -CF"' >> /home/vscode/.zshrc && \
+    echo 'alias tree="exa --tree"' >> /home/vscode/.zshrc && \
+    echo 'alias cat="bat"' >> /home/vscode/.zshrc && \
+    echo 'alias find="fd"' >> /home/vscode/.zshrc && \
+    echo 'alias grep="rg"' >> /home/vscode/.zshrc && \
+    echo 'alias ..="cd .."' >> /home/vscode/.zshrc && \
+    echo 'alias ...="cd ../.."' >> /home/vscode/.zshrc
+
+# Criar diretórios de cache
+RUN mkdir -p /home/vscode/.cache/composer && \
+    mkdir -p /home/vscode/.cache/npm
+
+# Configurar Git (valores padrão)
+RUN git config --global --add safe.directory /workspace && \
+    git config --global --add safe.directory '*' && \
+    git config --global init.defaultBranch main
+
+# Expor portas
+EXPOSE 8000 3000 5173 9000 9003
+
+# Comando padrão
+CMD ["sleep", "infinity"]
+
+# Labels para metadados
+LABEL maintainer="Rei do Óleo Dev Team"
+LABEL description="Optimized DevContainer for Laravel + React development"
+LABEL version="2.0.0"
+LABEL org.opencontainers.image.source="https://github.com/org/rei-do-oleo"
