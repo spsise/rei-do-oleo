@@ -163,41 +163,49 @@ fi
 # 4. Configurar variáveis de ambiente
 step "🔧 Configurando variáveis de ambiente..."
 
-# Backend .env
-if [ ! -f "backend/.env" ]; then
-    log "Criando .env do backend..."
-    cp backend/.env.example backend/.env
+# Executar script de setup de ambiente
+if [ -f "scripts/setup-env.sh" ] && [ -x "scripts/setup-env.sh" ]; then
+    log "Executando script de setup de ambiente..."
+    ./scripts/setup-env.sh
+    success "✅ Setup de ambiente concluído"
+else
+    warn "⚠️ Script setup-env.sh não encontrado, usando configuração manual..."
 
-    # Configurações do banco
-    sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/' backend/.env
-    sed -i 's/DB_HOST=127.0.0.1/DB_HOST=mysql/' backend/.env
-    sed -i 's/DB_PORT=3306/DB_PORT=3306/' backend/.env
-    sed -i 's/DB_DATABASE=laravel/DB_DATABASE=rei_do_oleo_dev/' backend/.env
-    sed -i 's/DB_USERNAME=root/DB_USERNAME=rei_do_oleo/' backend/.env
-    sed -i 's/DB_PASSWORD=/DB_PASSWORD=secret123/' backend/.env
+    # Backend .env
+    if [ ! -f "backend/.env" ]; then
+        log "Criando .env do backend..."
+        cp backend/.env.example backend/.env
 
-    # Configurações Redis
-    echo "" >> backend/.env
-    echo "# Redis Configuration" >> backend/.env
-    echo "REDIS_HOST=redis" >> backend/.env
-    echo "REDIS_PASSWORD=null" >> backend/.env
-    echo "REDIS_PORT=6379" >> backend/.env
+        # Configurações do banco
+        sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/' backend/.env
+        sed -i 's/DB_HOST=127.0.0.1/DB_HOST=mysql/' backend/.env
+        sed -i 's/DB_PORT=3306/DB_PORT=3306/' backend/.env
+        sed -i 's/DB_DATABASE=laravel/DB_DATABASE=rei_do_oleo_dev/' backend/.env
+        sed -i 's/DB_USERNAME=root/DB_USERNAME=rei_do_oleo/' backend/.env
+        sed -i 's/DB_PASSWORD=/DB_PASSWORD=secret123/' backend/.env
 
-    # Configurações de Mail
-    echo "" >> backend/.env
-    echo "# Mail Configuration" >> backend/.env
-    echo "MAIL_MAILER=smtp" >> backend/.env
-    echo "MAIL_HOST=mailhog" >> backend/.env
-    echo "MAIL_PORT=1025" >> backend/.env
-    echo "MAIL_USERNAME=null" >> backend/.env
-    echo "MAIL_PASSWORD=null" >> backend/.env
-    echo "MAIL_ENCRYPTION=null" >> backend/.env
+        # Configurações Redis
+        echo "" >> backend/.env
+        echo "# Redis Configuration" >> backend/.env
+        echo "REDIS_HOST=redis" >> backend/.env
+        echo "REDIS_PASSWORD=null" >> backend/.env
+        echo "REDIS_PORT=6379" >> backend/.env
 
-    # Configurações MinIO
-    echo "" >> backend/.env
-    echo "# MinIO S3 Configuration" >> backend/.env
-    echo "FILESYSTEM_DISK=s3" >> backend/.env
-    echo "AWS_ACCESS_KEY_ID=reidooleo" >> backend/.env
+        # Configurações de Mail
+        echo "" >> backend/.env
+        echo "# Mail Configuration" >> backend/.env
+        echo "MAIL_MAILER=smtp" >> backend/.env
+        echo "MAIL_HOST=mailhog" >> backend/.env
+        echo "MAIL_PORT=1025" >> backend/.env
+        echo "MAIL_USERNAME=null" >> backend/.env
+        echo "MAIL_PASSWORD=null" >> backend/.env
+        echo "MAIL_ENCRYPTION=null" >> backend/.env
+
+        # Configurações MinIO
+        echo "" >> backend/.env
+        echo "# MinIO S3 Configuration" >> backend/.env
+        echo "FILESYSTEM_DISK=s3" >> backend/.env
+        echo "AWS_ACCESS_KEY_ID=reidooleo" >> backend/.env
     echo "AWS_SECRET_ACCESS_KEY=secret123456" >> backend/.env
     echo "AWS_DEFAULT_REGION=us-east-1" >> backend/.env
     echo "AWS_BUCKET=rei-do-oleo-storage" >> backend/.env

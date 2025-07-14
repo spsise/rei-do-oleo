@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup:env": "cp .env.example .env",
+    "setup": "npm run setup:env && npm install"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

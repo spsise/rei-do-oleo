@@ -18,6 +18,7 @@ desktop.ini
 .env
 .env.*
 !.env.example
+!.env.*.example
 
 # Logs
 *.log
@@ -180,7 +181,7 @@ composer.lock
 
 # Specific to this project
 storage/
-public/storage 
+public/storage
 
 # ==================================================
 # Arquivos permitidos (exceções)
@@ -210,4 +211,4 @@ public/storage
 *.zip
 .vagrant/
 Vagrantfile.local
-mix-manifest.json 
+mix-manifest.json
