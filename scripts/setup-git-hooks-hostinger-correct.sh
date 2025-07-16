@@ -144,17 +144,13 @@ cd "$PROJECT_ROOT"
 
             cd "$API_DIR"
 
-            # Verificar versão do Composer
-            echo "📦 Verificando versão do Composer..."
-            composer --version
-
-            # Instalar dependências com fallback para Composer 1
-            echo "📦 Instalando dependências..."
-            if composer install --no-dev --optimize-autoloader 2>/dev/null; then
-                echo "✅ Dependências instaladas com sucesso"
+                                    # Verificar se vendor existe
+            echo "📦 Verificando dependências..."
+            if [ -d "vendor" ]; then
+                echo "✅ Vendor encontrado - dependências já instaladas"
             else
-                echo "⚠️ Tentando com flags adicionais para Composer 1..."
-                composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
+                echo "⚠️ Vendor não encontrado - você precisa colocar manualmente"
+                echo "   Copie a pasta vendor do seu ambiente local para este diretório"
             fi
 
             # Configurar ambiente
@@ -307,11 +303,15 @@ echo "   cp .env.example .env"
 echo "   nano .env"
 echo "   # Configurar: DB_HOST, DB_NAME, DB_USER, DB_PASS, APP_URL=https://api-hom.virtualt.com.br"
 echo ""
-echo "3. Configure o frontend:"
+echo "3. Coloque o vendor manualmente:"
+echo "   # Copie a pasta vendor do seu ambiente local para $API_DIR/"
+echo "   # Ou faça upload via FTP/SFTP"
+echo ""
+echo "4. Configure o frontend:"
 echo "   cd $FRONTEND_DIR"
 echo "   # Criar .env com VITE_API_URL=https://api-hom.virtualt.com.br"
 echo ""
-echo "4. Para fazer deploy automático (via webhook):"
+echo "5. Para fazer deploy automático (via webhook):"
 echo "   # As rotas já estão configuradas no Laravel!"
 echo "   # Configure webhook no GitHub:"
 echo "   # URL: https://api-hom.virtualt.com.br/webhook/deploy"
@@ -319,19 +319,23 @@ echo "   # Branch: hostinger-hom"
 echo "   # Event: push"
 echo "   # Teste com: ./scripts/test-webhook.sh"
 echo ""
-echo "5. Para deploy manual:"
+echo "6. Para deploy manual:"
 echo "   cd $PROJECT_ROOT"
 echo "   git pull origin hostinger-hom"
 echo "   ./deploy.sh"
 echo ""
-echo "6. Para verificar subdomínios:"
+echo "7. Para verificar subdomínios:"
 echo "   curl -I https://api-hom.virtualt.com.br"
 echo "   curl -I https://app-hom.virtualt.com.br"
 echo ""
-echo "7. Para testar o deploy agora:"
+echo "8. Para testar o deploy agora:"
 echo "   cd $PROJECT_ROOT"
 echo "   ./deploy.sh"
 echo ""
-echo "8. Se houver problemas com Composer:"
+echo "9. Se houver problemas com Composer:"
 echo "   cd $PROJECT_ROOT"
 echo "   ./scripts/fix-composer-deps.sh"
+echo ""
+echo "10. Se houver problemas de memória:"
+echo "   cd $PROJECT_ROOT"
+echo "   ./scripts/fix-memory-issues.sh"
