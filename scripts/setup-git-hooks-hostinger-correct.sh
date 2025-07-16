@@ -70,6 +70,19 @@ else
     git remote add origin https://github.com/spsise/rei-do-oleo.git
 fi
 
+# Fazer fetch e checkout da branch correta
+echo "📥 Fazendo fetch das branches..."
+git fetch origin
+
+echo "🔀 Fazendo checkout da branch hostinger-hom..."
+if git checkout hostinger-hom 2>/dev/null; then
+    echo "✅ Checkout realizado com sucesso"
+else
+    echo "🔄 Criando branch local hostinger-hom..."
+    git checkout -b hostinger-hom origin/hostinger-hom
+    echo "✅ Branch criada e checkout realizado"
+fi
+
 # Criar post-receive hook
 cat > "$PROJECT_ROOT/.git/hooks/post-receive" << 'EOF'
 #!/bin/bash
