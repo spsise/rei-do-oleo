@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Helpers\SecurityMaskHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,9 +14,9 @@ class TechnicianSearchResource extends JsonResource
             'client' => [
                 'id' => (int) $this['client']->id,
                 'name' => $this['client']->name ?? '',
-                'email' => $this['client']->email ?? '',
-                'phone' => $this['client']->phone01 ?? '',
-                'document' => $this['client']->cpf ?? $this['client']->cnpj ?? '',
+                'email' => SecurityMaskHelper::conditionalMask($this['client']->email ?? '', 'email'),
+                'phone' => SecurityMaskHelper::conditionalMask($this['client']->phone01 ?? '', 'phone'),
+                'document' => SecurityMaskHelper::conditionalMask($this['client']->cpf ?? $this['client']->cnpj ?? '', 'document'),
             ],
             'vehicles' => $this['vehicles']->map(function ($vehicle) {
                 return [

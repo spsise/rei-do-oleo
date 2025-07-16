@@ -268,6 +268,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
     });
 });
 
+// Example of using sensitive data middleware
+Route::middleware(['auth:sanctum', 'sensitive.data'])->group(function () {
+    // Routes that need sensitive data protection
+    Route::get('/technician/search', [TechnicianController::class, 'search']);
+});
+
 // Fallback Route
 Route::fallback(function () {
     return response()->json([
