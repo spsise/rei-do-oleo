@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter as Router } from 'react-router-dom';
+import { LayoutProvider } from './components/layout/LayoutProvider';
 import { queryClient } from './config/query-client';
 import { toastConfig } from './config/toast-config';
 import { AuthProvider } from './contexts/AuthProvider';
@@ -16,10 +17,10 @@ function App() {
             v7_relativeSplatPath: true,
           }}
         >
-          <div className="App">
+          <LayoutProvider>
             <AppRoutes />
             <Toaster {...toastConfig} />
-          </div>
+          </LayoutProvider>
         </Router>
       </AuthProvider>
     </QueryClientProvider>

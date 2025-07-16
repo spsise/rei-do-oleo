@@ -8,6 +8,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { Login } from '../pages/Login';
 import { ProductsPage } from '../pages/Products';
 import { ServicesPage } from '../pages/Services';
+import { TechnicianPage } from '../pages/Technician';
 
 export const AppRoutes = () => {
   return (
@@ -22,12 +23,21 @@ export const AppRoutes = () => {
         }
       />
 
-      {/* Rotas protegidas */}
+      {/* Rotas protegidas com verificação de permissões */}
       <Route
         path="/home"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute path="/home">
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/technician"
+        element={
+          <ProtectedRoute path="/technician">
+            <TechnicianPage />
           </ProtectedRoute>
         }
       />
@@ -35,7 +45,7 @@ export const AppRoutes = () => {
       <Route
         path="/clients"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute path="/clients">
             <ClientsPage />
           </ProtectedRoute>
         }
@@ -44,7 +54,7 @@ export const AppRoutes = () => {
       <Route
         path="/products"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute path="/products">
             <ProductsPage />
           </ProtectedRoute>
         }
@@ -53,7 +63,7 @@ export const AppRoutes = () => {
       <Route
         path="/services"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute path="/services">
             <ServicesPage />
           </ProtectedRoute>
         }
@@ -62,13 +72,13 @@ export const AppRoutes = () => {
       <Route
         path="/categories"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute path="/categories">
             <CategoriesPage />
           </ProtectedRoute>
         }
       />
 
-      {/* Redirecionar raiz para dashboard */}
+      {/* Redirecionar raiz para rota padrão baseada em permissões */}
       <Route path="/" element={<Navigate to="/home" replace />} />
 
       {/* Página 404 */}
