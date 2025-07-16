@@ -1,0 +1,1 @@
+export { VoiceSearchInput } from './VoiceSearchInput';
