@@ -107,6 +107,31 @@ while read oldrev newrev refname; do
         # Fazer checkout dos arquivos
         git --work-tree="$PROJECT_ROOT" --git-dir="$PROJECT_ROOT/.git" checkout -f $BRANCH
 
+        # Executar script de deploy
+        if [ -f "$PROJECT_ROOT/deploy.sh" ]; then
+            bash "$PROJECT_ROOT/deploy.sh"
+        else
+            echo "❌ Script de deploy não encontrado"
+        fi
+    fi
+done
+EOF
+
+# Criar script de deploy principal
+cat > "$PROJECT_ROOT/deploy.sh" << 'EOF'
+#!/bin/bash
+
+set -e
+
+echo "🚀 Iniciando deploy para subdomínios..."
+
+# Configurações
+PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
+API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
+FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
+
+cd "$PROJECT_ROOT"
+
         # Deploy Backend (Laravel) - API Subdomain
         if [ -d "backend" ]; then
             echo "🔧 Configurando Laravel API..."
@@ -119,8 +144,18 @@ while read oldrev newrev refname; do
 
             cd "$API_DIR"
 
-            # Instalar dependências
-            composer install --no-dev --optimize-autoloader
+            # Verificar versão do Composer
+            echo "📦 Verificando versão do Composer..."
+            composer --version
+
+            # Instalar dependências com fallback para Composer 1
+            echo "📦 Instalando dependências..."
+            if composer install --no-dev --optimize-autoloader 2>/dev/null; then
+                echo "✅ Dependências instaladas com sucesso"
+            else
+                echo "⚠️ Tentando com flags adicionais para Composer 1..."
+                composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
+            fi
 
             # Configurar ambiente
             if [ ! -f ".env" ]; then
@@ -168,6 +203,8 @@ HTACCESS
             echo "✅ Backend Laravel configurado em api-hom.virtualt.com.br"
         fi
 
+cd "$PROJECT_ROOT"
+
         # Deploy Frontend (React) - App Subdomain
         if [ -d "frontend" ]; then
             echo "⚛️ Configurando React App..."
@@ -195,7 +232,7 @@ HTACCESS
             rm tsconfig.json tsconfig.app.json tsconfig.node.json
             rm .eslintrc.js .prettierrc index.html
 
-            cd ..
+    cd "$PROJECT_ROOT"
 
             # Configurar .htaccess para frontend
             cat > "$FRONTEND_DIR/.htaccess" << 'HTACCESS'
@@ -229,34 +266,55 @@ HTACCESS
             echo "✅ Frontend React configurado em app-hom.virtualt.com.br"
         fi
 
-        # Limpar arquivos temporários
-        rm -rf backend/
-        rm -rf frontend/
-        rm -rf scripts/
-        rm -rf docs/
-        rm -rf .github/
-        rm -rf docker/
-        rm -f *.md
-        rm -f *.yml
-        rm -f *.json
-        rm -f *.lock
-
         echo "🎉 Deploy concluído com sucesso!"
         echo "🌐 Frontend: https://app-hom.virtualt.com.br"
         echo "🔗 API: https://api-hom.virtualt.com.br"
 
         # Log do deploy
         echo "$(date): Deploy realizado com sucesso" >> "$PROJECT_ROOT/deploy.log"
-    fi
-done
 EOF
 
-# Tornar o hook executável
+# Tornar os scripts executáveis
 chmod +x "$PROJECT_ROOT/.git/hooks/post-receive"
+chmod +x "$PROJECT_ROOT/deploy.sh"
 
 echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
+echo "✅ Script de deploy criado em: $PROJECT_ROOT/deploy.sh"
 
-echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
+# Criar webhook controller para deploy automático
+cat > "$PROJECT_ROOT/webhook-controller.php" << 'EOF'
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
+
+class WebhookController extends Controller
+{
+    public function deploy(Request $request)
+    {
+        // Verificar se é um push para a branch hostinger-hom
+        $payload = $request->all();
+
+        if (isset($payload['ref']) && $payload['ref'] === 'refs/heads/hostinger-hom') {
+            Log::info('Webhook: Deploy iniciado', ['branch' => 'hostinger-hom']);
+
+            // Executar deploy em background
+            $process = new Process(['bash', '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh']);
+            $process->setWorkingDirectory('/home/' . get_current_user() . '/rei-do-oleo');
+            $process->start();
+
+            return response()->json(['message' => 'Deploy iniciado']);
+        }
+
+        return response()->json(['message' => 'Ignorado - não é a branch hostinger-hom']);
+    }
+}
+EOF
+
+echo "✅ Webhook controller criado: $PROJECT_ROOT/webhook-controller.php"
 
 echo ""
 echo "💡 DICA: Para verificar subdomínios manualmente, você pode criar:"
@@ -286,14 +344,27 @@ echo "3. Configure o frontend:"
 echo "   cd $FRONTEND_DIR"
 echo "   # Criar .env com VITE_API_URL=https://api-hom.virtualt.com.br"
 echo ""
-echo "4. Para fazer deploy:"
-echo "   cd $PROJECT_ROOT"
-echo "   git push origin hostinger-hom"
+echo "4. Para fazer deploy automático (via webhook):"
+echo "   # As rotas já estão configuradas no Laravel!"
+echo "   # Configure webhook no GitHub:"
+echo "   # URL: https://api-hom.virtualt.com.br/webhook/deploy"
+echo "   # Branch: hostinger-hom"
+echo "   # Event: push"
+echo "   # Teste com: ./scripts/test-webhook.sh"
 echo ""
-echo "5. Para deploy manual (se necessário):"
+echo "5. Para deploy manual:"
 echo "   cd $PROJECT_ROOT"
 echo "   git pull origin hostinger-hom"
+echo "   ./deploy.sh"
 echo ""
-echo "6. Para verificar subdomínios (criar manualmente se necessário):"
+echo "6. Para verificar subdomínios:"
 echo "   curl -I https://api-hom.virtualt.com.br"
 echo "   curl -I https://app-hom.virtualt.com.br"
+echo ""
+echo "7. Para testar o deploy agora:"
+echo "   cd $PROJECT_ROOT"
+echo "   ./deploy.sh"
+echo ""
+echo "8. Se houver problemas com Composer:"
+echo "   cd $PROJECT_ROOT"
+echo "   ./scripts/fix-composer-deps.sh"
