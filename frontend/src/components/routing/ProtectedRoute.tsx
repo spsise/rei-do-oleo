@@ -16,7 +16,7 @@ export const ProtectedRoute = ({ children, path }: ProtectedRouteProps) => {
   const currentPath = path || location.pathname;
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!isAuthenticated) {

@@ -20,7 +20,7 @@ export const SmartRoute = ({
   const location = useLocation();
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!isAuthenticated) {
