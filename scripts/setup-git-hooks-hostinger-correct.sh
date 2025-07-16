@@ -123,60 +123,151 @@ cat > "$PROJECT_ROOT/deploy.sh" << 'EOF'
 
 set -e
 
-echo "🚀 Iniciando deploy para subdomínios..."
+echo "🚀 Iniciando deploy incremental para subdomínios..."
 
 # Configurações
 PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
 API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
 FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
+BACKUP_DIR="/home/$(whoami)/rei-do-oleo/backups"
+
+# Criar diretório de backup se não existir
+mkdir -p "$BACKUP_DIR"
 
 cd "$PROJECT_ROOT"
 
-        # Deploy Backend (Laravel) - API Subdomain
-        if [ -d "backend" ]; then
-            echo "🔧 Configurando Laravel API..."
+# Função para fazer backup de arquivos importantes
+backup_important_files() {
+    local target_dir="$1"
+    local backup_name="$2"
+    local backup_path="$BACKUP_DIR/${backup_name}_$(date +%Y%m%d_%H%M%S)"
 
-            # Limpar diretório da API
-            rm -rf "$API_DIR"/*
+    echo "💾 Fazendo backup de arquivos importantes..."
+    mkdir -p "$backup_path"
 
-            # Copiar arquivos do backend
-            cp -r backend/* "$API_DIR/"
+    # Backup de arquivos importantes do Laravel
+    if [ -d "$target_dir/vendor" ]; then
+        echo "📦 Backup do vendor..."
+        cp -r "$target_dir/vendor" "$backup_path/"
+    fi
 
-            cd "$API_DIR"
+    if [ -f "$target_dir/.env" ]; then
+        echo "⚙️ Backup do .env..."
+        cp "$target_dir/.env" "$backup_path/"
+    fi
 
-                                    # Verificar se vendor existe
-            echo "📦 Verificando dependências..."
-            if [ -d "vendor" ]; then
-                echo "✅ Vendor encontrado - dependências já instaladas"
-            else
-                echo "⚠️ Vendor não encontrado - você precisa colocar manualmente"
-                echo "   Copie a pasta vendor do seu ambiente local para este diretório"
-            fi
+    if [ -d "$target_dir/storage/app" ]; then
+        echo "📁 Backup do storage/app..."
+        cp -r "$target_dir/storage/app" "$backup_path/"
+    fi
 
-            # Configurar ambiente
-            if [ ! -f ".env" ]; then
-                cp .env.example .env
-                php artisan key:generate
-            fi
+    if [ -d "$target_dir/storage/logs" ]; then
+        echo "📝 Backup dos logs..."
+        cp -r "$target_dir/storage/logs" "$backup_path/"
+    fi
 
-            # Otimizar para produção
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+    echo "✅ Backup salvo em: $backup_path"
+}
 
-            # Executar migrações
-            php artisan migrate --force
+# Função para restaurar arquivos importantes
+restore_important_files() {
+    local target_dir="$1"
+    local backup_path="$2"
 
-            # Limpar arquivos de desenvolvimento
-            rm -rf tests/
-            rm -rf .phpunit.cache/
-            rm -rf storage/logs/*.log
-            rm -rf storage/framework/cache/*
-            rm -rf storage/framework/sessions/*
-            rm -rf storage/framework/views/*
+    echo "🔄 Restaurando arquivos importantes..."
 
-            # Configurar .htaccess para API
-            cat > .htaccess << 'HTACCESS'
+    # Restaurar vendor se existir no backup
+    if [ -d "$backup_path/vendor" ]; then
+        echo "📦 Restaurando vendor..."
+        rm -rf "$target_dir/vendor"
+        cp -r "$backup_path/vendor" "$target_dir/"
+    fi
+
+    # Restaurar .env se existir no backup
+    if [ -f "$backup_path/.env" ]; then
+        echo "⚙️ Restaurando .env..."
+        cp "$backup_path/.env" "$target_dir/"
+    fi
+
+    # Restaurar storage/app se existir no backup
+    if [ -d "$backup_path/storage/app" ]; then
+        echo "📁 Restaurando storage/app..."
+        rm -rf "$target_dir/storage/app"
+        cp -r "$backup_path/storage/app" "$target_dir/"
+    fi
+
+    # Restaurar logs se existir no backup
+    if [ -d "$backup_path/storage/logs" ]; then
+        echo "📝 Restaurando logs..."
+        rm -rf "$target_dir/storage/logs"
+        cp -r "$backup_path/storage/logs" "$target_dir/"
+    fi
+}
+
+# Deploy Backend (Laravel) - API Subdomain
+if [ -d "backend" ]; then
+    echo "🔧 Configurando Laravel API..."
+
+    # Backup dos arquivos importantes se o diretório já existe
+    if [ -d "$API_DIR" ]; then
+        backup_important_files "$API_DIR" "api_backup"
+    fi
+
+    # Criar diretório temporário para o novo deploy
+    TEMP_API_DIR="$API_DIR.temp"
+    rm -rf "$TEMP_API_DIR"
+    mkdir -p "$TEMP_API_DIR"
+
+    # Copiar arquivos do backend para diretório temporário
+    echo "📋 Copiando arquivos do backend..."
+    cp -r backend/* "$TEMP_API_DIR/"
+
+    # Restaurar arquivos importantes no diretório temporário
+    if [ -d "$API_DIR" ]; then
+        latest_backup=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | head -1)
+        if [ -n "$latest_backup" ]; then
+            restore_important_files "$TEMP_API_DIR" "$latest_backup"
+        fi
+    fi
+
+    cd "$TEMP_API_DIR"
+
+    # Verificar se vendor existe
+    echo "📦 Verificando dependências..."
+    if [ -d "vendor" ]; then
+        echo "✅ Vendor encontrado - dependências já instaladas"
+    else
+        echo "⚠️ Vendor não encontrado - você precisa colocar manualmente"
+        echo "   Copie a pasta vendor do seu ambiente local para este diretório"
+    fi
+
+    # Configurar ambiente se não existir
+    if [ ! -f ".env" ]; then
+        echo "⚙️ Criando arquivo .env..."
+        cp .env.example .env
+        php artisan key:generate
+    fi
+
+    # Otimizar para produção
+    echo "⚡ Otimizando para produção..."
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+
+    # Executar migrações
+    echo "🗄️ Executando migrações..."
+    php artisan migrate --force
+
+    # Limpar arquivos de desenvolvimento
+    echo "🧹 Limpando arquivos de desenvolvimento..."
+    rm -rf tests/ 2>/dev/null || true
+    rm -rf .phpunit.cache/ 2>/dev/null || true
+    rm -rf storage/framework/cache/* 2>/dev/null || true
+    rm -rf storage/framework/sessions/* 2>/dev/null || true
+    rm -rf storage/framework/views/* 2>/dev/null || true
+
+    # Configurar .htaccess para API
+    cat > .htaccess << 'HTACCESS'
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -191,47 +282,66 @@ Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
 Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
 HTACCESS
 
-            # Configurar permissões
-            chmod -R 755 storage
-            chmod -R 755 bootstrap/cache
-            chmod 644 .env
+    # Configurar permissões
+    chmod -R 755 storage
+    chmod -R 755 bootstrap/cache
+    chmod 644 .env
 
-            echo "✅ Backend Laravel configurado em api-hom.virtualt.com.br"
-        fi
+    # Fazer swap dos diretórios (deploy atômico)
+    echo "🔄 Fazendo swap dos diretórios..."
+    if [ -d "$API_DIR" ]; then
+        mv "$API_DIR" "$API_DIR.old"
+    fi
+    mv "$TEMP_API_DIR" "$API_DIR"
+
+    # Remover diretório antigo após alguns segundos (para garantir que não há problemas)
+    if [ -d "$API_DIR.old" ]; then
+        echo "🗑️ Removendo versão anterior em 5 segundos..."
+        (sleep 5 && rm -rf "$API_DIR.old") &
+    fi
+
+    echo "✅ Backend Laravel configurado em api-hom.virtualt.com.br"
+fi
 
 cd "$PROJECT_ROOT"
 
-        # Deploy Frontend (React) - App Subdomain
-        if [ -d "frontend" ]; then
-            echo "⚛️ Configurando React App..."
+# Deploy Frontend (React) - App Subdomain
+if [ -d "frontend" ]; then
+    echo "⚛️ Configurando React App..."
 
-            # Limpar diretório do frontend
-            rm -rf "$FRONTEND_DIR"/*
+    # Criar diretório temporário para o novo deploy
+    TEMP_FRONTEND_DIR="$FRONTEND_DIR.temp"
+    rm -rf "$TEMP_FRONTEND_DIR"
+    mkdir -p "$TEMP_FRONTEND_DIR"
 
-            cd frontend
+    cd frontend
 
-            # Instalar dependências
-            npm ci
+    # Instalar dependências
+    echo "📦 Instalando dependências..."
+    npm ci
 
-            # Build para produção
-            npm run build
+    # Build para produção
+    echo "🔨 Fazendo build para produção..."
+    npm run build
 
-            # Mover arquivos buildados para o subdomínio
-            cp -r dist/* "$FRONTEND_DIR/"
+    # Mover arquivos buildados para o diretório temporário
+    echo "📋 Copiando arquivos buildados..."
+    cp -r dist/* "$TEMP_FRONTEND_DIR/"
 
-            # Limpar arquivos de desenvolvimento
-            rm -rf node_modules/
-            rm -rf src/
-            rm -rf public/
-            rm package.json package-lock.json
-            rm vite.config.ts tailwind.config.js postcss.config.js
-            rm tsconfig.json tsconfig.app.json tsconfig.node.json
-            rm .eslintrc.js .prettierrc index.html
+    # Limpar arquivos de desenvolvimento
+    echo "🧹 Limpando arquivos de desenvolvimento..."
+    rm -rf node_modules/
+    rm -rf src/
+    rm -rf public/
+    rm package.json package-lock.json 2>/dev/null || true
+    rm vite.config.ts tailwind.config.js postcss.config.js 2>/dev/null || true
+    rm tsconfig.json tsconfig.app.json tsconfig.node.json 2>/dev/null || true
+    rm .eslintrc.js .prettierrc index.html 2>/dev/null || true
 
     cd "$PROJECT_ROOT"
 
-            # Configurar .htaccess para frontend
-            cat > "$FRONTEND_DIR/.htaccess" << 'HTACCESS'
+    # Configurar .htaccess para frontend
+    cat > "$TEMP_FRONTEND_DIR/.htaccess" << 'HTACCESS'
 RewriteEngine On
 
 # Handle React Router
@@ -253,31 +363,285 @@ Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </FilesMatch>
 HTACCESS
 
-            # Configurar permissões
-            chmod -R 755 "$FRONTEND_DIR"
-            chmod -R 644 "$FRONTEND_DIR"/*.html
-            chmod -R 644 "$FRONTEND_DIR"/*.css
-            chmod -R 644 "$FRONTEND_DIR"/*.js
+    # Configurar permissões
+    chmod -R 755 "$TEMP_FRONTEND_DIR"
+    chmod -R 644 "$TEMP_FRONTEND_DIR"/*.html 2>/dev/null || true
+    chmod -R 644 "$TEMP_FRONTEND_DIR"/*.css 2>/dev/null || true
+    chmod -R 644 "$TEMP_FRONTEND_DIR"/*.js 2>/dev/null || true
 
-            echo "✅ Frontend React configurado em app-hom.virtualt.com.br"
-        fi
+    # Fazer swap dos diretórios (deploy atômico)
+    echo "🔄 Fazendo swap dos diretórios..."
+    if [ -d "$FRONTEND_DIR" ]; then
+        mv "$FRONTEND_DIR" "$FRONTEND_DIR.old"
+    fi
+    mv "$TEMP_FRONTEND_DIR" "$FRONTEND_DIR"
 
-        echo "🎉 Deploy concluído com sucesso!"
-        echo "🌐 Frontend: https://app-hom.virtualt.com.br"
-        echo "🔗 API: https://api-hom.virtualt.com.br"
+    # Remover diretório antigo após alguns segundos
+    if [ -d "$FRONTEND_DIR.old" ]; then
+        echo "🗑️ Removendo versão anterior em 5 segundos..."
+        (sleep 5 && rm -rf "$FRONTEND_DIR.old") &
+    fi
 
-        # Log do deploy
-        echo "$(date): Deploy realizado com sucesso" >> "$PROJECT_ROOT/deploy.log"
+    echo "✅ Frontend React configurado em app-hom.virtualt.com.br"
+fi
+
+echo "🎉 Deploy incremental concluído com sucesso!"
+echo "🌐 Frontend: https://app-hom.virtualt.com.br"
+echo "🔗 API: https://api-hom.virtualt.com.br"
+
+# Log do deploy
+echo "$(date): Deploy incremental realizado com sucesso" >> "$PROJECT_ROOT/deploy.log"
+
+# Limpar backups antigos (manter apenas os últimos 5)
+echo "🧹 Limpando backups antigos..."
+ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+
+echo "✅ Deploy concluído com zero downtime!"
 EOF
 
 # Tornar os scripts executáveis
 chmod +x "$PROJECT_ROOT/.git/hooks/post-receive"
 chmod +x "$PROJECT_ROOT/deploy.sh"
 
+# Criar script de rollback
+cat > "$PROJECT_ROOT/rollback.sh" << 'EOF'
+#!/bin/bash
+
+set -e
+
+echo "🔄 Iniciando rollback..."
+
+# Configurações
+PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
+API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
+FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
+BACKUP_DIR="/home/$(whoami)/rei-do-oleo/backups"
+
+# Função para listar backups disponíveis
+list_backups() {
+    echo "📋 Backups disponíveis:"
+    echo ""
+    echo "API Backups:"
+    ls -la "$BACKUP_DIR"/api_backup_* 2>/dev/null | awk '{print $9}' | sed 's|.*/||' || echo "Nenhum backup de API encontrado"
+    echo ""
+    echo "Frontend Backups:"
+    ls -la "$BACKUP_DIR"/frontend_backup_* 2>/dev/null | awk '{print $9}' | sed 's|.*/||' || echo "Nenhum backup de frontend encontrado"
+    echo ""
+}
+
+# Função para fazer rollback da API
+rollback_api() {
+    local backup_name="$1"
+    local backup_path="$BACKUP_DIR/$backup_name"
+
+    if [ ! -d "$backup_path" ]; then
+        echo "❌ Backup não encontrado: $backup_name"
+        return 1
+    fi
+
+    echo "🔄 Fazendo rollback da API para: $backup_name"
+
+    # Backup da versão atual antes do rollback
+    if [ -d "$API_DIR" ]; then
+        backup_important_files "$API_DIR" "api_rollback_backup"
+    fi
+
+    # Restaurar arquivos do backup
+    echo "📋 Restaurando arquivos do backup..."
+    rm -rf "$API_DIR"/*
+    cp -r "$backup_path"/* "$API_DIR/"
+
+    # Configurar permissões
+    chmod -R 755 "$API_DIR/storage"
+    chmod -R 755 "$API_DIR/bootstrap/cache"
+    chmod 644 "$API_DIR/.env"
+
+    echo "✅ Rollback da API concluído"
+}
+
+# Função para fazer rollback do frontend
+rollback_frontend() {
+    local backup_name="$1"
+    local backup_path="$BACKUP_DIR/$backup_name"
+
+    if [ ! -d "$backup_path" ]; then
+        echo "❌ Backup não encontrado: $backup_name"
+        return 1
+    fi
+
+    echo "🔄 Fazendo rollback do frontend para: $backup_name"
+
+    # Restaurar arquivos do backup
+    echo "📋 Restaurando arquivos do backup..."
+    rm -rf "$FRONTEND_DIR"/*
+    cp -r "$backup_path"/* "$FRONTEND_DIR/"
+
+    # Configurar permissões
+    chmod -R 755 "$FRONTEND_DIR"
+
+    echo "✅ Rollback do frontend concluído"
+}
+
+# Verificar argumentos
+if [ "$1" = "list" ]; then
+    list_backups
+    exit 0
+fi
+
+if [ "$1" = "api" ] && [ -n "$2" ]; then
+    rollback_api "$2"
+    exit 0
+fi
+
+if [ "$1" = "frontend" ] && [ -n "$2" ]; then
+    rollback_frontend "$2"
+    exit 0
+fi
+
+if [ "$1" = "latest" ]; then
+    echo "🔄 Fazendo rollback para a versão mais recente..."
+
+    # Rollback da API
+    latest_api_backup=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | head -1)
+    if [ -n "$latest_api_backup" ]; then
+        rollback_api "$(basename "$latest_api_backup")"
+    else
+        echo "⚠️ Nenhum backup de API encontrado"
+    fi
+
+    # Rollback do frontend
+    latest_frontend_backup=$(ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null | head -1)
+    if [ -n "$latest_frontend_backup" ]; then
+        rollback_frontend "$(basename "$latest_frontend_backup")"
+    else
+        echo "⚠️ Nenhum backup de frontend encontrado"
+    fi
+
+    exit 0
+fi
+
+# Mostrar ajuda se nenhum argumento válido foi fornecido
+echo "🔄 Script de Rollback - Rei do Óleo"
+echo ""
+echo "Uso:"
+echo "  ./rollback.sh list                    - Listar backups disponíveis"
+echo "  ./rollback.sh api <backup_name>       - Fazer rollback da API"
+echo "  ./rollback.sh frontend <backup_name>  - Fazer rollback do frontend"
+echo "  ./rollback.sh latest                  - Fazer rollback para versão mais recente"
+echo ""
+echo "Exemplos:"
+echo "  ./rollback.sh list"
+echo "  ./rollback.sh api api_backup_20241201_143022"
+echo "  ./rollback.sh frontend frontend_backup_20241201_143022"
+echo "  ./rollback.sh latest"
+echo ""
+list_backups
+EOF
+
+# Criar script de limpeza de backups
+cat > "$PROJECT_ROOT/cleanup-backups.sh" << 'EOF'
+#!/bin/bash
+
+set -e
+
+echo "🧹 Iniciando limpeza de backups..."
+
+# Configurações
+BACKUP_DIR="/home/$(whoami)/rei-do-oleo/backups"
+
+# Função para limpar backups antigos
+cleanup_old_backups() {
+    local keep_count="$1"
+    local backup_pattern="$2"
+
+    echo "🧹 Limpando backups antigos do padrão: $backup_pattern"
+    echo "📊 Mantendo os últimos $keep_count backups..."
+
+    # Listar backups ordenados por data (mais recentes primeiro)
+    backups=$(ls -t "$BACKUP_DIR"/$backup_pattern 2>/dev/null || true)
+
+    if [ -z "$backups" ]; then
+        echo "ℹ️ Nenhum backup encontrado para o padrão: $backup_pattern"
+        return
+    fi
+
+    # Contar total de backups
+    total_backups=$(echo "$backups" | wc -l)
+    echo "📊 Total de backups encontrados: $total_backups"
+
+    if [ "$total_backups" -le "$keep_count" ]; then
+        echo "ℹ️ Número de backups está dentro do limite ($keep_count)"
+        return
+    fi
+
+    # Remover backups antigos (manter apenas os últimos $keep_count)
+    backups_to_remove=$(echo "$backups" | tail -n +$((keep_count + 1)))
+
+    if [ -n "$backups_to_remove" ]; then
+        echo "🗑️ Removendo backups antigos:"
+        echo "$backups_to_remove" | while read backup; do
+            echo "   - $(basename "$backup")"
+            rm -rf "$backup"
+        done
+        echo "✅ Limpeza concluída"
+    else
+        echo "ℹ️ Nenhum backup para remover"
+    fi
+}
+
+# Verificar argumentos
+if [ "$1" = "auto" ]; then
+    # Limpeza automática (manter 5 backups de cada tipo)
+    cleanup_old_backups 5 "api_backup_*"
+    cleanup_old_backups 5 "frontend_backup_*"
+    cleanup_old_backups 5 "*_rollback_backup_*"
+    exit 0
+fi
+
+if [ "$1" = "all" ]; then
+    # Remover todos os backups
+    echo "⚠️ ATENÇÃO: Isso removerá TODOS os backups!"
+    read -p "Tem certeza? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -rf "$BACKUP_DIR"/*
+        echo "✅ Todos os backups foram removidos"
+    else
+        echo "❌ Operação cancelada"
+    fi
+    exit 0
+fi
+
+# Limpeza padrão (manter 3 backups de cada tipo)
+echo "🧹 Limpeza padrão de backups (manter 3 de cada tipo)..."
+cleanup_old_backups 3 "api_backup_*"
+cleanup_old_backups 3 "frontend_backup_*"
+cleanup_old_backups 3 "*_rollback_backup_*"
+
+echo "✅ Limpeza concluída!"
+EOF
+
+# Tornar os scripts executáveis
+chmod +x "$PROJECT_ROOT/rollback.sh"
+chmod +x "$PROJECT_ROOT/cleanup-backups.sh"
+
 echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
-echo "✅ Script de deploy criado em: $PROJECT_ROOT/deploy.sh"
+echo "✅ Script de deploy incremental criado em: $PROJECT_ROOT/deploy.sh"
+echo "✅ Script de rollback criado em: $PROJECT_ROOT/rollback.sh"
+echo "✅ Script de limpeza de backups criado em: $PROJECT_ROOT/cleanup-backups.sh"
 
 echo "✅ Webhook controller já existe no Laravel: backend/app/Http/Controllers/Api/WebhookController.php"
+
+echo ""
+echo "🚀 MELHORIAS NO SISTEMA DE DEPLOY:"
+echo "✅ Deploy incremental (não apaga tudo)"
+echo "✅ Backup automático de arquivos importantes (vendor, .env, storage)"
+echo "✅ Deploy atômico com swap de diretórios (zero downtime)"
+echo "✅ Sistema de rollback completo"
+echo "✅ Limpeza automática de backups antigos"
+echo "✅ Preservação de uploads e logs"
+echo "✅ Restauração automática do vendor"
 
 echo ""
 echo "💡 DICA: Para verificar subdomínios manualmente, você pode criar:"
@@ -328,14 +692,21 @@ echo "7. Para verificar subdomínios:"
 echo "   curl -I https://api-hom.virtualt.com.br"
 echo "   curl -I https://app-hom.virtualt.com.br"
 echo ""
-echo "8. Para testar o deploy agora:"
+echo "8. Para testar o deploy incremental agora:"
 echo "   cd $PROJECT_ROOT"
 echo "   ./deploy.sh"
 echo ""
-echo "9. Se houver problemas com Composer:"
+echo "9. Para gerenciar backups e rollbacks:"
+echo "   cd $PROJECT_ROOT"
+echo "   ./rollback.sh list                    # Listar backups disponíveis"
+echo "   ./rollback.sh latest                  # Rollback para versão mais recente"
+echo "   ./rollback.sh api api_backup_20241201_143022  # Rollback específico da API"
+echo "   ./cleanup-backups.sh auto             # Limpar backups antigos automaticamente"
+echo ""
+echo "10. Se houver problemas com Composer:"
 echo "   cd $PROJECT_ROOT"
 echo "   ./scripts/fix-composer-deps.sh"
 echo ""
-echo "10. Se houver problemas de memória:"
+echo "11. Se houver problemas de memória:"
 echo "   cd $PROJECT_ROOT"
 echo "   ./scripts/fix-memory-issues.sh"
