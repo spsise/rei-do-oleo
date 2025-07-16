@@ -139,12 +139,12 @@ export const VoiceModal: React.FC = () => {
                   <div className="relative recording-indicator">
                     <StopIcon className="h-6 w-6" />
                   </div>
-                  <span className="font-semibold">Parar Gravação</span>
+                  <span className="font-semibold">Parar</span>
                 </>
               ) : (
                 <>
                   <MicrophoneIcon className="h-6 w-6" />
-                  <span className="font-semibold">Iniciar Gravação</span>
+                  <span className="font-semibold">Iniciar</span>
                 </>
               )}
             </button>
