@@ -8,12 +8,14 @@ export const VoiceModalProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [initialValue, setInitialValue] = useState('');
+  const [autoStart, setAutoStart] = useState(false);
   const [onConfirm, setOnConfirm] = useState<((value: string) => void) | null>(
     null
   );
 
   const openVoiceModal = (options: VoiceModalOptions) => {
     setInitialValue(options.initialValue || '');
+    setAutoStart(options.autoStart || false);
     setOnConfirm(() => options.onConfirm);
     setIsOpen(true);
   };
@@ -22,6 +24,7 @@ export const VoiceModalProvider: React.FC<{ children: ReactNode }> = ({
     setIsOpen(false);
     setOnConfirm(null);
     setInitialValue('');
+    setAutoStart(false);
   };
 
   return (
@@ -29,13 +32,14 @@ export const VoiceModalProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         isOpen,
         initialValue,
+        autoStart,
         openVoiceModal,
         closeVoiceModal,
         onConfirm,
       }}
     >
       {children}
-      <VoiceModal />
+      <VoiceModal autoStart={autoStart} />
     </VoiceModalContext.Provider>
   );
 };

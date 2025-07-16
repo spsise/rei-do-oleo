@@ -92,6 +92,7 @@ export const ClientSearchForm: React.FC<ClientSearchFormProps> = ({
           <VoiceButton
             ref={voiceButtonRef}
             onResult={onVoiceResult}
+            autoStart={true}
             size="sm"
             variant="outline"
             showText={false}

@@ -11,7 +11,13 @@ import { useVoiceModal } from './useVoiceModal';
 import { useVoiceRecognition } from './useVoiceRecognition';
 import './VoiceModal.css';
 
-export const VoiceModal: React.FC = () => {
+interface VoiceModalProps {
+  autoStart?: boolean;
+}
+
+export const VoiceModal: React.FC<VoiceModalProps> = ({
+  autoStart = false,
+}) => {
   const { isOpen, initialValue, closeVoiceModal, onConfirm } = useVoiceModal();
   const {
     isListening,
@@ -24,14 +30,33 @@ export const VoiceModal: React.FC = () => {
   } = useVoiceRecognition();
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [hasAutoStarted, setHasAutoStarted] = useState(false);
 
-  // Atualiza valor inicial ao abrir
+  // Resetar autoStart ao abrir o modal
   useEffect(() => {
     if (isOpen) {
       setValue(initialValue || '');
       resetTranscript();
+      setHasAutoStarted(false);
     }
   }, [isOpen, initialValue, resetTranscript]);
+
+  // Iniciar reconhecimento automaticamente apenas uma vez por abertura
+  useEffect(() => {
+    if (isOpen && autoStart && isSupported && !isListening && !hasAutoStarted) {
+      setHasAutoStarted(true);
+      setTimeout(() => {
+        startListening();
+      }, 300);
+    }
+  }, [
+    isOpen,
+    autoStart,
+    isSupported,
+    isListening,
+    hasAutoStarted,
+    startListening,
+  ]);
 
   // Atualiza valor conforme fala
   useEffect(() => {

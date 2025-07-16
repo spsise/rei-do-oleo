@@ -5,6 +5,7 @@ import { useVoiceModal } from './useVoiceModal';
 interface VoiceButtonProps {
   onResult?: (value: string) => void;
   initialValue?: string;
+  autoStart?: boolean;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'primary' | 'secondary' | 'outline';
   showText?: boolean;
@@ -16,6 +17,7 @@ export const VoiceButton = forwardRef<HTMLButtonElement, VoiceButtonProps>(
     {
       onResult,
       initialValue = '',
+      autoStart = false,
       size = 'md',
       variant = 'primary',
       showText = true,
@@ -28,6 +30,7 @@ export const VoiceButton = forwardRef<HTMLButtonElement, VoiceButtonProps>(
     const handleClick = () => {
       openVoiceModal({
         initialValue,
+        autoStart,
         onConfirm: (value: string) => {
           if (onResult) onResult(value);
         },
