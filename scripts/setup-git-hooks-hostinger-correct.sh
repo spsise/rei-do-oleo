@@ -256,95 +256,12 @@ chmod +x "$PROJECT_ROOT/.git/hooks/post-receive"
 
 echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
 
-# Criar script de deploy manual
-cat > "$PROJECT_ROOT/deploy.sh" << 'EOF'
-#!/bin/bash
-
-# Script de deploy manual para subdomínios
-cd "$(dirname "$0")"
-git pull origin hostinger-hom
-EOF
-
-chmod +x "$PROJECT_ROOT/deploy.sh"
-
-echo "✅ Script de deploy manual criado: $PROJECT_ROOT/deploy.sh"
-
-# Configurar .gitignore para produção
-cat > "$PROJECT_ROOT/.gitignore" << 'EOF'
-# Laravel
-backend/vendor/
-backend/node_modules/
-backend/.env
-backend/.env.backup
-backend/.phpunit.result.cache
-backend/Homestead.json
-backend/Homestead.yaml
-backend/npm-debug.log
-backend/yarn-error.log
-backend/.idea
-backend/.vscode
-backend/*.log
-
-# React
-frontend/node_modules/
-frontend/dist/
-frontend/.env
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-
-# Sistema
-.DS_Store
-Thumbs.db
-
-# Subdomínios (não versionar)
-../domains/virtualt.com.br/public_html/api-hom/
-../domains/virtualt.com.br/public_html/app-hom/
-EOF
-
-echo "✅ .gitignore configurado"
-
-# Criar script de verificação de subdomínios
-cat > "$PROJECT_ROOT/check-subdomains.sh" << 'EOF'
-#!/bin/bash
-
-echo "🔍 Verificando subdomínios..."
-
-# Configurações
-API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
-FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
-
-# Verificar API
-echo "📡 Verificando API (api-hom.virtualt.com.br):"
-if curl -s -I https://api-hom.virtualt.com.br | grep -q "200\|301\|302"; then
-    echo "✅ API respondendo"
-else
-    echo "❌ API não responde"
-fi
-
-# Verificar Frontend
-echo "🌐 Verificando Frontend (app-hom.virtualt.com.br):"
-if curl -s -I https://app-hom.virtualt.com.br | grep -q "200\|301\|302"; then
-    echo "✅ Frontend respondendo"
-else
-    echo "❌ Frontend não responde"
-fi
-
-# Verificar estrutura de diretórios
-echo ""
-echo "📁 Estrutura de diretórios:"
-echo "API: $API_DIR"
-ls -la "$API_DIR" | head -5
+echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
 
 echo ""
-echo "Frontend: $FRONTEND_DIR"
-ls -la "$FRONTEND_DIR" | head -5
-EOF
-
-chmod +x "$PROJECT_ROOT/check-subdomains.sh"
-
-echo "✅ Script de verificação criado: $PROJECT_ROOT/check-subdomains.sh"
+echo "💡 DICA: Para verificar subdomínios manualmente, você pode criar:"
+echo "   nano $PROJECT_ROOT/check-subdomains.sh"
+echo "   # Conteúdo útil para debug dos subdomínios"
 
 # Verificar configuração atual
 echo ""
@@ -373,10 +290,10 @@ echo "4. Para fazer deploy:"
 echo "   cd $PROJECT_ROOT"
 echo "   git push origin hostinger-hom"
 echo ""
-echo "5. Para deploy manual:"
+echo "5. Para deploy manual (se necessário):"
 echo "   cd $PROJECT_ROOT"
-echo "   ./deploy.sh"
+echo "   git pull origin hostinger-hom"
 echo ""
-echo "6. Para verificar subdomínios:"
-echo "   cd $PROJECT_ROOT"
-echo "   ./check-subdomains.sh"
+echo "6. Para verificar subdomínios (criar manualmente se necessário):"
+echo "   curl -I https://api-hom.virtualt.com.br"
+echo "   curl -I https://app-hom.virtualt.com.br"
