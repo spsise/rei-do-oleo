@@ -1,133 +1,446 @@
-## 👨‍💻 Perfil de Desenvolvimento
+## 🚀 QUICK START - COMEÇANDO RAPIDAMENTE
 
-### Desenvolvedor Laravel 12 Senior
-**Características obrigatórias:**
-- Domínio completo de Laravel 12+ features
-- Conhecimento de Eloquent ORM avançado
-- Experiência com Migrations, Seeders e Factories
-- Proficiência em Queue Jobs e Event Listeners
-- Expertise em Laravel Sanctum/Passport
-- Conhecimento de Artisan Commands personalizados
-- Experiência com Service Providers e Facades
-- Domínio de Form Requests e Resource Controllers
-- Conhecimento de Middleware personalizado
-- Experiência com Broadcasting e WebSockets
-- Proficiência em testes com PHPUnit e Pest
+### Comandos Essenciais para Iniciar
 
-**Práticas Laravel Avançadas:**
+```bash
+# 1. Backend (Laravel)
+cd backend
+php artisan serve
+
+# 2. Frontend (React) - Em outro terminal
+cd frontend
+npm run dev
+
+# 3. Verificação Rápida
+npm run validate:quick  # Type check + lint
+npm run build          # Build de produção
+```
+
+### 🔍 DIRETRIZES DE DESENVOLVIMENTO INTELIGENTE 🚨 CRÍTICO
+
+#### Verificação Automática Antes de Desenvolver
+
+**IMPORTANTE**: Sempre que for solicitado para criar funcionalidades, o Cursor AI deve:
+
+1. **Verificar Backend (Laravel) Primeiro**:
+   - Verificar se existem Models relacionados
+   - Verificar se existem Controllers para a funcionalidade
+   - Verificar se existem Rotas da API
+   - Verificar se existem Migrations para as tabelas necessárias
+   - Verificar se existem Services e Repositories
+
+2. **Verificar Frontend (React) Depois**:
+   - Verificar se existem componentes relacionados
+   - Verificar se existem páginas para a funcionalidade
+   - Verificar se existem hooks customizados
+   - Verificar se existem tipos TypeScript
+   - Verificar se existem serviços de API
+
+3. **Criar Backend Se Necessário**:
+   - Se não existir Model → Criar Model com relacionamentos
+   - Se não existir Controller → Criar Controller com métodos CRUD
+   - Se não existir Rotas → Adicionar rotas na API
+   - Se não existir Migration → Criar migration para tabelas
+   - Se não existir Service → Criar service com lógica de negócio
+
+4. **Criar Frontend Se Necessário**:
+   - Se não existir componente → Criar componente reutilizável
+   - Se não existir página → Criar página com layout
+   - Se não existir hook → Criar hook customizado
+   - Se não existir tipo → Criar interfaces TypeScript
+   - Se não existir serviço → Criar serviço de API
+
+#### Comandos de Verificação Rápida
+
+```bash
+# Verificar estrutura do backend
+find backend/app/Models -name "*.php" | head -10
+find backend/app/Http/Controllers/Api -name "*.php" | head -10
+grep -r "Route::" backend/routes/api.php
+
+# Verificar estrutura do frontend
+find frontend/src/pages -name "*.tsx" | head -10
+find frontend/src/components -name "*.tsx" | head -10
+find frontend/src/hooks -name "*.ts" | head -10
+find frontend/src/services -name "*.ts" | head -10
+```
+
+#### Padrões de Verificação por Funcionalidade
+
+**Para Dashboard**:
+- Backend: `DashboardController`, rotas `/api/dashboard/*`, métodos para estatísticas
+- Frontend: `Dashboard.tsx`, `DashboardCard.tsx`, `useDashboard.ts`, `dashboardService.ts`
+
+**Para Usuários**:
+- Backend: `UserController`, rotas `/api/users/*`, `UserService`, `UserRepository`
+- Frontend: `UserList.tsx`, `UserForm.tsx`, `useUsers.ts`, `userService.ts`
+
+**Para Produtos**:
+- Backend: `ProductController`, rotas `/api/products/*`, `ProductService`, `ProductRepository`
+- Frontend: `ProductList.tsx`, `ProductForm.tsx`, `useProducts.ts`, `productService.ts`
+
+**Para Pedidos**:
+- Backend: `OrderController`, rotas `/api/orders/*`, `OrderService`, `OrderRepository`
+- Frontend: `OrderList.tsx`, `OrderForm.tsx`, `useOrders.ts`, `orderService.ts`
+
+---
+
+## 📝 VERSIONAMENTO E COMMITS 🚨 CRÍTICO
+
+### Estrutura de Commits
+
+**Padrão de commits para o Frontend**:
+- ⚛️ Frontend ✨ feat: Implementa tela de login
+- ⚛️ Frontend 🐛 fix: Corrige responsividade do menu
+- ⚛️ Frontend 🎨 style: Atualiza tema e cores do sistema
+- ⚛️ Frontend ♻️ refactor: Converte componentes para TypeScript
+- ⚛️ Frontend 🔧 chore: Atualiza dependências do npm
+- ⚛️ Frontend 📱 mobile: Ajusta layout para dispositivos móveis
+- ⚛️ Frontend 🧪 test: Adiciona testes para componente Button
+
+**Padrão de commits para o Backend**:
+- 🐘 Backend ✨ feat: Adiciona autenticação via Sanctum
+- 🐘 Backend 🐛 fix: Corrige validação de email no registro
+- 🐘 Backend ♻️ refactor: Reorganiza estrutura de controllers
+- 🐘 Backend 🔧 chore: Atualiza dependências do Composer
+- 🐘 Backend 🧪 test: Adiciona testes para AuthController
+- 🐘 Backend 📊 perf: Otimiza queries do usuário
+- 🐘 Backend 🔒 security: Implementa rate limiting na API
+
+**Padrão de commits para o DevOps**:
+- 🐳 DevOps 🚀 deploy: Configura pipeline CI/CD no GitHub Actions
+- 🐳 DevOps 🔧 chore: Atualiza configuração do Docker
+- 🐳 DevOps 📊 monitoring: Adiciona Prometheus e Grafana
+- 🐳 DevOps 🔒 security: Configura SSL e certificados
+- 🐳 DevOps 🏗️ infra: Provisiona recursos na AWS com Terraform
+- 🐳 DevOps 🔄 backup: Implementa rotina automática de backup
+
+**Padrão de commits para Documentação**:
+- 📝 Docs ✨ feat: Adiciona documentação da API
+- 📝 Docs 🔄 update: Atualiza README com instruções
+- 📝 Docs 🐛 fix: Corrige links quebrados na documentação
+- 📝 Docs 📊 diagram: Adiciona diagrama de arquitetura
+
+### Prefixos para Categorizar
+- 📝 `docs`: Alterações em documentação
+- ✨ `feat`: Novas funcionalidades
+- 🐛 `fix`: Correções de bugs
+- ♻️ `refactor`: Refatoração de código
+- 🎨 `style`: Formatação e estilo
+- ⚡ `perf`: Melhorias de performance
+- 🔧 `chore`: Tarefas de manutenção
+- 🔥 `remove`: Remoção de código/arquivos
+- 🚀 `deploy`: Alterações de deploy
+
+### Boas Práticas de Commit
+- Fazer commits atômicos (uma alteração por commit)
+- Usar tempo verbal no presente
+- Ser claro e objetivo na descrição
+- Referenciar issues relacionadas
+- Incluir contexto quando necessário
+- Revisar alterações antes do commit
+- Não commitar arquivos temporários
+
+### Organização de Branches
+- Branches principais:
+  - `main`: Código em produção
+  - `develop`: Desenvolvimento contínuo
+  - `release/*`: Preparação para release
+  - `hotfix/*`: Correções urgentes
+  - `feature/*`: Novas funcionalidades
+- Nomenclatura: usar kebab-case (ex: `feature/nova-funcionalidade`)
+
+---
+
+## 🔤 REGRAS DE LINGUAGEM NO CÓDIGO 🚨 CRÍTICO
+
+### Regra Absoluta: TODO código deve ser escrito em inglês
+
+#### ✅ O que fazer:
+- **Classes**: `UserController`, `OrderService`, `ProductRepository`
+- **Métodos**: `createUser()`, `processOrder()`, `validateEmail()`
+- **Variáveis**: `$userData`, `$orderTotal`, `$productList`
+- **Interfaces**: `UserInterface`, `OrderRepositoryInterface`
+- **Enums**: `OrderStatus`, `PaymentMethod`
+- **Migrations**: `create_users_table`, `add_email_to_orders_table`
+
+#### ❌ O que NÃO fazer:
+- **Classes**: `UsuarioController`, `ServicoPedido`, `RepositorioProduto`
+- **Métodos**: `criarUsuario()`, `processarPedido()`, `validarEmail()`
+- **Variáveis**: `$dadosUsuario`, `$totalPedido`, `$listaProdutos`
+- **Interfaces**: `InterfaceUsuario`, `InterfaceRepositorioPedido`
+
+#### Comentários - Regras Estritas:
+
+**EVITAR comentários quando:**
 ```php
-// Repository Pattern
-interface UserRepositoryInterface {
-    public function findWithFilters(array $filters): Collection;
+// ❌ Comentário desnecessário
+$user = User::find($id); // Find user by ID
+
+// ❌ Comentário óbvio
+if ($user->isActive()) {
+    // Check if user is active
+    return true;
 }
 
-// Service Layer
-class OrderService {
-    public function __construct(
-        private OrderRepository $orderRepository,
-        private PaymentService $paymentService
-    ) {}
-}
-
-// Custom Middleware
-class ApiVersionMiddleware {
-    public function handle(Request $request, Closure $next, string $version)
-    {
-        $request->headers->set('Accept', "application/vnd.api+json;version={$version}");
-        return $next($request);
-    }
+// ❌ Comentário em português
+// Verifica se o usuário tem permissão
+if ($user->hasPermission('admin')) {
+    // ...
 }
 ```
 
-### Desenvolvedor React Senior
-**Características obrigatórias:**
-- Expertise em React 18+ com Hooks
-- Domínio de Context API e State Management
-- Conhecimento de React Query/TanStack Query
-- Experiência com TypeScript avançado
-- Proficiência em Testing Library e Jest
-- Conhecimento de Performance Optimization
-- Experiência com Micro-frontends
-- Domínio de Custom Hooks
-- Conhecimento de Suspense e Concurrent Features
-- Experiência com Storybook para componentes
-- Proficiência em Accessibility (a11y)
+**USAR comentários apenas quando:**
+```php
+// ✅ Documentação de API
+/**
+ * Process order payment and update inventory
+ *
+ * @param Order $order
+ * @return bool
+ * @throws PaymentFailedException
+ */
+public function processPayment(Order $order): bool
 
-**Práticas React Avançadas:**
-```typescript
-// Custom Hook com TypeScript
-interface UseApiResult<T> {
-  data: T | null;
-  loading: boolean;
-  error: Error | null;
-  refetch: () => void;
+// ✅ Algoritmo complexo
+// Calculate shipping cost using Haversine formula for distance
+$distance = $this->calculateHaversineDistance($origin, $destination);
+
+// ✅ Workaround temporário
+// TODO: Remove this hack when legacy API is updated
+// HACK: Legacy system returns different date format
+
+// ✅ Configuração específica de negócio
+// Business rule: Orders over $1000 require manager approval
+if ($order->total > 1000) {
+    $this->requireManagerApproval($order);
 }
-
-const useApi = <T>(url: string): UseApiResult<T> => {
-  const [state, setState] = useState<UseApiResult<T>>({
-    data: null,
-    loading: true,
-    error: null,
-    refetch: () => {}
-  });
-  
-  // Implementation...
-};
-
-// Compound Component Pattern
-const Card = ({ children, ...props }) => (
-  <div className="card" {...props}>{children}</div>
-);
-Card.Header = ({ children }) => <header>{children}</header>;
-Card.Body = ({ children }) => <main>{children}</main>;
 ```
 
-## 🏗️ Arquitetura e Estrutura
+---
 
-### Monorepo
-- Use monorepo com estrutura:
-  ```
-  rei-do-oleo/
-  ├── backend/                    # Laravel API
-  │   ├── app/
-  │   │   ├── Http/Controllers/
-  │   │   ├── Models/
-  │   │   ├── Services/
-  │   │   ├── Repositories/
-  │   │   └── Events/
-  │   ├── config/
-  │   ├── database/
-  │   ├── routes/
-  │   └── tests/
-  ├── frontend/                   # React + Vite
-  │   ├── src/
-  │   │   ├── components/
-  │   │   ├── hooks/
-  │   │   ├── services/
-  │   │   ├── types/
-  │   │   └── utils/
-  │   ├── public/
-  │   └── __tests__/
-  ├── docs/                       # Documentação técnica
-  ├── scripts/                    # Scripts de automação
-  ├── docker/                     # Configurações Docker
-  ├── .github/workflows/          # CI/CD
-  ├── docker-compose.yml
-  └── README.md
-  ```
+## 📁 ESTRUTURA DE ARQUIVOS E MAPEAMENTO DO SISTEMA
 
-### Padrões Arquiteturais
-- **Backend**: Domain-Driven Design (DDD)
-- **Frontend**: Atomic Design Pattern
-- **API**: RESTful + GraphQL opcional
-- **Database**: Repository Pattern + Active Record
-- **Caching**: Multi-layer caching strategy
+### Estrutura Completa do Monorepo
 
-## 💻 Desenvolvimento
+```
+rei-do-oleo/
+├── backend/                           # Laravel 12 API
+│   ├── app/
+│   │   ├── Console/Commands/          # Artisan Commands
+│   │   ├── Events/                    # Event Classes
+│   │   ├── Exceptions/                # Custom Exceptions
+│   │   ├── Http/
+│   │   │   ├── Controllers/Api/       # API Controllers
+│   │   │   ├── Middleware/            # Custom Middleware
+│   │   │   ├── Requests/              # Form Requests
+│   │   │   └── Resources/             # API Resources
+│   │   ├── Jobs/                      # Queue Jobs
+│   │   ├── Listeners/                 # Event Listeners
+│   │   ├── Mail/                      # Mail Classes
+│   │   ├── Models/                    # Eloquent Models
+│   │   ├── Notifications/             # Notification Classes
+│   │   ├── Policies/                  # Authorization Policies
+│   │   ├── Providers/                 # Service Providers
+│   │   ├── Repositories/              # Repository Pattern
+│   │   ├── Services/                  # Business Logic Services
+│   │   └── Support/                   # Helper Classes
+│   ├── config/                        # Configuration Files
+│   ├── database/
+│   │   ├── factories/                 # Model Factories
+│   │   ├── migrations/                # Database Migrations
+│   │   └── seeders/                   # Database Seeders
+│   ├── routes/api.php                 # API Routes
+│   ├── storage/                       # Application Storage
+│   ├── tests/                         # Tests
+│   └── composer.json                  # PHP Dependencies
+├── frontend/                          # React 18 + TypeScript + Vite
+│   ├── public/
+│   │   ├── index.html                 # Main HTML File
+│   │   └── manifest.json              # PWA Manifest
+│   ├── src/
+│   │   ├── components/                # React Components
+│   │   │   ├── ui/                    # Base UI Components
+│   │   │   ├── layout/                # Layout Components
+│   │   │   ├── forms/                 # Form Components
+│   │   │   └── charts/                # Chart Components
+│   │   ├── pages/                     # Page Components
+│   │   ├── hooks/                     # Custom React Hooks
+│   │   ├── services/                  # API Services
+│   │   ├── store/                     # State Management
+│   │   ├── types/                     # TypeScript Types
+│   │   ├── utils/                     # Utility Functions
+│   │   ├── styles/                    # Global Styles
+│   │   ├── App.tsx                    # Main App Component
+│   │   └── main.tsx                   # App Entry Point
+│   ├── __tests__/                     # Test Files
+│   ├── package.json                   # Node Dependencies
+│   └── vite.config.ts                 # Vite Configuration
+├── docs/                              # Documentation
+├── scripts/                           # Automation Scripts
+├── docker/                            # Docker Configuration
+├── k8s/                               # Kubernetes Configuration
+├── monitoring/                        # Monitoring Configuration
+├── logging/                           # Logging Configuration
+├── .github/workflows/                 # CI/CD Workflows
+├── docker-compose.yml                 # Root Docker Compose
+└── README.md                          # Project Documentation
+```
 
-### Padrões de Código Laravel
+### Padrões de Nomenclatura de Arquivos
+
+#### Backend (Laravel)
+- **Controllers**: `UserController.php`, `OrderController.php`
+- **Models**: `User.php`, `Order.php`, `Product.php`
+- **Services**: `UserService.php`, `OrderService.php`, `PaymentService.php`
+- **Repositories**: `UserRepository.php`, `OrderRepository.php`
+- **Requests**: `StoreUserRequest.php`, `UpdateUserRequest.php`
+- **Resources**: `UserResource.php`, `OrderResource.php`
+- **Migrations**: `2024_01_01_000000_create_users_table.php`
+- **Seeders**: `UserSeeder.php`, `ProductSeeder.php`
+- **Factories**: `UserFactory.php`, `ProductFactory.php`
+- **Jobs**: `ProcessOrderJob.php`, `SendEmailJob.php`
+- **Events**: `OrderCreated.php`, `UserRegistered.php`
+- **Listeners**: `SendOrderConfirmation.php`, `UpdateInventory.php`
+- **Policies**: `UserPolicy.php`, `OrderPolicy.php`
+- **Middleware**: `ApiVersionMiddleware.php`, `RateLimitMiddleware.php`
+
+#### Frontend (React/TypeScript)
+- **Components**: `UserCard.tsx`, `OrderTable.tsx`, `ProductModal.tsx`
+- **Pages**: `Dashboard.tsx`, `UserProfile.tsx`, `OrderDetails.tsx`
+- **Hooks**: `useApi.ts`, `useAuth.ts`, `useLocalStorage.ts`
+- **Services**: `userService.ts`, `orderService.ts`, `apiService.ts`
+- **Types**: `user.types.ts`, `order.types.ts`, `api.types.ts`
+- **Utils**: `constants.ts`, `helpers.ts`, `validators.ts`
+- **Tests**: `UserCard.test.tsx`, `useApi.test.ts`, `helpers.test.ts`
+
+### Estrutura de Banco de Dados
+
+#### Tabelas Principais
+```sql
+-- Users Table
+users (
+    id, name, email, email_verified_at, password,
+    remember_token, created_at, updated_at
+)
+
+-- Products Table
+products (
+    id, name, description, price, stock_quantity,
+    category_id, status, created_at, updated_at
+)
+
+-- Orders Table
+orders (
+    id, user_id, total_amount, status, payment_status,
+    shipping_address, created_at, updated_at
+)
+
+-- Order Items Table
+order_items (
+    id, order_id, product_id, quantity, unit_price,
+    total_price, created_at, updated_at
+)
+
+-- Categories Table
+categories (
+    id, name, description, parent_id, created_at, updated_at
+)
+```
+
+### Mapeamento de Rotas da API
+
+#### Rotas de Autenticação
+- `POST /api/auth/login` - Login do usuário
+- `POST /api/auth/register` - Registro de usuário
+- `POST /api/auth/logout` - Logout do usuário
+- `POST /api/auth/refresh` - Refresh do token
+- `GET /api/auth/me` - Dados do usuário logado
+
+#### Rotas de Usuários
+- `GET /api/users` - Listar usuários
+- `GET /api/users/{id}` - Buscar usuário específico
+- `POST /api/users` - Criar usuário
+- `PUT /api/users/{id}` - Atualizar usuário
+- `DELETE /api/users/{id}` - Deletar usuário
+
+#### Rotas de Produtos
+- `GET /api/products` - Listar produtos
+- `GET /api/products/{id}` - Buscar produto específico
+- `POST /api/products` - Criar produto
+- `PUT /api/products/{id}` - Atualizar produto
+- `DELETE /api/products/{id}` - Deletar produto
+
+#### Rotas de Pedidos
+- `GET /api/orders` - Listar pedidos
+- `GET /api/orders/{id}` - Buscar pedido específico
+- `POST /api/orders` - Criar pedido
+- `PUT /api/orders/{id}` - Atualizar pedido
+- `DELETE /api/orders/{id}` - Deletar pedido
+
+---
+
+## 🎯 CONTEXTO DO SISTEMA E FUNCIONALIDADES ⚡ IMPORTANTE
+
+### Domínio do Negócio - Sistema de Gestão de Óleos
+
+#### Entidades Principais
+- **Users**: Usuários do sistema (clientes, administradores, vendedores)
+- **Products**: Produtos de óleo (óleos automotivos, industriais, especiais)
+- **Orders**: Pedidos de clientes
+- **Categories**: Categorias de produtos (automotivo, industrial, etc.)
+- **Suppliers**: Fornecedores de produtos
+- **Inventory**: Controle de estoque
+- **Payments**: Processamento de pagamentos
+- **Shipping**: Logística e entrega
+
+#### Funcionalidades Core
+1. **Gestão de Usuários** - Registro, autenticação, perfis, controle de acesso
+2. **Catálogo de Produtos** - Cadastro, categorização, gestão de preços, estoque
+3. **Sistema de Pedidos** - Carrinho, processamento, status, histórico
+4. **Gestão de Estoque** - Controle entrada/saída, alertas, relatórios
+5. **Relatórios e Analytics** - Vendas, produtos mais vendidos, performance
+
+### Mapeamento de Funcionalidades por Módulo
+
+#### Módulo de Autenticação
+- **Arquivos**: `AuthController`, `LoginRequest`, `RegisterRequest`, `UserPolicy`
+- **Rotas**: `/api/auth/*`
+- **Componentes**: `LoginForm`, `RegisterForm`, `ForgotPassword`
+- **Hooks**: `useAuth`, `usePermissions`
+
+#### Módulo de Usuários
+- **Arquivos**: `UserController`, `UserService`, `UserRepository`, `UserResource`
+- **Rotas**: `/api/users/*`
+- **Componentes**: `UserList`, `UserForm`, `UserProfile`, `UserCard`
+- **Hooks**: `useUsers`, `useUserProfile`
+
+#### Módulo de Produtos
+- **Arquivos**: `ProductController`, `ProductService`, `ProductRepository`, `ProductResource`
+- **Rotas**: `/api/products/*`
+- **Componentes**: `ProductList`, `ProductForm`, `ProductCard`, `ProductModal`
+- **Hooks**: `useProducts`, `useProductCategories`
+
+#### Módulo de Pedidos
+- **Arquivos**: `OrderController`, `OrderService`, `OrderRepository`, `OrderResource`
+- **Rotas**: `/api/orders/*`
+- **Componentes**: `OrderList`, `OrderForm`, `OrderDetails`, `OrderStatus`
+- **Hooks**: `useOrders`, `useOrderStatus`
+
+#### Módulo de Estoque
+- **Arquivos**: `InventoryController`, `InventoryService`, `InventoryRepository`
+- **Rotas**: `/api/inventory/*`
+- **Componentes**: `InventoryList`, `StockAlert`, `MovementHistory`
+- **Hooks**: `useInventory`, `useStockAlerts`
+
+---
+
+## 💻 PADRÕES DE CÓDIGO
+
+### Laravel Patterns
+
+#### Controller Pattern
 ```php
-// Controller Pattern
 class OrderController extends Controller
 {
     public function __construct(
@@ -137,22 +450,23 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $order = $this->orderService->create($request->validated());
-        
         return new OrderResource($order);
     }
 }
+```
 
-// Service Pattern
+#### Service Pattern
+```php
 class OrderService
 {
     public function create(array $data): Order
     {
         DB::beginTransaction();
-        
+
         try {
             $order = Order::create($data);
             event(new OrderCreated($order));
-            
+
             DB::commit();
             return $order;
         } catch (Exception $e) {
@@ -163,117 +477,441 @@ class OrderService
 }
 ```
 
-### Padrões de Código React
+#### Repository Pattern
+```php
+interface ProductRepositoryInterface
+{
+    public function getPaginated(array $filters): LengthAwarePaginator;
+    public function findById(int $id): ?Product;
+    public function create(array $data): Product;
+    public function update(Product $product, array $data): Product;
+    public function delete(Product $product): bool;
+}
+
+class ProductRepository implements ProductRepositoryInterface
+{
+    public function getPaginated(array $filters): LengthAwarePaginator
+    {
+        $query = Product::query()
+            ->with(['category', 'supplier'])
+            ->when(isset($filters['search']), function ($query) use ($filters) {
+                $query->where('name', 'like', '%' . $filters['search'] . '%');
+            })
+            ->when(isset($filters['category_id']), function ($query) use ($filters) {
+                $query->where('category_id', $filters['category_id']);
+            });
+
+        return $query->orderBy('created_at', 'desc')->paginate($filters['per_page'] ?? 15);
+    }
+}
+```
+
+### React Patterns
+
+#### Component Pattern
 ```typescript
-// Component Pattern
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = memo(({ 
-  product, 
-  onAddToCart 
-}) => {
-  const handleAddToCart = useCallback(() => {
-    onAddToCart(product);
-  }, [product, onAddToCart]);
+const ProductCard: React.FC<ProductCardProps> = memo(
+  ({ product, onAddToCart }) => {
+    const handleAddToCart = useCallback(() => {
+      onAddToCart(product);
+    }, [product, onAddToCart]);
 
-  return (
-    <Card>
-      <Card.Header>{product.name}</Card.Header>
-      <Card.Body>
-        <Button onClick={handleAddToCart}>
-          Adicionar ao Carrinho
-        </Button>
-      </Card.Body>
-    </Card>
-  );
-});
+    return (
+      <Card>
+        <Card.Header>{product.name}</Card.Header>
+        <Card.Body>
+          <Button onClick={handleAddToCart}>Add to Cart</Button>
+        </Card.Body>
+      </Card>
+    );
+  }
+);
 ```
 
-### Configuração de Ferramentas
-- **ESLint**: Airbnb config + custom rules
-- **Prettier**: Formatação automática
-- **Husky**: Git hooks
-- **lint-staged**: Pre-commit linting
-- **CommitLint**: Conventional commits
+#### Custom Hook Pattern
+```typescript
+export const useProducts = (filters?: ProductFilters) => {
+  return useQuery({
+    queryKey: ['products', filters],
+    queryFn: () => productService.getProducts(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
 
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
 
-==== Versionamento e Commits ====
+  return useMutation({
+    mutationFn: productService.createProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Product created successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to create product');
+    }
+  });
+};
+```
 
-=== Estrutura de Commits ===
-  * Usar prefixos para categorizar:
-    * 📝 `docs`: Alterações em documentação
-    * ✨ `feat`: Novas funcionalidades
-    * 🐛 `fix`: Correções de bugs
-    * ♻️ `refactor`: Refatoração de código
-    * 🎨 `style`: Formatação e estilo
-    * ⚡ `perf`: Melhorias de performance
-    * 🔧 `chore`: Tarefas de manutenção
-    * 🔥 `remove`: Remoção de código/arquivos
-    * 🚀 `deploy`: Alterações de deploy
+---
 
-=== Mensagens de Commit ===
-  * Formato padrão:
-    * Título e breve descrição: Resumo curto (máximo 15 palavras)
-  * Exemplo:
-    * ✨ feat: Adiciona sistema de busca
-    * Closes #123
+## 🛠️ CONFIGURAÇÕES E FERRAMENTAS DE DESENVOLVIMENTO
 
-=== Boas Práticas de Commit ===
-  * Fazer commits atômicos (uma alteração por commit)
-  * Usar tempo verbal no presente
-  * Ser claro e objetivo na descrição
-  * Referenciar issues relacionadas
-  * Incluir contexto quando necessário
-  * Revisar alterações antes do commit
-  * Não commitar arquivos temporários
+### Configurações de Ambiente
 
-=== Organização de Branches ===
-  * Branches principais:
-    * `main`: Código em produção
-    * `develop`: Desenvolvimento contínuo
-    * `release/*`: Preparação para release
-    * `hotfix/*`: Correções urgentes
-    * `feature/*`: Novas funcionalidades
-  * Nomenclatura:
-    * Usar kebab-case: feature/nova-funcionalidade
-    * Incluir prefixo do tipo: hotfix/correcao-urgente
-    * Adicionar identificador: feature/123-busca-avancada
+#### Backend (.env)
+```env
+APP_NAME="Rei do Óleo"
+APP_ENV=local
+APP_KEY=base64:...
+APP_DEBUG=true
+APP_URL=http://localhost:8000
 
-=== Fluxo de Trabalho ===
-  * Criar branch específica para cada tarefa
-  * Manter branches atualizadas com rebase
-  * Fazer squash de commits relacionados
-  * Testar alterações antes do merge
-  * Deletar branches após merge
-  * Usar tags para releases
-  * Manter histórico limpo e organizado
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=rei_do_oleo
+DB_USERNAME=root
+DB_PASSWORD=
 
-=== Revisão de Código ===
-  * Verificar:
-    * Qualidade do código
-    * Padrões de formatação
-    * Documentação atualizada
-    * Testes implementados
-    * Conflitos resolvidos
-  * Fazer code review antes do merge
-  * Solicitar feedback quando necessário
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
 
-=== Segurança e Backup ===
-  * Não commitar:
-    * Senhas e chaves
-    * Arquivos de configuração local
-    * Dados sensíveis
-    * Arquivos grandes
-  * Manter backup do repositório
-  * Usar .gitignore adequadamente
-  * Configurar hooks de segurança
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
 
-## 🔒 Segurança Avançada
+MAIL_MAILER=smtp
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+#### Frontend (.env)
+```env
+VITE_APP_NAME="Rei do Óleo"
+VITE_API_URL=http://localhost:8000/api
+VITE_APP_URL=http://localhost:3000
+VITE_APP_ENV=development
+```
+
+### Dependências Principais
+
+#### Backend (composer.json)
+```json
+{
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^12.0",
+    "laravel/sanctum": "^4.0",
+    "laravel/telescope": "^5.0",
+    "predis/predis": "^2.0",
+    "spatie/laravel-permission": "^6.0",
+    "spatie/laravel-activitylog": "^5.0"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.9.1",
+    "laravel/pint": "^1.0",
+    "laravel/sail": "^1.18",
+    "mockery/mockery": "^1.4.4",
+    "nunomaduro/collision": "^8.1",
+    "phpunit/phpunit": "^10.1",
+    "spatie/laravel-ignition": "^2.0"
+  }
+}
+```
+
+#### Frontend (package.json)
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "@tanstack/react-query": "^5.0.0",
+    "axios": "^1.6.0",
+    "tailwindcss": "^3.3.0",
+    "@headlessui/react": "^1.7.0",
+    "@heroicons/react": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "jest": "^29.0.0",
+    "@testing-library/react": "^14.0.0"
+  }
+}
+```
+
+### Scripts de Desenvolvimento
+
+#### Package.json Scripts (Frontend)
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run type-check && npm run lint && npm test && npm run build",
+    "validate:quick": "npm run type-check && npm run lint"
+  }
+}
+```
+
+#### Composer Scripts (Backend)
+```json
+{
+  "scripts": {
+    "test": "php artisan test",
+    "test:coverage": "php artisan test --coverage",
+    "test:unit": "php artisan test --testsuite=Unit",
+    "test:feature": "php artisan test --testsuite=Feature",
+    "lint": "php-cs-fixer fix --dry-run --diff",
+    "lint:fix": "php-cs-fixer fix",
+    "analyse": "phpstan analyse",
+    "migrate": "php artisan migrate",
+    "migrate:fresh": "php artisan migrate:fresh --seed",
+    "seed": "php artisan db:seed",
+    "optimize": "php artisan optimize",
+    "cache:clear": "php artisan cache:clear",
+    "config:cache": "php artisan config:cache",
+    "route:cache": "php artisan route:cache",
+    "view:cache": "php artisan view:cache"
+  }
+}
+```
+
+---
+
+## 🔍 VERIFICAÇÃO DE CONSISTÊNCIA DO FRONTEND 🚨 CRÍTICO
+
+### Build Validation - Regra Obrigatória
+
+**IMPORTANTE**: Sempre que for necessário verificar a consistência do frontend, fazer o build para validação.
+
+#### Comandos de Verificação de Build
+
+```bash
+# Verificação completa de build
+npm run build
+
+# Verificação de tipos TypeScript
+npm run type-check
+
+# Verificação de linting
+npm run lint
+
+# Verificação de testes
+npm test
+
+# Análise de bundle
+npm run analyze
+```
+
+#### Checklist de Verificação de Build
+
+```bash
+# 1. Limpar cache e node_modules (se necessário)
+rm -rf node_modules package-lock.json
+npm install
+
+# 2. Verificar tipos TypeScript
+npm run type-check
+
+# 3. Verificar linting
+npm run lint
+
+# 4. Rodar testes
+npm test
+
+# 5. Fazer build de produção
+npm run build
+
+# 6. Verificar se o build foi gerado corretamente
+ls -la dist/
+
+# 7. Testar build localmente
+npm run preview
+```
+
+#### Troubleshooting de Build
+
+```bash
+# Problemas comuns e soluções
+
+# 1. Erro de tipos TypeScript
+npm run type-check
+# Corrigir erros de tipo antes do build
+
+# 2. Erro de linting
+npm run lint:fix
+# Corrigir automaticamente problemas de linting
+
+# 3. Erro de dependências
+rm -rf node_modules package-lock.json
+npm install
+
+# 4. Erro de cache do Vite
+rm -rf node_modules/.vite
+npm run build
+
+# 5. Erro de memória
+export NODE_OPTIONS="--max-old-space-size=4096"
+npm run build
+
+# 6. Verificar versões de Node.js
+node --version
+npm --version
+# Garantir compatibilidade com package.json
+```
+
+---
+
+## 📋 COMANDOS ÚTEIS PARA DESENVOLVIMENTO ⚡ IMPORTANTE
+
+### Comandos Essenciais
+
+#### Laravel Commands
+```bash
+# Development
+php artisan serve
+php artisan migrate:fresh --seed
+php artisan queue:work
+php artisan telescope:install
+
+# Debugging
+php artisan tinker
+php artisan route:list
+php artisan config:cache
+php artisan view:cache
+
+# Testing
+php artisan test
+php artisan test --coverage
+php artisan test --filter=UserTest
+
+# Maintenance
+php artisan down
+php artisan up
+php artisan optimize
+```
+
+#### React Commands
+```bash
+# Development
+npm run dev
+npm run build
+npm run preview
+
+# Testing
+npm test
+npm run test:watch
+npm run test:coverage
+
+# Linting
+npm run lint
+npm run lint:fix
+npm run type-check
+
+# Storybook
+npm run storybook
+npm run build-storybook
+```
+
+### Performance Optimization Checklist
+
+#### Backend Optimization
+- [ ] Database indexes on frequently queried columns
+- [ ] Eager loading to prevent N+1 queries
+- [ ] Query caching for expensive operations
+- [ ] Redis for session and cache storage
+- [ ] Queue jobs for heavy operations
+- [ ] Image optimization and CDN usage
+- [ ] API response compression
+- [ ] Database connection pooling
+
+#### Frontend Optimization
+- [ ] Code splitting and lazy loading
+- [ ] Image optimization and WebP format
+- [ ] Bundle size optimization
+- [ ] Memoization of expensive calculations
+- [ ] Virtual scrolling for large lists
+- [ ] Service Worker for caching
+- [ ] Critical CSS inlining
+- [ ] Tree shaking for unused code
+
+---
+
+## 🎨 UI/UX Guidelines
+
+### TailAdmin React - Template de Dashboard
+
+**Versão Atual**: 2.1.0
+
+**Características Principais:**
+- Template baseado em Tailwind CSS + React
+- Componentes pré-construídos e responsivos
+- Layouts otimizados para dashboards administrativos
+- Suporte a modo escuro/claro
+- Componentes acessíveis e customizáveis
+
+**Estrutura de Arquivos:**
+```
+src/
+├── components/          # Componentes reutilizáveis
+│   ├── ui/             # Componentes base (Button, Input, etc.)
+│   ├── layout/         # Layouts (Sidebar, Header, etc.)
+│   └── charts/         # Componentes de gráficos
+├── pages/              # Páginas da aplicação
+├── hooks/              # Custom hooks
+├── utils/              # Utilitários e helpers
+└── styles/             # Estilos globais e Tailwind
+```
+
+**Componentes Principais:**
+- **Layout Components**: Sidebar, Header, Footer, Breadcrumb
+- **UI Components**: Buttons, Forms, Tables, Cards, Modals
+- **Data Components**: Charts, DataTables, Filters
+- **Navigation**: Menu, Tabs, Pagination
+
+**Responsividade:**
+- Mobile-first approach
+- Breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px)
+- Componentes adaptáveis automaticamente
+
+**Acessibilidade:**
+- Suporte a ARIA labels
+- Navegação por teclado
+- Contraste adequado
+- Screen reader friendly
+
+---
+
+## 🔒 Segurança e Boas Práticas
 
 ### Laravel Security
+
 ```php
 // Rate Limiting
 Route::middleware('throttle:api')->group(function () {
@@ -298,6 +936,7 @@ DB::raw("SELECT * FROM users WHERE email = '{$email}'"); // ❌ Dangerous
 ```
 
 ### React Security
+
 ```typescript
 // XSS Protection
 const sanitizeHtml = (html: string): string => {
@@ -307,54 +946,19 @@ const sanitizeHtml = (html: string): string => {
 // CSRF Protection
 const apiClient = axios.create({
   headers: {
-    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-  }
+    'X-CSRF-TOKEN': document
+      .querySelector('meta[name="csrf-token"]')
+      ?.getAttribute('content'),
+  },
 });
 ```
 
-## 🚀 Performance Avançada
+---
 
-### Laravel Performance
-```php
-// Query Optimization
-User::with(['orders', 'profile'])->get(); // Eager Loading
-User::select(['id', 'name', 'email'])->get(); // Select specific columns
-
-// Caching Strategy
-Cache::remember('user_stats_' . $userId, 3600, function () use ($userId) {
-    return $this->calculateUserStats($userId);
-});
-
-// Queue Jobs
-ProcessOrderJob::dispatch($order)->onQueue('high-priority');
-```
-
-### React Performance
-```typescript
-// Lazy Loading
-const Dashboard = lazy(() => import('./components/Dashboard'));
-
-// Memoization
-const ExpensiveComponent = memo(({ data }) => {
-  const processedData = useMemo(() => {
-    return data.map(item => expensiveOperation(item));
-  }, [data]);
-
-  return <div>{processedData}</div>;
-});
-
-// Code Splitting
-const routes = [
-  {
-    path: '/dashboard',
-    component: lazy(() => import('./pages/Dashboard'))
-  }
-];
-```
-
-## 🧪 Testes Avançados
+## 🧪 Testes
 
 ### Laravel Testing
+
 ```php
 // Feature Tests
 class OrderTest extends TestCase
@@ -381,6 +985,7 @@ class OrderTest extends TestCase
 ```
 
 ### React Testing
+
 ```typescript
 // Component Tests
 describe('ProductCard', () => {
@@ -388,22 +993,20 @@ describe('ProductCard', () => {
     const mockOnAddToCart = jest.fn();
     const product = { id: 1, name: 'Test Product' };
 
-    render(
-      <ProductCard 
-        product={product} 
-        onAddToCart={mockOnAddToCart} 
-      />
-    );
+    render(<ProductCard product={product} onAddToCart={mockOnAddToCart} />);
 
-    fireEvent.click(screen.getByText('Adicionar ao Carrinho'));
+    fireEvent.click(screen.getByText('Add to Cart'));
     expect(mockOnAddToCart).toHaveBeenCalledWith(product);
   });
 });
 ```
 
+---
+
 ## 📊 Monitoramento e Observabilidade
 
 ### Logging Strategy
+
 ```php
 // Laravel Logging
 Log::info('Order created', [
@@ -422,14 +1025,18 @@ Log::info('Order created', [
 ```
 
 ### Error Tracking
+
 - **Sentry**: Error monitoring
 - **New Relic**: Performance monitoring
 - **LogRocket**: Frontend session replay
 - **Telescope**: Laravel debugging
 
+---
+
 ## 🔄 DevOps e CI/CD
 
 ### Docker Configuration
+
 ```dockerfile
 # Laravel Dockerfile
 FROM php:8.2-fpm
@@ -447,6 +1054,7 @@ CMD ["php-fpm"]
 ```
 
 ### GitHub Actions
+
 ```yaml
 name: CI/CD Pipeline
 
@@ -471,10 +1079,15 @@ jobs:
         run: php artisan test
 ```
 
-## 💡 Melhores Práticas
+---
+
+## 💡 Melhores Práticas 🚨 CRÍTICO
 
 ### Code Review Checklist
+
 - [ ] Código segue padrões estabelecidos
+- [ ] **Todo código escrito em inglês** (classes, métodos, variáveis)
+- [ ] **Comentários evitados ou em inglês quando necessários**
 - [ ] Testes unitários incluídos
 - [ ] Documentação atualizada
 - [ ] Performance considerada
@@ -483,6 +1096,7 @@ jobs:
 - [ ] Responsividade testada
 
 ### Database Best Practices
+
 ```php
 // Migrations
 Schema::create('orders', function (Blueprint $table) {
@@ -491,1135 +1105,79 @@ Schema::create('orders', function (Blueprint $table) {
     $table->decimal('total', 10, 2);
     $table->enum('status', ['pending', 'completed', 'cancelled']);
     $table->timestamps();
-    
+
     $table->index(['user_id', 'status']);
 });
 ```
 
-## 📱 Mobile e Responsividade
+---
 
-### Progressive Web App (PWA)
-- Instalável
-- Funcionalidade offline
-- Responsivo (320px - 1920px)
-- Ícones e splash screens
-- Notificações push
+## 📋 RESUMO RÁPIDO - CONSULTA RÁPIDA
 
-### React Native (Futuro)
-- Preparação para app nativo
-- Compartilhamento de código
-- Componentes reutilizáveis
+### 🚨 REGRAS CRÍTICAS (SEMPRE SEGUIR)
+1. **Verificação Inteligente**: Sempre verificar backend e frontend antes de criar funcionalidades
+2. **Código em inglês**: Classes, métodos, variáveis
+3. **Build validation**: Sempre fazer build antes de commits importantes
+4. **Padrões de commit**: `🐘 Backend ✨ feat: Descrição`
+5. **TypeScript**: Validar tipos antes de push
 
-## 🔧 Ferramentas e Utilitários
-
-### Desenvolvimento
-- **IDE**: VS Code com extensões
-- **Database**: TablePlus/Sequel Pro
-- **API**: Insomnia/Postman
-- **Design**: Figma integration
-
-### Produção
-- **Server**: Ubuntu/CentOS
-- **Web Server**: Nginx
-- **Database**: MySQL 8.0+
-- **Cache**: Redis
-- **CDN**: CloudFlare
-
-## ⚠️ Avisos Importantes
-
-- NUNCA commitar credenciais
-- Sempre usar variáveis de ambiente
-- Manter dependências atualizadas
-- Priorizar segurança e performance
-- Foco constante na experiência do usuário
-- Código deve ser auto-documentado
-- Sempre considerar escalabilidade
-- Implementar monitoring desde o início
-
-## 📋 Checklist para Novas Implementações
-- [ ] Requisitos funcionais definidos
-- [ ] Casos de teste criados
-- [ ] Documentação atualizada
-- [ ] Revisão de código concluída
-- [ ] Testes de performance realizados
-- [ ] Aprovação do Product Owner
-- [ ] Segurança validada
-- [ ] Logs implementados
-- [ ] Monitoramento configurado
-- [ ] Rollback plan definido
-
-## 🎯 Mindset de Desenvolvimento Senior
-
-### Princípios Fundamentais
-- **Clean Code First**: Código deve ser legível e auto-explicativo
-- **SOLID Principles**: Aplicar consistentemente princípios de design
-- **DRY (Don't Repeat Yourself)**: Evitar duplicação de código
-- **YAGNI (You Aren't Gonna Need It)**: Não implementar funcionalidades desnecessárias
-- **KISS (Keep It Simple, Stupid)**: Simplicidade é a sofisticação suprema
-
-### Metodologia de Trabalho
-- **Refatoração Contínua**: Melhorar código existente constantemente
-- **Code Review Rigoroso**: Todo código deve ser revisado
-- **Documentação Viva**: Documentação que evolui com o código
-- **Automação First**: Automatizar tudo que pode ser automatizado
-- **Monitoramento Proativo**: Detectar problemas antes dos usuários
-
-## 🚀 Otimizações Específicas
-
-### Laravel Otimizações
-```php
-// Config Caching
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-// Database Optimizations
-// N+1 Query Prevention
-$users = User::with('orders.products')->get();
-
-// Chunk Processing
-User::chunk(200, function ($users) {
-    foreach ($users as $user) {
-        // Process user
-    }
-});
-
-// Database Indexes
-Schema::table('orders', function (Blueprint $table) {
-    $table->index(['created_at', 'status']);
-    $table->index(['user_id', 'total']);
-});
-```
-
-### React Otimizações
-```typescript
-// Bundle Splitting
-const LazyComponent = lazy(() => 
-  import('./HeavyComponent').then(module => ({
-    default: module.HeavyComponent
-  }))
-);
-
-// Virtual Scrolling para listas grandes
-import { FixedSizeList as List } from 'react-window';
-
-const VirtualizedList = ({ items }) => (
-  <List
-    height={600}
-    itemCount={items.length}
-    itemSize={35}
-    itemData={items}
-  >
-    {Row}
-  </List>
-);
-
-// Web Workers para processamento pesado
-const worker = new Worker('./calculation.worker.js');
-worker.postMessage({ data: heavyCalculationData });
-```
-
-## 🔍 Debug e Troubleshooting
-
-### Laravel Debug
-```php
-// Telescope para desenvolvimento
-php artisan telescope:install
-
-// Debug SQL Queries
-DB::listen(function ($query) {
-    Log::info($query->sql, $query->bindings);
-});
-
-// Custom Debugbar
-if (app()->environment('local')) {
-    app('debugbar')->info('Debug info here');
-}
-```
-
-### React Debug
-```typescript
-// React Developer Tools
-// Chrome Extension: React Developer Tools
-
-// Performance Profiling
-import { Profiler } from 'react';
-
-const onRenderCallback = (id, phase, actualDuration) => {
-  console.log('Component:', id, 'Phase:', phase, 'Duration:', actualDuration);
-};
-
-<Profiler id="App" onRender={onRenderCallback}>
-  <App />
-</Profiler>
-
-// Error Boundaries
-class ErrorBoundary extends Component {
-  componentDidCatch(error, errorInfo) {
-    console.error('Error caught:', error, errorInfo);
-    // Send to error reporting service
-  }
-}
-```
-
-## 📚 Documentação Avançada
-
-### API Documentation
-```php
-/**
- * @OA\Post(
- *     path="/api/orders",
- *     summary="Create new order",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"product_id", "quantity"},
- *             @OA\Property(property="product_id", type="integer"),
- *             @OA\Property(property="quantity", type="integer")
- *         )
- *     ),
- *     @OA\Response(response=201, description="Order created successfully")
- * )
- */
-```
-
-### Component Documentation
-```typescript
-/**
- * ProductCard component for displaying product information
- * 
- * @param product - Product object containing id, name, price
- * @param onAddToCart - Callback function when add to cart is clicked
- * @param loading - Optional loading state
- * 
- * @example
- * <ProductCard 
- *   product={{ id: 1, name: "Product", price: 100 }}
- *   onAddToCart={(product) => console.log(product)}
- * />
- */
-interface ProductCardProps {
-  product: Product;
-  onAddToCart: (product: Product) => void;
-  loading?: boolean;
-}
-```
-
-## 🏆 Code Quality
-
-### ESLint Rules Customizadas
-```json
-{
-  "rules": {
-    "@typescript-eslint/explicit-function-return-type": "error",
-    "prefer-const": "error",
-    "no-console": "warn",
-    "max-len": ["error", { "code": 100 }],
-    "complexity": ["error", 10]
-  }
-}
-```
-
-### PHPStan Configuration
-```neon
-# phpstan.neon
-parameters:
-    level: 8
-    paths:
-        - app
-    excludes_analyse:
-        - app/Console/Kernel.php
-    checkMissingIterableValueType: false
-```
-
-## 🎨 UI/UX Guidelines
-
-### Design System
-- **Cores**: Palette definida e consistente
-- **Tipografia**: Hierarquia clara e legível  
-- **Espaçamento**: Sistema de grid de 8px
-- **Componentes**: Reutilizáveis e documentados
-- **Acessibilidade**: WCAG 2.1 AA compliance
-
-### Responsive Design
-```css
-/* Mobile First Approach */
-.container {
-  padding: 1rem;
-}
-
-@media (min-width: 768px) {
-  .container {
-    padding: 2rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .container {
-    padding: 3rem;
-  }
-}
-```
-
-## 🔐 Segurança Adicional
-
-### Laravel Security Headers
-```php
-// Middleware SecurityHeaders
-public function handle($request, Closure $next)
-{
-    $response = $next($request);
-    
-    $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
-    $response->headers->set('X-Content-Type-Options', 'nosniff');
-    $response->headers->set('X-XSS-Protection', '1; mode=block');
-    $response->headers->set('Strict-Transport-Security', 'max-age=31536000');
-    
-    return $response;
-}
-```
-
-### Content Security Policy
-```php
-// CSP Header
-$response->headers->set('Content-Security-Policy', 
-    "default-src 'self'; " .
-    "script-src 'self' 'unsafe-inline'; " .
-    "style-src 'self' 'unsafe-inline'; " .
-    "img-src 'self' data: https:;"
-);
-```
-
-## 🤖 Automação e Scripts
-
-### Deployment Scripts
+### ⚡ COMANDOS MAIS USADOS
 ```bash
-#!/bin/bash
-# deploy.sh
+# Backend
+php artisan serve
+php artisan migrate:fresh --seed
+php artisan test
 
-echo "Starting deployment..."
-
-# Laravel Commands
-php artisan down
-composer install --no-dev --optimize-autoloader
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan migrate --force
-php artisan up
-
-# Frontend Build
-npm ci
+# Frontend
+npm run dev
 npm run build
+npm run validate:quick
 
-echo "Deployment completed!"
+# Docker
+docker-compose up -d
+docker-compose down
+
+# Verificação Automática
+find backend/app/Models -name "*.php" | head -5
+find backend/app/Http/Controllers/Api -name "*.php" | head -5
+find frontend/src/pages -name "*.tsx" | head -5
+find frontend/src/components -name "*.tsx" | head -5
 ```
 
-### Development Scripts
-```json
-{
-  "scripts": {
-    "dev": "concurrently \"php artisan serve\" \"npm run dev\"",
-    "test": "concurrently \"php artisan test\" \"npm test\"",
-    "lint": "concurrently \"./vendor/bin/phpstan analyse\" \"npm run lint\"",
-    "fix": "concurrently \"./vendor/bin/php-cs-fixer fix\" \"npm run lint:fix\""
-  }
-}
+### 📁 ESTRUTURA PRINCIPAL
+```
+rei-do-oleo/
+├── backend/          # Laravel 12 API
+│   ├── app/         # Controllers, Models, Services
+│   ├── routes/      # API Routes
+│   └── database/    # Migrations, Seeders
+├── frontend/        # React 18 + TypeScript
+│   ├── src/         # Components, Pages, Hooks
+│   └── public/      # Static files
+└── docker/          # Docker configurations
 ```
 
-## 🎯 Metas de Performance
+### 🔗 URLs IMPORTANTES
+- **Backend**: http://localhost:8000
+- **Frontend**: http://localhost:3000
+- **API Docs**: http://localhost:8000/api/documentation
+- **Telescope**: http://localhost:8000/telescope
 
-### Métricas Objetivo
-- **First Contentful Paint**: < 1.5s
-- **Largest Contentful Paint**: < 2.5s
-- **Cumulative Layout Shift**: < 0.1
-- **First Input Delay**: < 100ms
-- **Time to Interactive**: < 3s
+### 📝 PADRÕES DE NOMENCLATURA
+- **Classes**: `UserController`, `OrderService`
+- **Métodos**: `createUser()`, `processOrder()`
+- **Variáveis**: `$userData`, `$orderTotal`
+- **Interfaces**: `UserInterface`, `OrderRepositoryInterface`
 
-### Database Performance
-- **Query Response Time**: < 100ms (90th percentile)
-- **Database Connections**: Max 20 concurrent
-- **Cache Hit Rate**: > 90%
-- **Index Usage**: > 95% queries usando indexes
+### 🎯 CHECKLIST RÁPIDO
+- [ ] Verificação inteligente (backend + frontend)
+- [ ] Código em inglês
+- [ ] Build funcionando
+- [ ] Testes passando
+- [ ] Linting limpo
+- [ ] Commit com prefixo correto
+- [ ] Documentação atualizada
 
-## 📈 Escalabilidade
-
-### Horizontal Scaling
-- **Load Balancer**: Nginx/HAProxy
-- **Auto-scaling**: AWS ECS/Kubernetes
-- **Database Sharding**: Preparação para múltiplas DBs
-- **CDN**: CloudFlare/AWS CloudFront
-- **Cache Distribuído**: Redis Cluster
-
-### Vertical Scaling
-- **Resource Monitoring**: CPU, Memory, Diskusage
-- **Query Optimization**: EXPLAIN para todas queries
-- **Connection Pooling**: PgBouncer/ProxySQL
-- **Memory Management**: PHP-FPM tuning
-
-## 🔄 Backup e Disaster Recovery
-
-### Backup Strategy
-```bash
-#!/bin/bash
-# backup.sh
-
-# Database Backup
-mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Files Backup
-tar -czf files_backup_$(date +%Y%m%d_%H%M%S).tar.gz storage/
-
-# Upload to S3
-aws s3 cp backup_*.sql s3://backups/database/
-aws s3 cp files_backup_*.tar.gz s3://backups/files/
-```
-
-## 🚀 DevOps Avançado
-
-### Infraestrutura como Código (IaC)
-
-#### Terraform Configuration
-```hcl
-# main.tf
-provider "aws" {
-  region = var.aws_region
-}
-
-# VPC Configuration
-resource "aws_vpc" "rei_do_oleo_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name        = "rei-do-oleo-vpc"
-    Environment = var.environment
-  }
-}
-
-# RDS Instance
-resource "aws_db_instance" "main_database" {
-  identifier           = "rei-do-oleo-db"
-  engine               = "mysql"
-  engine_version       = "8.0"
-  instance_class       = "db.t3.micro"
-  allocated_storage    = 20
-  storage_encrypted    = true
-  
-  db_name  = var.database_name
-  username = var.database_username
-  password = var.database_password
-
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-
-  tags = {
-    Name        = "rei-do-oleo-database"
-    Environment = var.environment
-  }
-}
-
-# ElastiCache Redis
-resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "rei-do-oleo-cache"
-  engine               = "redis"
-  node_type            = "cache.t3.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  port                 = 6379
-
-  tags = {
-    Name        = "rei-do-oleo-cache"
-    Environment = var.environment
-  }
-}
-```
-
-#### Docker Containerization
-```dockerfile
-# Dockerfile.backend
-FROM php:8.2-fpm-alpine
-
-# Install system dependencies
-RUN apk add --no-cache \
-    git \
-    curl \
-    libpng-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    mysql-client \
-    nginx \
-    supervisor
-
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql bcmath gd xml
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Set working directory
-WORKDIR /var/www
-
-# Copy application files
-COPY . .
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage
-
-# Copy supervisor configuration
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-EXPOSE 9000
-
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-```
-
-```dockerfile
-# Dockerfile.frontend
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-
-# Copy built application
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### Orquestração com Kubernetes
-
-#### Deployment Configuration
-```yaml
-# k8s/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rei-do-oleo-backend
-  labels:
-    app: rei-do-oleo-backend
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: rei-do-oleo-backend
-  template:
-    metadata:
-      labels:
-        app: rei-do-oleo-backend
-    spec:
-      containers:
-      - name: backend
-        image: rei-do-oleo/backend:latest
-        ports:
-        - containerPort: 9000
-        env:
-        - name: DB_HOST
-          valueFrom:
-            secretKeyRef:
-              name: database-credentials
-              key: host
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: database-credentials
-              key: password
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 9000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 9000
-          initialDelaySeconds: 5
-          periodSeconds: 5
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: rei-do-oleo-backend-service
-spec:
-  selector:
-    app: rei-do-oleo-backend
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 9000
-  type: ClusterIP
-```
 
-#### Horizontal Pod Autoscaler
-```yaml
-# k8s/hpa.yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: rei-do-oleo-backend-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: rei-do-oleo-backend
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-```
-
-### CI/CD Pipeline Avançado
-
-#### GitHub Actions Workflow
-```yaml
-# .github/workflows/ci-cd.yml
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: test_db
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json
-        coverage: xdebug
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-
-    - name: Install PHP dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction
-
-    - name: Install Node dependencies
-      run: npm ci
-
-    - name: Copy environment file
-      run: cp .env.example .env
-
-    - name: Generate application key
-      run: php artisan key:generate
-
-    - name: Run PHP tests
-      run: |
-        php artisan test --coverage-clover coverage.xml
-        ./vendor/bin/phpstan analyse
-
-    - name: Run JavaScript tests
-      run: npm test -- --coverage
-
-    - name: Build frontend
-      run: npm run build
-
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      with:
-        files: ./coverage.xml,./coverage/lcov.info
-
-  security-scan:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-  build-and-push:
-    needs: [test, security-scan]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-    - name: Build and push Backend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./docker/Dockerfile.backend
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}-backend
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Build and push Frontend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./docker/Dockerfile.frontend
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}-frontend
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Deploy to Kubernetes
-      uses: azure/k8s-deploy@v1
-      with:
-        manifests: |
-          k8s/deployment.yaml
-          k8s/service.yaml
-          k8s/ingress.yaml
-        images: |
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-backend
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-frontend
-        kubectl-version: 'latest'
-```
-
-### Monitoramento e Observabilidade
-
-#### Prometheus Configuration
-```yaml
-# monitoring/prometheus.yml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
-rule_files:
-  - "alert_rules.yml"
-
-scrape_configs:
-  - job_name: 'rei-do-oleo-backend'
-    static_configs:
-      - targets: ['backend:9000']
-    metrics_path: '/metrics'
-    scrape_interval: 10s
-
-  - job_name: 'rei-do-oleo-frontend'
-    static_configs:
-      - targets: ['frontend:80']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  - job_name: 'mysql'
-    static_configs:
-      - targets: ['mysql-exporter:9104']
-
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis-exporter:9121']
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          - alertmanager:9093
-```
-
-#### Grafana Dashboard
-```json
-{
-  "dashboard": {
-    "title": "Rei do Óleo - System Overview",
-    "panels": [
-      {
-        "title": "Request Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total[5m])",
-            "legendFormat": "{{method}} {{status}}"
-          }
-        ]
-      },
-      {
-        "title": "Response Time",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
-            "legendFormat": "95th percentile"
-          }
-        ]
-      },
-      {
-        "title": "Database Connections",
-        "type": "singlestat",
-        "targets": [
-          {
-            "expr": "mysql_global_status_threads_connected",
-            "legendFormat": "Active Connections"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Logging Centralizado
-
-#### ELK Stack Configuration
-```yaml
-# docker-compose.logging.yml
-version: '3.8'
-
-services:
-  elasticsearch:
-    image: elasticsearch:8.11.0
-    environment:
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=false
-    ports:
-      - "9200:9200"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-
-  logstash:
-    image: logstash:8.11.0
-    ports:
-      - "5044:5044"
-    volumes:
-      - ./logging/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    depends_on:
-      - elasticsearch
-
-  kibana:
-    image: kibana:8.11.0
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
-
-volumes:
-  elasticsearch_data:
-```
-
-#### Logstash Configuration
-```ruby
-# logging/logstash.conf
-input {
-  beats {
-    port => 5044
-  }
-}
-
-filter {
-  if [fields][service] == "rei-do-oleo-backend" {
-    grok {
-      match => { "message" => "%{COMBINEDAPACHELOG}" }
-    }
-    
-    date {
-      match => [ "timestamp", "dd/MMM/yyyy:HH:mm:ss Z" ]
-    }
-    
-    mutate {
-      convert => { "response" => "integer" }
-      convert => { "bytes" => "integer" }
-    }
-  }
-}
-
-output {
-  elasticsearch {
-    hosts => ["elasticsearch:9200"]
-    index => "rei-do-oleo-logs-%{+YYYY.MM.dd}"
-  }
-}
-```
-
-### Segurança DevOps
-
-#### Network Policies
-```yaml
-# k8s/network-policy.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: rei-do-oleo-network-policy
-spec:
-  podSelector:
-    matchLabels:
-      app: rei-do-oleo-backend
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          app: rei-do-oleo-frontend
-    ports:
-    - protocol: TCP
-      port: 9000
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app: mysql
-    ports:
-    - protocol: TCP
-      port: 3306
-  - to:
-    - podSelector:
-        matchLabels:
-          app: redis
-    ports:
-    - protocol: TCP
-      port: 6379
-```
-
-#### Secret Management
-```yaml
-# k8s/secrets.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: database-credentials
-type: Opaque
-data:
-  host: <base64-encoded-host>
-  username: <base64-encoded-username>
-  password: <base64-encoded-password>
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: api-keys
-type: Opaque
-data:
-  jwt-secret: <base64-encoded-jwt-secret>
-  encryption-key: <base64-encoded-encryption-key>
-```
-
-### Automação e Scripts DevOps
-
-#### Health Check Script
-```bash
-#!/bin/bash
-# scripts/health-check.sh
-
-set -e
-
-SERVICE_URL=${1:-"http://localhost:8000"}
-MAX_ATTEMPTS=${2:-30}
-SLEEP_INTERVAL=${3:-2}
-
-echo "Checking health of service at $SERVICE_URL"
-
-for i in $(seq 1 $MAX_ATTEMPTS); do
-    if curl -f -s "$SERVICE_URL/health" > /dev/null; then
-        echo "Service is healthy!"
-        exit 0
-    fi
-    
-    echo "Attempt $i/$MAX_ATTEMPTS failed. Retrying in ${SLEEP_INTERVAL}s..."
-    sleep $SLEEP_INTERVAL
-done
-
-echo "Service failed health check after $MAX_ATTEMPTS attempts"
-exit 1
-```
-
-#### Database Migration Script
-```bash
-#!/bin/bash
-# scripts/migrate-database.sh
-
-set -e
-
-DB_HOST=${DB_HOST:-localhost}
-DB_PORT=${DB_PORT:-3306}
-DB_NAME=${DB_NAME:-rei_do_oleo}
-DB_USER=${DB_USER:-root}
-
-echo "Waiting for database connection..."
-while ! mysqladmin ping -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" --silent; do
-    sleep 1
-done
-
-echo "Database is ready. Running migrations..."
-php artisan migrate --force
-
-echo "Migrations completed successfully!"
-```
-
-### Disaster Recovery
-
-#### Backup Automation
-```bash
-#!/bin/bash
-# scripts/automated-backup.sh
-
-set -e
-
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups"
-RETENTION_DAYS=30
-
-# Create backup directory
-mkdir -p $BACKUP_DIR
-
-# Database backup
-echo "Creating database backup..."
-kubectl exec deployment/mysql -- mysqldump -u$DB_USER -p$DB_PASSWORD $DB_NAME > $BACKUP_DIR/db_backup_$TIMESTAMP.sql
-
-# Application files backup
-echo "Creating application files backup..."
-kubectl exec deployment/rei-do-oleo-backend -- tar -czf - /var/www/storage > $BACKUP_DIR/files_backup_$TIMESTAMP.tar.gz
-
-# Upload to S3
-echo "Uploading backups to S3..."
-aws s3 cp $BACKUP_DIR/db_backup_$TIMESTAMP.sql s3://rei-do-oleo-backups/database/
-aws s3 cp $BACKUP_DIR/files_backup_$TIMESTAMP.tar.gz s3://rei-do-oleo-backups/files/
-
-# Cleanup old backups
-echo "Cleaning up old backups..."
-find $BACKUP_DIR -name "*.sql" -mtime +$RETENTION_DAYS -delete
-find $BACKUP_DIR -name "*.tar.gz" -mtime +$RETENTION_DAYS -delete
-
-echo "Backup completed successfully!"
-```
-
-### Performance Testing
-
-#### Load Testing with K6
-```javascript
-// tests/load-test.js
-import http from 'k6/http';
-import { check, sleep } from 'k6';
-
-export let options = {
-  stages: [
-    { duration: '2m', target: 100 }, // Ramp up
-    { duration: '5m', target: 100 }, // Stay at 100 users
-    { duration: '2m', target: 200 }, // Ramp up to 200 users
-    { duration: '5m', target: 200 }, // Stay at 200 users
-    { duration: '2m', target: 0 },   // Ramp down
-  ],
-  thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% of requests under 500ms
-    http_req_failed: ['rate<0.1'],    // Error rate under 10%
-  },
-};
-
-export default function() {
-  let response = http.get('https://api.reidooleo.com/health');
-  
-  check(response, {
-    'status is 200': (r) => r.status === 200,
-    'response time < 500ms': (r) => r.timings.duration < 500,
-  });
-  
-  sleep(1);
-}
-```
-
+**📖 Para informações detalhadas, consulte as seções específicas acima.**

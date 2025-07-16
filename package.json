@@ -4,11 +4,8 @@
   "description": "Sistema completo de gestão para troca de óleo automotivo",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
-    "dev": "concurrently \"cd backend && php artisan serve --host=0.0.0.0\" \"cd frontend && npm run dev\"",
+    "dev": "concurrently \"cd backend && php artisan serve --host=0.0.0.0 --port=8000\" \"cd frontend && npm run dev\"",
     "build": "cd frontend && npm run build",
     "build:prod": "cd frontend && npm run build --mode production",
     "test": "concurrently \"cd backend && php artisan test\" \"cd frontend && npm test\"",
@@ -21,6 +18,10 @@
     "fix:backend": "cd backend && ./vendor/bin/php-cs-fixer fix",
     "fix:frontend": "cd frontend && npm run lint:fix",
     "setup": "bash scripts/setup.sh",
+    "setup:env": "bash scripts/setup-env.sh",
+    "setup:quick": "npm run setup:env && npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd backend && composer run setup:env",
+    "setup:frontend": "cd frontend && npm run setup:env",
     "start": "bash scripts/start.sh",
     "stop": "docker-compose down",
     "restart": "npm run stop && npm run start",
@@ -38,7 +39,13 @@
     "optimize": "docker-compose exec backend php artisan optimize",
     "shell:backend": "docker-compose exec backend bash",
     "shell:frontend": "docker-compose exec frontend sh",
-    "prepare": "husky install"
+    "setup:husky": "bash .devcontainer/scripts/setup-husky.sh",
+    "troubleshoot": "bash .devcontainer/scripts/troubleshoot.sh",
+    "test:db:init": "bash .devcontainer/scripts/init-test-db.sh",
+    "test:db:setup": "bash .devcontainer/scripts/setup-test-db.sh",
+    "test:db:status": "cd backend && php artisan migrate:status --env=testing",
+    "test:db:fresh": "cd backend && php artisan migrate:fresh --env=testing --seed",
+    "test:db:reset": "cd backend && php artisan migrate:reset --env=testing && php artisan migrate --env=testing --seed"
   },
   "repository": {
     "type": "git",
@@ -64,6 +71,7 @@
   "devDependencies": {
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
+    "@tailwindcss/postcss": "^4.1.11",
     "concurrently": "^8.2.2",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0"
@@ -97,7 +105,12 @@
       "subject-case": [
         2,
         "never",
-        ["sentence-case", "start-case", "pascal-case", "upper-case"]
+        [
+          "sentence-case",
+          "start-case",
+          "pascal-case",
+          "upper-case"
+        ]
       ]
     }
   },
@@ -115,4 +128,4 @@
       "git add"
     ]
   }
-} 
+}

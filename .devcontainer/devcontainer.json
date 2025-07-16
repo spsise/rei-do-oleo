@@ -217,7 +217,9 @@
     "DISPLAY": ":0",
     "TERM": "xterm-256color",
     "COMPOSER_CACHE_DIR": "/home/vscode/.cache/composer",
-    "NPM_CONFIG_CACHE": "/home/vscode/.cache/npm"
+    "NPM_CONFIG_CACHE": "/home/vscode/.cache/npm",
+    "GIT_USER_NAME": "Sebastião Apolinario",
+    "GIT_USER_EMAIL": "spsise@gmail.com"
   },
 
   "remoteEnv": {

@@ -12,10 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // API Middleware Stack
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        // Configure CSRF middleware for web routes only
+        $middleware->web(replace: [
+            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class => \App\Http\Middleware\VerifyCsrfToken::class,
         ]);
+
+        // API Middleware Stack - SEM EnsureFrontendRequestsAreStateful
+        // Removido porque queremos usar Bearer tokens, não autenticação baseada em sessão
+        // $middleware->api(prepend: [
+        //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        // ]);
 
         // Global Middleware
         $middleware->alias([
@@ -24,9 +30,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Rate Limiting
         $middleware->throttleApi();
-
-        // CORS for API
-        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

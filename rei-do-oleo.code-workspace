@@ -1,0 +1,116 @@
+{
+  "folders": [
+    {
+      "name": "🏠 Root",
+      "path": "."
+    },
+    {
+      "name": "🐘 Backend (Laravel)",
+      "path": "./backend"
+    },
+    {
+      "name": "⚛️ Frontend (React)",
+      "path": "./frontend"
+    },
+    {
+      "name": "🔧 DevContainer",
+      "path": "./.devcontainer"
+    }
+  ],
+  "settings": {
+    "// PHP Settings específicas do workspace": "",
+    "php.validate.executablePath": "/usr/local/bin/php",
+    "intelephense.environment.phpVersion": "8.2.0",
+
+    "// PHPUnit Settings com caminhos corretos": "",
+    "phpunit.command": "vendor/bin/phpunit",
+    "phpunit.args": ["--configuration=phpunit.xml"],
+    "phpunit.workingDirectory": "${workspaceFolder:🐘 Backend (Laravel)}",
+    "phpunit.php": "/usr/local/bin/php",
+    "phpunit.clearOutputOnRun": true,
+
+    "// Better PHPUnit com contexto correto": "",
+    "better-phpunit.phpunitBinary": "vendor/bin/phpunit",
+    "better-phpunit.commandSuffix": "--configuration=phpunit.xml",
+    "better-phpunit.workspaceFolderPath": "${workspaceFolder:🐘 Backend (Laravel)}",
+    "better-phpunit.xmlConfigFilepath": "${workspaceFolder:🐘 Backend (Laravel)}/phpunit.xml",
+    "better-phpunit.pest": false,
+    "better-phpunit.docker.enable": false,
+    "better-phpunit.ssh.enable": false,
+
+    "// Code Lens para testes": "",
+    "editor.codeLens": true,
+    "php.test.showCodeLens": true,
+    "php.test.showGutterIcons": true,
+    "intelephense.codeLens.enable": true,
+
+    "// Terminal padrão": "",
+    "terminal.integrated.defaultProfile.linux": "zsh",
+
+    "// File associations": "",
+    "files.associations": {
+      "*.blade.php": "blade",
+      "*.env*": "dotenv"
+    }
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "🧪 Run All Tests",
+        "type": "shell",
+        "command": "php",
+        "args": ["artisan", "test"],
+        "group": "test",
+        "options": {
+          "cwd": "${workspaceFolder:🐘 Backend (Laravel)}"
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      },
+      {
+        "label": "🧪 Run Current Test File",
+        "type": "shell",
+        "command": "./vendor/bin/phpunit",
+        "args": ["${relativeFile}"],
+        "group": "test",
+        "options": {
+          "cwd": "${workspaceFolder:🐘 Backend (Laravel)}"
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated"
+        }
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "🐛 Debug PHP",
+        "type": "php",
+        "request": "launch",
+        "program": "${workspaceFolder:🐘 Backend (Laravel)}/vendor/bin/phpunit",
+        "args": ["${relativeFile}"],
+        "cwd": "${workspaceFolder:🐘 Backend (Laravel)}",
+        "runtimeArgs": ["-dxdebug.start_with_request=yes"],
+        "env": {
+          "XDEBUG_MODE": "debug,develop",
+          "XDEBUG_CONFIG": "client_port=9003"
+        }
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "bmewburn.vscode-intelephense-client",
+      "recca0120.vscode-phpunit",
+      "emallin.phpunit",
+      "junstyle.php-cs-fixer",
+      "xdebug.php-debug"
+    ]
+  }
+}

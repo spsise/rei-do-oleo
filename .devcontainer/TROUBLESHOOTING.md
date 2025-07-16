@@ -1,5 +1,50 @@
 # 🔧 Troubleshooting - Dev Container
 
+## 🚨 Problema Crítico: Husky Permission Denied
+
+### ❌ Erro: `sh: 1: husky: Permission denied`
+
+**Sintoma:**
+```
+npm error code 126
+npm error command sh -c husky install
+npm error A complete log of this run can be found in: /home/vscode/.cache/npm/_logs/...
+```
+
+**Causa:** Husky não consegue executar no ambiente devcontainer devido a problemas de permissão.
+
+**✅ Soluções:**
+
+1. **Configuração Automática Corrigida:**
+   - O script de setup agora trata falhas do Husky como não-críticas
+   - O setup não falha mais se o Husky não conseguir ser configurado
+
+2. **Configuração Manual do Husky:**
+   ```bash
+   # Dentro do devcontainer
+   npm run setup:husky
+   ```
+
+3. **Script de Troubleshooting:**
+   ```bash
+   # Diagnóstico completo
+   npm run troubleshoot
+   ```
+
+4. **Configuração Manual Alternativa:**
+   ```bash
+   # Se o script automático falhar
+   npx husky install
+   npx husky add .husky/pre-commit "npx lint-staged"
+   chmod +x .husky/*
+   ```
+
+### 🔧 Scripts de Recuperação Disponíveis
+
+- `npm run setup:husky` - Configuração manual do Husky
+- `npm run troubleshoot` - Diagnóstico completo do ambiente
+- `npm run dev` - Iniciar desenvolvimento (funciona sem Husky)
+
 ## Problemas Comuns e Soluções
 
 ### ❌ Erro: Unable to locate package libjpeg62-turbo-dev

@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    paths:
+        - backend/app
+        - backend/config
+        - backend/database
+        - backend/routes
+    excludes_analyse:
+        - backend/app/Console/Kernel.php
+        - backend/app/Exceptions/Handler.php
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    bootstrapFiles:
+        - backend/vendor/autoload.php

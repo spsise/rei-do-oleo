@@ -30,11 +30,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     ports:
-      - "8100:8000"   # Laravel API
-      - "3100:3000"   # React Frontend
-      - "5200:5173"   # Vite Dev Server
+      - '8000:8000' # Laravel API
+      - '3000:3000' # React Frontend
+      - '5200:5173' # Vite Dev Server
 
   # 🗄️ MySQL Database 8.0
   mysql:
@@ -55,14 +55,25 @@ services:
       MYSQL_DATABASE: rei_do_oleo_dev
       MYSQL_USER: rei_do_oleo
       MYSQL_PASSWORD: secret123
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
-      MYSQL_RANDOM_ROOT_PASSWORD: "no"
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+      MYSQL_RANDOM_ROOT_PASSWORD: 'no'
     ports:
-      - "3310:3306"
+      - '3310:3306'
     networks:
       - reidooleo-dev
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123", "--silent"]
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-u',
+          'root',
+          '-proot123',
+          '--silent',
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -77,11 +88,11 @@ services:
       - redis-data:/data
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
     ports:
-      - "6400:6379"
+      - '6400:6379'
     networks:
       - reidooleo-dev
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 5
@@ -99,7 +110,7 @@ services:
       PMA_ARBITRARY: 1
       PMA_ABSOLUTE_URI: http://localhost:8110/
     ports:
-      - "8110:80"
+      - '8110:80'
     networks:
       - reidooleo-dev
     depends_on:
@@ -115,7 +126,7 @@ services:
       HTTP_USER: admin
       HTTP_PASSWORD: secret123
     ports:
-      - "6410:8081"
+      - '6410:8081'
     networks:
       - reidooleo-dev
     depends_on:
@@ -127,8 +138,8 @@ services:
     image: mailhog/mailhog:latest
     restart: unless-stopped
     ports:
-      - "1030:1025"  # SMTP
-      - "8030:8025"  # Web UI
+      - '1030:1025' # SMTP
+      - '8030:8025' # Web UI
     networks:
       - reidooleo-dev
 
@@ -141,5 +152,4 @@ volumes:
 
 networks:
   reidooleo-dev:
-    external: true
-    name: devcontainer_reidooleo-dev 
+    name: devcontainer_reidooleo-dev

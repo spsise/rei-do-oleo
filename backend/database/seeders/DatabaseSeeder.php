@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,11 +11,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Run seeders in order of dependencies
+        $this->call([
+            // 1. Basic reference data
+            RolePermissionSeeder::class,
+            ServiceStatusSeeder::class,
+            PaymentMethodSeeder::class,
+            CategorySeeder::class,
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            // 2. Service centers (before users for foreign key)
+            ServiceCenterSeeder::class,
+
+            // 3. Users with roles and service center assignment
+            UserSeeder::class,
+
+            // 4. Sample data for testing
+            // ClientSeeder::class, // Will be created separately if needed
         ]);
     }
 }

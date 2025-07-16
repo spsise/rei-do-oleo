@@ -98,7 +98,19 @@ rei-do-oleo/
 
 ## 📚 Documentação Específica
 
+### 🗄️ Banco de Dados
+
+- **[Visão Geral do Banco](DATABASE_OVERVIEW.md)** - Documentação completa de todas as tabelas
+- **[Resumo Executivo](DATABASE_SUMMARY.md)** - Visão rápida e consulta de referência
+- **[Documentação da Tabela Users](USERS_TABLE_DOCUMENTATION.md)** - Detalhamento completo da tabela de usuários
+- **[Documentação da Tabela Clients](CLIENTS_TABLE_DOCUMENTATION.md)** - Detalhamento completo da tabela de clientes
+- **[Sistema de Permissões](SISTEMA_PERMISSOES.md)** - Documentação do sistema de permissões com diagrama DBML
+
+### 🔧 Desenvolvimento
+
 - **[Backend API](BACKEND.md)** - Laravel 12 + Sanctum + MySQL + Redis
+- **[Suite de Testes](TESTING.md)** - Testes completos Unit + Feature + Integration
+- **[Git Workflow & Versionamento](GIT_WORKFLOW.md)** - Padrões de commit, branches e comandos Git
 - **Frontend Web** - React 18 + TypeScript + Vite (em desenvolvimento)
 - **Infraestrutura** - Docker + CI/CD (em desenvolvimento)
 
@@ -124,6 +136,28 @@ docker-compose exec backend php artisan tinker
 docker-compose exec frontend npm run dev
 ```
 
+### Git & Versionamento
+
+```bash
+# Ver commits do backend
+git log --oneline --grep="🐘 Backend"
+
+# Ver apenas features
+git log --oneline --grep="✨ feat"
+
+# Ver commits por área
+git log --oneline --grep="⚛️ Frontend"
+
+# Criar branch feature
+git checkout -b feature/nova-funcionalidade
+
+# Commit seguindo padrão
+git commit -m "🐘 Backend ✨ feat: Adiciona nova funcionalidade"
+
+# Limpar branches já merged
+git branch --merged | grep -v "\*\|main\|develop" | xargs -n 1 git branch -d
+```
+
 ### Produção
 
 ```bash
@@ -144,6 +178,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 ```bash
 cd backend
 php artisan test
+php artisan test --coverage-html coverage-html
 ./vendor/bin/phpstan analyse
 ```
 
@@ -155,6 +190,17 @@ npm test
 npm run lint
 npm run type-check
 ```
+
+### Documentação Completa
+
+Para informações detalhadas sobre a suite de testes implementada, consulte **[TESTING.md](TESTING.md)**:
+
+- ✅ **250+ testes** implementados
+- ✅ **13 classes Unit Tests** (Models, Services, Repositories)
+- ✅ **5 classes Feature Tests** (API, Auth, Cache)
+- ✅ **+85% cobertura** estimada
+- ✅ **Validações brasileiras** (CPF, CNPJ, placas)
+- ✅ **Mocking estratégico** e cache testing
 
 ## 🔒 Segurança
 
