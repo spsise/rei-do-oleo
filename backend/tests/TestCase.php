@@ -78,7 +78,7 @@ abstract class TestCase extends BaseTestCase
             exit(1);
         }
 
-        echo "✅ Test database verified: {$currentDatabase}\n";
+        // echo "✅ Test database verified: {$currentDatabase}\n";
     }
 
     /**
