@@ -281,40 +281,7 @@ chmod +x "$PROJECT_ROOT/deploy.sh"
 echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
 echo "✅ Script de deploy criado em: $PROJECT_ROOT/deploy.sh"
 
-# Criar webhook controller para deploy automático
-cat > "$PROJECT_ROOT/webhook-controller.php" << 'EOF'
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Process;
-
-class WebhookController extends Controller
-{
-    public function deploy(Request $request)
-    {
-        // Verificar se é um push para a branch hostinger-hom
-        $payload = $request->all();
-
-        if (isset($payload['ref']) && $payload['ref'] === 'refs/heads/hostinger-hom') {
-            Log::info('Webhook: Deploy iniciado', ['branch' => 'hostinger-hom']);
-
-            // Executar deploy em background
-            $process = new Process(['bash', '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh']);
-            $process->setWorkingDirectory('/home/' . get_current_user() . '/rei-do-oleo');
-            $process->start();
-
-            return response()->json(['message' => 'Deploy iniciado']);
-        }
-
-        return response()->json(['message' => 'Ignorado - não é a branch hostinger-hom']);
-    }
-}
-EOF
-
-echo "✅ Webhook controller criado: $PROJECT_ROOT/webhook-controller.php"
+echo "✅ Webhook controller já existe no Laravel: backend/app/Http/Controllers/Api/WebhookController.php"
 
 echo ""
 echo "💡 DICA: Para verificar subdomínios manualmente, você pode criar:"
