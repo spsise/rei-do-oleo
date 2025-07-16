@@ -272,7 +272,7 @@ Header always set Referrer-Policy "strict-origin-when-cross-origin"
 ### **1. Teste da API**
 
 ```bash
-# Testar se a API responde
+# Testar se a API  responde
 curl -I https://api-hom.virtualt.com.br
 
 # Testar endpoint específico
