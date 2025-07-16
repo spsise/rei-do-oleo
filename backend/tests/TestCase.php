@@ -25,6 +25,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // CRITICAL: Verify we're using the correct test database
+        $this->verifyTestDatabase();
+
         // Clear all caches before each test
         Cache::flush();
 
@@ -47,6 +50,35 @@ abstract class TestCase extends BaseTestCase
 
         // Set Brazilian locale for faker
         $this->faker = \Faker\Factory::create('pt_BR');
+    }
+
+    /**
+     * Verify that tests are running on the correct test database
+     * This prevents accidentally running tests on development database
+     */
+    protected function verifyTestDatabase(): void
+    {
+        $currentDatabase = config('database.connections.mysql.database');
+        $expectedDatabase = 'rei_do_oleo_test';
+
+        if ($currentDatabase !== $expectedDatabase) {
+            $message = sprintf(
+                "CRITICAL ERROR: Tests are running on wrong database!\n" .
+                "Expected: %s\n" .
+                "Current: %s\n" .
+                "Environment: %s\n" .
+                "This could destroy your development data!\n" .
+                "Please check your .env.testing file and ensure APP_ENV=testing",
+                $expectedDatabase,
+                $currentDatabase,
+                app()->environment()
+            );
+
+            fwrite(STDERR, $message . "\n");
+            exit(1);
+        }
+
+        echo "✅ Test database verified: {$currentDatabase}\n";
     }
 
     /**
