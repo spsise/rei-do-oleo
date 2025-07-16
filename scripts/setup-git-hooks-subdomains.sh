@@ -10,11 +10,12 @@ echo "API: api-hom.virtualt.com.br"
 echo "Frontend: app-hom.virtualt.com.br"
 
 # Diretórios do projeto
-PROJECT_ROOT="/home/$(whoami)"
-API_DIR="$PROJECT_ROOT/api-hom.virtualt.com.br"
-FRONTEND_DIR="$PROJECT_ROOT/app-hom.virtualt.com.br"
+PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
+API_DIR="/home/$(whoami)/api-hom.virtualt.com.br"
+FRONTEND_DIR="/home/$(whoami)/app-hom.virtualt.com.br"
 
 # Criar diretórios se não existirem
+mkdir -p "$PROJECT_ROOT"
 mkdir -p "$API_DIR"
 mkdir -p "$FRONTEND_DIR"
 
