@@ -222,23 +222,57 @@ if [ -d "backend" ]; then
     echo "📋 Copiando arquivos do backend..."
     cp -r backend/* "$TEMP_API_DIR/"
 
-    # Restaurar arquivos importantes no diretório temporário
+    # Copiar vendor do diretório original (se existir)
+    if [ -d "$API_DIR/vendor" ]; then
+        echo "📦 Copiando vendor do diretório original..."
+        cp -r "$API_DIR/vendor" "$TEMP_API_DIR/"
+    fi
+
+    # Restaurar outros arquivos importantes do backup (se existir)
     if [ -d "$API_DIR" ]; then
         latest_backup=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | head -1)
         if [ -n "$latest_backup" ]; then
-            restore_important_files "$TEMP_API_DIR" "$latest_backup"
+            echo "🔄 Restaurando outros arquivos importantes do backup..."
+            # Restaurar .env e storage, mas não vendor (já copiamos acima)
+            if [ -f "$latest_backup/.env" ]; then
+                cp "$latest_backup/.env" "$TEMP_API_DIR/"
+            fi
+            if [ -d "$latest_backup/storage/app" ]; then
+                rm -rf "$TEMP_API_DIR/storage/app"
+                cp -r "$latest_backup/storage/app" "$TEMP_API_DIR/"
+            fi
+            if [ -d "$latest_backup/storage/logs" ]; then
+                rm -rf "$TEMP_API_DIR/storage/logs"
+                cp -r "$latest_backup/storage/logs" "$TEMP_API_DIR/"
+            fi
         fi
     fi
 
+    # Verificar se vendor foi copiado com sucesso
+    echo "📦 Verificando dependências..."
+    if [ -d "$TEMP_API_DIR/vendor" ]; then
+        echo "✅ Vendor copiado com sucesso para nova versão"
+    else
+        echo "⚠️ Vendor não encontrado"
+        echo "   Copie a pasta vendor do seu ambiente local para: $API_DIR/"
+        echo "   Ou faça upload via FTP/SFTP"
+        echo "   Ou execute: composer install --no-dev --optimize-autoloader"
+        echo ""
+        echo "❌ Deploy interrompido - vendor é obrigatório para continuar"
+        exit 1
+    fi
+
+    # Mudar para o diretório temporário para executar comandos Laravel
     cd "$TEMP_API_DIR"
 
-    # Verificar se vendor existe
-    echo "📦 Verificando dependências..."
-    if [ -d "vendor" ]; then
-        echo "✅ Vendor encontrado - dependências já instaladas"
+    # Verificar se o vendor está funcionando
+    echo "🔍 Testando se o vendor está funcionando..."
+    if php artisan --version > /dev/null 2>&1; then
+        echo "✅ Vendor funcionando corretamente"
     else
-        echo "⚠️ Vendor não encontrado - você precisa colocar manualmente"
-        echo "   Copie a pasta vendor do seu ambiente local para este diretório"
+        echo "❌ Vendor não está funcionando - verifique as dependências"
+        echo "   Execute: composer install --no-dev --optimize-autoloader"
+        exit 1
     fi
 
     # Configurar ambiente se não existir
