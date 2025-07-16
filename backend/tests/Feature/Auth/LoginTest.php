@@ -43,7 +43,7 @@ class LoginTest extends TestCase
                             'id',
                             'name',
                             'email',
-                            'highest_role',
+                            'role',
                             'active'
                         ],
                         'token',
