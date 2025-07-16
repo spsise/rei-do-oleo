@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { VoiceModalContext, type VoiceModalOptions } from './VoiceContext';
+import { VoiceModal } from './VoiceModal';
 
 export const VoiceModalProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -34,6 +35,7 @@ export const VoiceModalProvider: React.FC<{ children: ReactNode }> = ({
       }}
     >
       {children}
+      <VoiceModal />
     </VoiceModalContext.Provider>
   );
 };
