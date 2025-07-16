@@ -1,0 +1,160 @@
+name: Deploy via SSH to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+  HOSTINGER_USERNAME: ${{ secrets.HOSTINGER_USERNAME }}
+  HOSTINGER_DOMAIN: ${{ secrets.HOSTINGER_DOMAIN }}
+
+jobs:
+  # Build and Deploy
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, zip
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          echo "VITE_API_URL=https://${{ secrets.HOSTINGER_DOMAIN }}/api" > .env.production
+
+      - name: Build Backend
+        working-directory: backend
+        run: |
+          composer install --prefer-dist --no-dev --optimize-autoloader
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r backend/* deploy-package/backend/
+          cp -r frontend/dist/* deploy-package/frontend/
+          cp frontend/.env.production deploy-package/frontend/.env
+
+          # Remove development files
+          rm -rf deploy-package/backend/tests/
+          rm -rf deploy-package/backend/.phpunit.cache/
+          rm -rf deploy-package/backend/storage/logs/*.log
+          rm -rf deploy-package/backend/storage/framework/cache/*
+          rm -rf deploy-package/backend/storage/framework/sessions/*
+          rm -rf deploy-package/backend/storage/framework/views/*
+
+          # Create deployment script
+          cat > deploy-package/deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          echo "🚀 Iniciando deploy..."
+
+          # Backup atual
+          if [ -d "/home/$(whoami)/public_html" ]; then
+              echo "📦 Criando backup..."
+              tar -czf "/home/$(whoami)/backup-$(date +%Y%m%d-%H%M%S).tar.gz" -C "/home/$(whoami)" public_html
+          fi
+
+          # Deploy Backend
+          echo "🔧 Deployando Laravel..."
+          rm -rf /home/$(whoami)/public_html/api
+          mkdir -p /home/$(whoami)/public_html/api
+          cp -r backend/* /home/$(whoami)/public_html/api/
+
+          cd /home/$(whoami)/public_html/api
+
+          # Configurar ambiente
+          if [ ! -f ".env" ]; then
+              cp .env.example .env
+              php artisan key:generate
+          fi
+
+          # Executar migrações
+          php artisan migrate --force
+
+          # Configurar permissões
+          chmod -R 755 storage
+          chmod -R 755 bootstrap/cache
+
+          # Deploy Frontend
+          echo "⚛️ Deployando React..."
+          cp -r frontend/* /home/$(whoami)/public_html/
+
+          # Configurar .htaccess para API
+          cat > /home/$(whoami)/public_html/api/.htaccess << 'HTACCESS'
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteRule ^ index.php [L]
+
+          # Security headers
+          Header always set X-Content-Type-Options nosniff
+          Header always set X-Frame-Options DENY
+          Header always set X-XSS-Protection "1; mode=block"
+          HTACCESS
+
+          # Configurar permissões
+          chmod -R 755 /home/$(whoami)/public_html
+          chmod -R 644 /home/$(whoami)/public_html/*.html
+          chmod -R 644 /home/$(whoami)/public_html/*.css
+          chmod -R 644 /home/$(whoami)/public_html/*.js
+
+          echo "✅ Deploy concluído!"
+          echo "🌐 Frontend: https://${{ secrets.HOSTINGER_DOMAIN }}"
+          echo "🔗 API: https://${{ secrets.HOSTINGER_DOMAIN }}/api"
+          EOF
+
+          chmod +x deploy-package/deploy.sh
+
+      - name: Upload deployment package
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.HOSTINGER_HOST }}
+          username: ${{ env.HOSTINGER_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          source: 'deploy-package/*'
+          target: '/home/${{ env.HOSTINGER_USERNAME }}/deploy-temp'
+
+      - name: Execute deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.HOSTINGER_HOST }}
+          username: ${{ env.HOSTINGER_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd /home/${{ env.HOSTINGER_USERNAME }}/deploy-temp
+            chmod +x deploy.sh
+            ./deploy.sh
+            rm -rf /home/${{ env.HOSTINGER_USERNAME }}/deploy-temp
+
+      - name: Health check
+        run: |
+          echo "🔍 Verificando se a aplicação está funcionando..."
+          sleep 10
+          curl -f https://${{ secrets.HOSTINGER_DOMAIN }}/api/health || echo "⚠️ API não respondeu"
+          curl -f https://${{ secrets.HOSTINGER_DOMAIN }} || echo "⚠️ Frontend não respondeu"
+
+      - name: Notify success
+        run: |
+          echo "🎉 Deploy concluído com sucesso!"
+          echo "🌐 Frontend: https://${{ secrets.HOSTINGER_DOMAIN }}"
+          echo "🔗 API: https://${{ secrets.HOSTINGER_DOMAIN }}/api"
