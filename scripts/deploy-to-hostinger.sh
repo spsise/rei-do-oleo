@@ -22,7 +22,7 @@ fi
 if [ -n "$(git status --porcelain)" ]; then
     echo "📝 Há mudanças não commitadas. Deseja fazer commit?"
     read -p "Digite uma mensagem de commit (ou 'n' para cancelar): " commit_msg
-    
+
     if [ "$commit_msg" != "n" ] && [ "$commit_msg" != "N" ]; then
         git add .
         git commit -m "$commit_msg"
@@ -80,4 +80,4 @@ echo "4. Para deploy manual no servidor:"
 echo "   ssh usuario@servidor './deploy.sh'"
 
 echo ""
-echo "🎉 Deploy iniciado! Verifique os subdomínios em alguns minutos." 
+echo "🎉 Deploy iniciado! Verifique os subdomínios em alguns minutos."
