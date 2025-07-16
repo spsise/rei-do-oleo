@@ -289,7 +289,7 @@ class ServiceController extends Controller
      */
     public function getByServiceCenter(int $serviceCenterId): JsonResponse
     {
-        $services = $this->serviceRepository->getByServiceCenter($serviceCenterId);
+        $services = $this->serviceRepository->getServicesByCenter($serviceCenterId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -319,7 +319,7 @@ class ServiceController extends Controller
      */
     public function getByClient(int $clientId): JsonResponse
     {
-        $services = $this->serviceRepository->getByClient($clientId);
+        $services = $this->serviceRepository->getServicesByClient($clientId);
 
         return $this->successResponse(
             ServiceResource::collection($services),

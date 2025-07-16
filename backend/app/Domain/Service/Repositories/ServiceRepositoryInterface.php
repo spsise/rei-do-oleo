@@ -31,4 +31,21 @@ interface ServiceRepositoryInterface
     public function update(int $id, array $data): ?Service;
 
     public function delete(int $id): bool;
+
+    // Métodos para o TechnicianController
+    public function getRecentByClient(int $clientId, int $limit = 5): Collection;
+
+    public function getTodayServicesCount(int $technicianId): int;
+
+    public function getPendingServicesCount(int $technicianId): int;
+
+    public function getCompletedTodayCount(int $technicianId): int;
+
+    public function getRecentByTechnician(int $technicianId, int $limit = 10): Collection;
+
+    public function getByVehicle(int $vehicleId): Collection;
+
+    public function getByTechnician(int $technicianId): Collection;
+
+    public function findByServiceNumber(string $serviceNumber): ?Service;
 }

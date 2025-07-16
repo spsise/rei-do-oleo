@@ -140,6 +140,38 @@ class ServiceService
         return $this->serviceRepository->delete($id);
     }
 
+    public function create(array $data): Service
+    {
+        return $this->createService($data);
+    }
+
+    public function updateStatus(int $serviceId, string $status, ?string $notes = null): Service
+    {
+        $service = $this->serviceRepository->find($serviceId);
+
+        if (!$service) {
+            throw new \InvalidArgumentException('Serviço não encontrado');
+        }
+
+        $updateData = [];
+
+        if ($notes) {
+            $updateData['notes'] = $notes;
+        }
+
+        // Atualizar status
+        $this->serviceRepository->updateServiceStatus($serviceId, $status);
+
+        // Atualizar notas se fornecidas
+        if (!empty($updateData)) {
+            $this->serviceRepository->update($serviceId, $updateData);
+        }
+
+        $this->clearServiceCaches($service);
+
+        return $this->serviceRepository->find($serviceId);
+    }
+
     public function getDashboardMetrics(int $serviceCenterId = null, string $period = 'today'): array
     {
         $cacheKey = "dashboard_metrics_{$serviceCenterId}_{$period}";

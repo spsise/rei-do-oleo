@@ -307,9 +307,9 @@ class ServiceRepositoryTest extends TestCase
         Service::factory()->count(5)->create(['service_center_id' => $serviceCenter->id]);
         Service::factory()->count(3)->create();
 
-        $result = $this->serviceRepository->getByServiceCenter($serviceCenter->id);
+        $result = $this->serviceRepository->getServicesByCenter($serviceCenter->id);
 
-        $this->assertEquals(5, $result->total());
+        $this->assertEquals(5, $result->count());
         $this->assertTrue($result->every(fn($service) => $service->service_center_id === $serviceCenter->id));
     }
     #[Test]
@@ -319,9 +319,9 @@ class ServiceRepositoryTest extends TestCase
         Service::factory()->count(4)->create(['client_id' => $client->id]);
         Service::factory()->count(2)->create();
 
-        $result = $this->serviceRepository->getByClient($client->id);
+        $result = $this->serviceRepository->getServicesByClient($client->id);
 
-        $this->assertEquals(4, $result->total());
+        $this->assertEquals(4, $result->count());
         $this->assertTrue($result->every(fn($service) => $service->client_id === $client->id));
     }
     #[Test]
@@ -333,7 +333,7 @@ class ServiceRepositoryTest extends TestCase
 
         $result = $this->serviceRepository->getByVehicle($vehicle->id);
 
-        $this->assertEquals(3, $result->total());
+        $this->assertEquals(3, $result->count());
         $this->assertTrue($result->every(fn($service) => $service->vehicle_id === $vehicle->id));
     }
     #[Test]
@@ -345,7 +345,7 @@ class ServiceRepositoryTest extends TestCase
 
         $result = $this->serviceRepository->getByTechnician($technician->id);
 
-        $this->assertEquals(6, $result->total());
+        $this->assertEquals(6, $result->count());
         $this->assertTrue($result->every(fn($service) => $service->technician_id === $technician->id));
     }
     #[Test]

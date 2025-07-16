@@ -165,7 +165,9 @@ class ServiceRepository implements ServiceRepositoryInterface
         }
 
         if (isset($filters['status'])) {
-            $query->byStatus($filters['status']);
+            $query->whereHas('serviceStatus', function ($statusQuery) use ($filters) {
+                $statusQuery->where('name', $filters['status']);
+            });
         }
 
         if (isset($filters['service_center_id'])) {
@@ -178,6 +180,10 @@ class ServiceRepository implements ServiceRepositoryInterface
 
         if (isset($filters['active'])) {
             $query->where('active', $filters['active']);
+        }
+
+        if (isset($filters['technician_id'])) {
+            $query->where('technician_id', $filters['technician_id']);
         }
 
         return $query->orderBy('scheduled_at', 'desc')
@@ -242,5 +248,73 @@ class ServiceRepository implements ServiceRepositoryInterface
         }
 
         return $service->delete();
+    }
+
+    // Métodos para o TechnicianController
+    public function getRecentByClient(int $clientId, int $limit = 5): Collection
+    {
+        return Service::where('client_id', $clientId)
+            ->with(['client', 'vehicle', 'serviceStatus'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function getTodayServicesCount(int $technicianId): int
+    {
+        return Service::where('technician_id', $technicianId)
+            ->whereDate('created_at', today())
+            ->count();
+    }
+
+    public function getPendingServicesCount(int $technicianId): int
+    {
+        return Service::where('technician_id', $technicianId)
+            ->whereHas('serviceStatus', function ($query) {
+                $query->whereIn('name', ['pending', 'in_progress']);
+            })
+            ->count();
+    }
+
+    public function getCompletedTodayCount(int $technicianId): int
+    {
+        return Service::where('technician_id', $technicianId)
+            ->whereHas('serviceStatus', function ($query) {
+                $query->where('name', 'completed');
+            })
+            ->whereDate('completed_at', today())
+            ->count();
+    }
+
+    public function getRecentByTechnician(int $technicianId, int $limit = 10): Collection
+    {
+        return Service::where('technician_id', $technicianId)
+            ->with(['client', 'vehicle', 'serviceStatus'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function getByVehicle(int $vehicleId): Collection
+    {
+        return Service::where('vehicle_id', $vehicleId)
+            ->with(['client', 'vehicle', 'serviceStatus', 'technician'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function getByTechnician(int $technicianId): Collection
+    {
+        return Service::where('technician_id', $technicianId)
+            ->with(['client', 'vehicle', 'serviceStatus'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function findByServiceNumber(string $serviceNumber): ?Service
+    {
+        return Service::where('service_number', $serviceNumber)
+            ->with(['client', 'vehicle', 'serviceStatus', 'technician', 'attendant'])
+            ->first();
     }
 }
