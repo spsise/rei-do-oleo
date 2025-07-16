@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceItemController;
 use App\Http\Controllers\Api\ServiceCenterController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\TechnicianController;
 
 /*
 |--------------------------------------------------------------------------
@@ -229,6 +230,20 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // Ações específicas
         Route::post('/bulk', [ServiceItemController::class, 'bulkStore']);      // POST /api/v1/services/{serviceId}/items/bulk
         Route::get('/total/calculate', [ServiceItemController::class, 'getServiceTotal']); // GET /api/v1/services/{serviceId}/items/total/calculate
+    });
+
+    // =============================================================================
+    // TECHNICIAN ROUTES
+    // =============================================================================
+    Route::prefix('technician')->group(function () {
+        // Busca e dashboard
+        Route::post('/search', [TechnicianController::class, 'search']);                        // POST /api/v1/technician/search
+        Route::get('/dashboard', [TechnicianController::class, 'dashboard']);                   // GET /api/v1/technician/dashboard
+
+        // Serviços
+        Route::post('/services', [TechnicianController::class, 'createService']);               // POST /api/v1/technician/services
+        Route::get('/services/my', [TechnicianController::class, 'myServices']);                // GET /api/v1/technician/services/my
+        Route::put('/services/{id}/status', [TechnicianController::class, 'updateServiceStatus']); // PUT /api/v1/technician/services/{id}/status
     });
 
     // =============================================================================

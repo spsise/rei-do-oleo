@@ -18,7 +18,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at,
             'active' => $this->active,
-            'highest_role' => $this->getHighestRole(),
+            'role' => $this->getHighestRole(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
