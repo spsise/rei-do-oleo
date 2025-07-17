@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Script para configurar Git Hooks na Hostinger com estrutura correta
+# Script para configurar Git Hooks na Hostinger com estrutura correta - VERSÃO CORRIGIDA
 # Execute este script no servidor Hostinger via SSH
+# CORREÇÃO: Frontend não deleta mais arquivos do repositório Git
 
 set -e
 
-echo "🚀 Configurando Git Hooks para Hostinger..."
+echo "🚀 Configurando Git Hooks para Hostinger (VERSÃO CORRIGIDA)..."
 echo "📁 Projeto: /home/$(whoami)/rei-do-oleo"
 echo "🔗 API: /home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
 echo "🌐 Frontend: /home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
@@ -410,7 +411,7 @@ fi
 
 cd "$PROJECT_ROOT"
 
-# Deploy Frontend (React) - App Subdomain
+# Deploy Frontend (React) - App Subdomain - VERSÃO CORRIGIDA
 if [ -d "frontend" ]; then
     echo "⚛️ Configurando React App..."
 
@@ -419,7 +420,15 @@ if [ -d "frontend" ]; then
     rm -rf "$TEMP_FRONTEND_DIR"
     mkdir -p "$TEMP_FRONTEND_DIR"
 
-    cd frontend
+    # Criar diretório temporário para build
+    TEMP_BUILD_DIR="/tmp/frontend-build-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$TEMP_BUILD_DIR"
+
+    # Copiar arquivos do frontend para diretório temporário de build
+    echo "📋 Copiando arquivos do frontend para build temporário..."
+    cp -r frontend/* "$TEMP_BUILD_DIR/"
+
+    cd "$TEMP_BUILD_DIR"
 
     # Verificar se existe build local do frontend
     if [ -d "dist" ]; then
@@ -428,21 +437,18 @@ if [ -d "frontend" ]; then
     else
         echo "⚠️ Build local não encontrado. Execute npm run build no frontend antes do deploy."
         echo "   Comandos: cd frontend && npm install && npm run build"
-        echo "❌Deploy do frontend interrompido - build necessário"
+        echo "❌ Deploy do frontend interrompido - build necessário"
+        
+        # Limpar diretório temporário
+        cd "$PROJECT_ROOT"
+        rm -rf "$TEMP_BUILD_DIR"
         exit 1
     fi
 
-    # Limpar arquivos de desenvolvimento
-    echo "🧹 Limpando arquivos de desenvolvimento..."
-    rm -rf node_modules/
-    rm -rf src/
-    rm -rf public/
-    rm package.json package-lock.json 2>/dev/null || true
-    rm vite.config.ts tailwind.config.js postcss.config.js 2>/dev/null || true
-    rm tsconfig.json tsconfig.app.json tsconfig.node.json 2>/dev/null || true
-    rm .eslintrc.js .prettierrc index.html 2>/dev/null || true
-
+    # Limpar diretório temporário de build (NÃO afeta o repositório Git!)
+    echo "🧹 Limpando diretório temporário de build..."
     cd "$PROJECT_ROOT"
+    rm -rf "$TEMP_BUILD_DIR"
 
     # Configurar .htaccess para frontend
     cat > "$TEMP_FRONTEND_DIR/.htaccess" << 'HTACCESS'
@@ -837,6 +843,10 @@ echo "✅ Sistema de rollback completo"
 echo "✅ Limpeza automática de backups antigos"
 echo "✅ Preservação de uploads e logs"
 echo "✅ Restauração automática do vendor"
+echo "✅ Frontend não deleta mais arquivos do repositório Git"
+echo "✅ Usa diretório temporário para build"
+echo "✅ Preserva arquivos de deploy e logs"
+echo "✅ Mantém estrutura do repositório intacta"
 
 echo ""
 echo "💡 DICA: Para verificar subdomínios manualmente, você pode criar:"
@@ -887,8 +897,10 @@ echo "7. Para verificar subdomínios:"
 echo "   curl -I https://api-hom.virtualt.com.br"
 echo "   curl -I https://app-hom.virtualt.com.br"
 echo ""
-echo "8. Para testar o deploy incremental agora:"
+echo "8. Para corrigir problemas de arquivos deletados:"
 echo "   cd $PROJECT_ROOT"
+echo "   git reset --hard HEAD && git clean -fd"
+echo "   git pull origin hostinger-hom"
 echo "   ./deploy.sh"
 echo ""
 echo "9. Para gerenciar backups e rollbacks:"
@@ -913,3 +925,16 @@ echo "   tail -f rollback.log                  # Logs de rollback em tempo real"
 echo "   tail -f cleanup.log                   # Logs de limpeza em tempo real"
 echo "   tail -f error.log                     # Logs de erro em tempo real"
 echo "   tail -f $API_DIR/storage/logs/laravel.log  # Logs da aplicação Laravel"
+
+echo ""
+echo "🔧 CORREÇÕES APLICADAS NESTA VERSÃO:"
+echo "====================================="
+echo "✅ PROBLEMA RESOLVIDO: Frontend não deleta mais arquivos do repositório Git"
+echo "✅ SOLUÇÃO: Usa diretório temporário /tmp/ para operações de build"
+echo "✅ BENEFÍCIO: Preserva estrutura do repositório e arquivos de deploy"
+echo "✅ SEGURANÇA: Arquivos de deploy (deploy.sh, rollback.sh) não são afetados"
+echo ""
+echo "📋 SE VOCÊ JÁ TEM ARQUIVOS DELETADOS:"
+echo "   Execute: git reset --hard HEAD && git clean -fd"
+echo "   Execute: git pull origin hostinger-hom"
+echo "   Execute: ./deploy.sh"
