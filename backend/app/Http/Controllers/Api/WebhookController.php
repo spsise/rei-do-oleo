@@ -61,7 +61,7 @@ class WebhookController extends Controller
             ]);
 
             // Execute deployment script in background
-            $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh';
+            $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy2.sh';
 
             if (!file_exists($deployScript)) {
                 Log::error('Webhook: Deploy script not found', ['script' => $deployScript]);
