@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ServiceItemController;
 use App\Http\Controllers\Api\ServiceCenterController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TechnicianController;
+use App\Http\Controllers\Api\WebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -274,6 +275,14 @@ Route::middleware(['auth:sanctum', 'sensitive.data'])->group(function () {
     Route::get('/technician/search', [TechnicianController::class, 'search']);
 });
 
+// =============================================================================
+// WEBHOOK ROUTES (Deploy automation)
+// =============================================================================
+Route::prefix('webhook')->group(function () {
+    Route::post('/deploy', [WebhookController::class, 'deploy']);     // POST /api/webhook/deploy
+    Route::get('/health', [WebhookController::class, 'health']);      // GET /api/webhook/health
+});
+
 // Fallback Route
 Route::fallback(function () {
     return response()->json([
@@ -281,15 +290,7 @@ Route::fallback(function () {
         'message' => 'Endpoint not found',
         'available_endpoints' => [
             'health' => 'GET /api/health',
-            'auth' => 'POST /api/v1/auth/*',
-            'clients' => 'GET|POST|PUT|DELETE /api/v1/clients/*',
-            'vehicles' => 'GET|POST|PUT|DELETE /api/v1/vehicles/*',
-            'categories' => 'GET|POST|PUT|DELETE /api/v1/categories/*',
-            'products' => 'GET|POST|PUT|DELETE /api/v1/products/*',
-            'service-centers' => 'GET|POST|PUT|DELETE /api/v1/service-centers/*',
-            'services' => 'GET|POST|PUT|DELETE /api/v1/services/*',
-            'service-items' => 'GET|POST|PUT|DELETE /api/v1/services/{serviceId}/items/*',
-            'users' => 'GET|POST|PUT|DELETE /api/v1/users/*'
+            'webhook' => 'POST /api/webhook/deploy'
         ],
         'code' => 404
     ], 404);
