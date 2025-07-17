@@ -630,7 +630,17 @@ else
     info "ℹ️ Husky já configurado"
 fi
 
-# 8. Configurar banco de dados de teste
+# 8. Corrigir problema de namespace do Laravel
+step "🔧 Corrigindo problema de namespace do Laravel..."
+if [ -f ".devcontainer/scripts/fix-laravel-namespace.sh" ]; then
+    log "Executando correção de namespace..."
+    bash /workspace/.devcontainer/scripts/fix-laravel-namespace.sh
+    success "✅ Problema de namespace corrigido"
+else
+    warn "⚠️ Script de correção de namespace não encontrado"
+fi
+
+# 9. Configurar banco de dados de teste
 step "🧪 Configurando banco de dados de teste..."
 if [ "$SERVICES_READY" = true ]; then
     log "Executando setup do banco de teste..."
@@ -640,7 +650,7 @@ else
     warn "⚠️ Serviços não prontos, configuração manual do banco de teste necessária"
 fi
 
-# 9. Criar bucket no MinIO
+# 10. Criar bucket no MinIO
 step "📦 Configurando MinIO Storage..."
 if [ "$SERVICES_READY" = true ]; then
     sleep 5  # Aguardar MinIO estar pronto
@@ -655,7 +665,7 @@ if [ "$SERVICES_READY" = true ]; then
     fi
 fi
 
-# 10. Verificação final do ambiente
+# 11. Verificação final do ambiente
 step "🔍 Verificação final do ambiente..."
 
 # Verificar se as dependências críticas do frontend estão instaladas
@@ -667,7 +677,7 @@ else
     frontend_exec npm install --no-workspaces
 fi
 
-# 11. Finalização
+# 12. Finalização
 success "🎉 Setup completo realizado com sucesso!"
 echo -e "${GREEN}"
 cat << "EOF"
@@ -696,7 +706,7 @@ echo -e "${NC}"
 
 info "🎯 Ambiente de desenvolvimento totalmente configurado!"
 
-# 12. Configurar Git Global
+# 13. Configurar Git Global
 step "🔐 Configurando Git Global..."
 if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
     log "Configurando usuário Git: $GIT_USER_NAME <$GIT_USER_EMAIL>"
@@ -714,7 +724,7 @@ else
     info "    git config --global user.email \"seu@email.com\""
 fi
 
-# 13. Configurar SSH para Git
+# 14. Configurar SSH para Git
 step "🔐 Configurando SSH para Git..."
 if [ -f "/workspace/.devcontainer/scripts/ssh-setup.sh" ]; then
     bash /workspace/.devcontainer/scripts/ssh-setup.sh
@@ -724,7 +734,7 @@ fi
 
 info "🚀 Execute 'npm run dev' para iniciar os serviços de desenvolvimento!"
 
-# 14. Tratamento de erros e finalização
+# 15. Tratamento de erros e finalização
 step "🔧 Finalizando setup..."
 
 # Limpar caches do Laravel se possível

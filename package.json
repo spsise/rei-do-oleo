@@ -41,6 +41,8 @@
     "shell:frontend": "docker-compose exec frontend sh",
     "setup:husky": "bash .devcontainer/scripts/setup-husky.sh",
     "troubleshoot": "bash .devcontainer/scripts/troubleshoot.sh",
+    "fix:laravel": "bash .devcontainer/scripts/fix-laravel-namespace.sh",
+    "verify:laravel": "bash .devcontainer/scripts/verify-laravel.sh",
     "test:db:init": "bash .devcontainer/scripts/init-test-db.sh",
     "test:db:setup": "bash .devcontainer/scripts/setup-test-db.sh",
     "test:db:status": "cd backend && php artisan migrate:status --env=testing",
