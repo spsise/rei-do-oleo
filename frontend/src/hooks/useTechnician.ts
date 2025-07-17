@@ -53,17 +53,20 @@ export const useTechnician = () => {
   };
 
   const handleVoiceResult = (value: string) => {
+    // Remover todos os espaços do texto retornado pela voz
+    const cleanValue = value.replace(/\s/g, '');
+
     // Detectar se é placa ou documento
-    const hasLetters = /[A-Za-z]/.test(value);
-    const hasNumbers = /\d/.test(value);
+    const hasLetters = /[A-Za-z]/.test(cleanValue);
+    const hasNumbers = /\d/.test(cleanValue);
 
     if (hasLetters && hasNumbers) {
       setSearchType('license_plate');
-    } else if (/\d{11,14}/.test(value.replace(/\D/g, ''))) {
+    } else if (/\d{11,14}/.test(cleanValue.replace(/\D/g, ''))) {
       setSearchType('document');
     }
 
-    setSearchValue(value);
+    setSearchValue(cleanValue);
     // Auto-executar busca após um pequeno delay
     setTimeout(() => {
       handleSearch();
