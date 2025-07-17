@@ -101,7 +101,8 @@ class WebhookController extends Controller
             }
 
             Log::info('Webhook: Deploy process started successfully', [
-                'pid' => $process->getPid()
+                'pid' => $process->getPid(),
+                'deploy_script' => $deployScript
             ]);
 
             return response()->json([
