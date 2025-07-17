@@ -109,7 +109,8 @@ class WebhookController extends Controller
                 'message' => 'Deployment started successfully',
                 'branch' => 'hostinger-hom',
                 'commit' => $payload['head_commit']['id'] ?? 'unknown',
-                'process_id' => $process->getPid()
+                'process_id' => $process->getPid(),
+                'deploy_script' => $deployScript
             ]);
 
         } catch (\Exception $e) {
