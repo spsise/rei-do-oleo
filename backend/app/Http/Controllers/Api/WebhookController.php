@@ -60,7 +60,7 @@ class WebhookController extends Controller
                 'message' => $payload['head_commit']['message'] ?? 'no message'
             ]);
 
-            // Execute deployment script in background
+            // Execute deployment script in background (deploy.sh)
             $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh';
 
             if (!file_exists($deployScript)) {
