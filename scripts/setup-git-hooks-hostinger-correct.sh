@@ -134,6 +134,13 @@ BACKUP_DIR="/home/$(whoami)/rei-do-oleo/backups"
 # Criar diretório de backup se não existir
 mkdir -p "$BACKUP_DIR"
 
+# Criar e configurar arquivo de log
+if [ ! -f "$PROJECT_ROOT/deploy.log" ]; then
+    touch "$PROJECT_ROOT/deploy.log"
+    echo "✅ Arquivo de log criado: $PROJECT_ROOT/deploy.log"
+fi
+chmod 644 "$PROJECT_ROOT/deploy.log"
+
 cd "$PROJECT_ROOT"
 
 # Função para fazer backup de arquivos importantes
@@ -310,6 +317,26 @@ if [ -d "backend" ]; then
     php artisan route:cache
     php artisan view:cache
 
+    # Criar link simbólico para storage
+    echo "🔗 Criando link simbólico para storage..."
+    # Garantir que os diretórios necessários existem
+    mkdir -p public
+    mkdir -p storage/app/public
+
+    # Tentar criar link simbólico (com fallback)
+    if [ ! -L "public/storage" ]; then
+        # Tentar via Laravel primeiro
+        if php artisan storage:link > /dev/null 2>&1; then
+            echo "✅ Link simbólico criado via Laravel"
+        else
+            # Fallback manual
+            echo "⚠️ Tentando criar link simbólico manualmente..."
+            ln -sf "../storage/app/public" public/storage 2>/dev/null || echo "⚠️ Erro ao criar link simbólico (pode já existir)"
+        fi
+    else
+        echo "✅ Link simbólico para storage já existe"
+    fi
+
     # Executar migrações
     echo "🗄️ Executando migrações..."
     php artisan migrate --force
@@ -323,7 +350,15 @@ if [ -d "backend" ]; then
     rm -rf storage/framework/views/* 2>/dev/null || true
 
     # Garantir permissões corretas para logs
+    mkdir -p storage/logs
     chmod -R 755 storage/logs
+
+    # Criar arquivo de log principal do Laravel se não existir
+    if [ ! -f "storage/logs/laravel.log" ]; then
+        touch storage/logs/laravel.log
+        echo "✅ Arquivo de log do Laravel criado: storage/logs/laravel.log"
+    fi
+    chmod 644 storage/logs/laravel.log
 
     # Configurar .htaccess para API
     cat > .htaccess << 'HTACCESS'
@@ -461,6 +496,17 @@ echo "🔗 API: https://api-hom.virtualt.com.br"
 # Log do deploy
 echo "$(date): Deploy incremental realizado com sucesso" >> "$PROJECT_ROOT/deploy.log"
 
+# Configurar permissões do arquivo de log
+if [ -f "$PROJECT_ROOT/deploy.log" ]; then
+    chmod 644 "$PROJECT_ROOT/deploy.log"
+    echo "✅ Arquivo de log configurado com permissões corretas: $PROJECT_ROOT/deploy.log"
+else
+    # Criar arquivo de log se não existir
+    touch "$PROJECT_ROOT/deploy.log"
+    chmod 644 "$PROJECT_ROOT/deploy.log"
+    echo "✅ Arquivo de log criado com permissões corretas: $PROJECT_ROOT/deploy.log"
+fi
+
 # Limpar backups antigos (manter apenas os últimos 5)
 echo "🧹 Limpando backups antigos..."
 ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
@@ -486,6 +532,13 @@ PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
 API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
 FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
 BACKUP_DIR="/home/$(whoami)/rei-do-oleo/backups"
+
+# Criar e configurar arquivo de log de rollback
+if [ ! -f "$PROJECT_ROOT/rollback.log" ]; then
+    touch "$PROJECT_ROOT/rollback.log"
+    echo "✅ Arquivo de log de rollback criado: $PROJECT_ROOT/rollback.log"
+fi
+chmod 644 "$PROJECT_ROOT/rollback.log"
 
 # Função para listar backups disponíveis
 list_backups() {
@@ -527,6 +580,9 @@ rollback_api() {
     chmod 644 "$API_DIR/.env"
 
     echo "✅ Rollback da API concluído"
+
+    # Log da operação
+    echo "$(date): Rollback da API para $backup_name realizado com sucesso" >> "$PROJECT_ROOT/rollback.log"
 }
 
 # Função para fazer rollback do frontend
@@ -550,6 +606,9 @@ rollback_frontend() {
     chmod -R 755 "$FRONTEND_DIR"
 
     echo "✅ Rollback do frontend concluído"
+
+    # Log da operação
+    echo "$(date): Rollback do frontend para $backup_name realizado com sucesso" >> "$PROJECT_ROOT/rollback.log"
 }
 
 # Verificar argumentos
@@ -617,7 +676,15 @@ set -e
 echo "🧹 Iniciando limpeza de backups..."
 
 # Configurações
+PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
 BACKUP_DIR="/home/$(whoami)/rei-do-oleo/backups"
+
+# Criar e configurar arquivo de log de limpeza
+if [ ! -f "$PROJECT_ROOT/cleanup.log" ]; then
+    touch "$PROJECT_ROOT/cleanup.log"
+    echo "✅ Arquivo de log de limpeza criado: $PROJECT_ROOT/cleanup.log"
+fi
+chmod 644 "$PROJECT_ROOT/cleanup.log"
 
 # Função para limpar backups antigos
 cleanup_old_backups() {
@@ -654,17 +721,25 @@ cleanup_old_backups() {
             rm -rf "$backup"
         done
         echo "✅ Limpeza concluída"
+
+        # Log da operação
+        echo "$(date): Limpeza de backups do padrão $backup_pattern concluída - removidos $(echo "$backups_to_remove" | wc -l) backups" >> "$PROJECT_ROOT/cleanup.log"
     else
         echo "ℹ️ Nenhum backup para remover"
+
+        # Log da operação
+        echo "$(date): Limpeza de backups do padrão $backup_pattern - nenhum backup removido" >> "$PROJECT_ROOT/cleanup.log"
     fi
 }
 
 # Verificar argumentos
 if [ "$1" = "auto" ]; then
     # Limpeza automática (manter 5 backups de cada tipo)
+    echo "$(date): Iniciando limpeza automática de backups" >> "$PROJECT_ROOT/cleanup.log"
     cleanup_old_backups 5 "api_backup_*"
     cleanup_old_backups 5 "frontend_backup_*"
     cleanup_old_backups 5 "*_rollback_backup_*"
+    echo "$(date): Limpeza automática de backups concluída" >> "$PROJECT_ROOT/cleanup.log"
     exit 0
 fi
 
@@ -674,19 +749,24 @@ if [ "$1" = "all" ]; then
     read -p "Tem certeza? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "$(date): Removendo TODOS os backups" >> "$PROJECT_ROOT/cleanup.log"
         rm -rf "$BACKUP_DIR"/*
         echo "✅ Todos os backups foram removidos"
+        echo "$(date): Todos os backups removidos com sucesso" >> "$PROJECT_ROOT/cleanup.log"
     else
         echo "❌ Operação cancelada"
+        echo "$(date): Operação de remoção total cancelada pelo usuário" >> "$PROJECT_ROOT/cleanup.log"
     fi
     exit 0
 fi
 
 # Limpeza padrão (manter 3 backups de cada tipo)
 echo "🧹 Limpeza padrão de backups (manter 3 de cada tipo)..."
+echo "$(date): Iniciando limpeza padrão de backups" >> "$PROJECT_ROOT/cleanup.log"
 cleanup_old_backups 3 "api_backup_*"
 cleanup_old_backups 3 "frontend_backup_*"
 cleanup_old_backups 3 "*_rollback_backup_*"
+echo "$(date): Limpeza padrão de backups concluída" >> "$PROJECT_ROOT/cleanup.log"
 
 echo "✅ Limpeza concluída!"
 EOF
@@ -694,6 +774,52 @@ EOF
 # Tornar os scripts executáveis
 chmod +x "$PROJECT_ROOT/rollback.sh"
 chmod +x "$PROJECT_ROOT/cleanup-backups.sh"
+
+# Criar e configurar todos os arquivos de log necessários
+echo "📝 Configurando sistema de logs..."
+
+# Log principal de deploy
+if [ ! -f "$PROJECT_ROOT/deploy.log" ]; then
+    touch "$PROJECT_ROOT/deploy.log"
+    echo "✅ Arquivo de log de deploy criado: $PROJECT_ROOT/deploy.log"
+fi
+chmod 644 "$PROJECT_ROOT/deploy.log"
+
+# Log de rollback
+if [ ! -f "$PROJECT_ROOT/rollback.log" ]; then
+    touch "$PROJECT_ROOT/rollback.log"
+    echo "✅ Arquivo de log de rollback criado: $PROJECT_ROOT/rollback.log"
+fi
+chmod 644 "$PROJECT_ROOT/rollback.log"
+
+# Log de limpeza
+if [ ! -f "$PROJECT_ROOT/cleanup.log" ]; then
+    touch "$PROJECT_ROOT/cleanup.log"
+    echo "✅ Arquivo de log de limpeza criado: $PROJECT_ROOT/cleanup.log"
+fi
+chmod 644 "$PROJECT_ROOT/cleanup.log"
+
+# Log de webhook (para futuras implementações)
+if [ ! -f "$PROJECT_ROOT/webhook.log" ]; then
+    touch "$PROJECT_ROOT/webhook.log"
+    echo "✅ Arquivo de log de webhook criado: $PROJECT_ROOT/webhook.log"
+fi
+chmod 644 "$PROJECT_ROOT/webhook.log"
+
+# Log de erro geral
+if [ ! -f "$PROJECT_ROOT/error.log" ]; then
+    touch "$PROJECT_ROOT/error.log"
+    echo "✅ Arquivo de log de erro criado: $PROJECT_ROOT/error.log"
+fi
+chmod 644 "$PROJECT_ROOT/error.log"
+
+echo "✅ Sistema de logs configurado com sucesso!"
+echo "📋 Arquivos de log criados:"
+echo "   - deploy.log: Logs de deploy automático"
+echo "   - rollback.log: Logs de operações de rollback"
+echo "   - cleanup.log: Logs de limpeza de backups"
+echo "   - webhook.log: Logs de webhooks (futuro)"
+echo "   - error.log: Logs de erros gerais"
 
 echo "✅ Git hook configurado em: $PROJECT_ROOT/.git/hooks/post-receive"
 echo "✅ Script de deploy incremental criado em: $PROJECT_ROOT/deploy.sh"
@@ -779,3 +905,11 @@ echo ""
 echo "11. Se houver problemas de memória:"
 echo "   cd $PROJECT_ROOT"
 echo "   ./scripts/fix-memory-issues.sh"
+echo ""
+echo "12. Para monitorar logs do sistema:"
+echo "   cd $PROJECT_ROOT"
+echo "   tail -f deploy.log                    # Logs de deploy em tempo real"
+echo "   tail -f rollback.log                  # Logs de rollback em tempo real"
+echo "   tail -f cleanup.log                   # Logs de limpeza em tempo real"
+echo "   tail -f error.log                     # Logs de erro em tempo real"
+echo "   tail -f $API_DIR/storage/logs/laravel.log  # Logs da aplicação Laravel"
