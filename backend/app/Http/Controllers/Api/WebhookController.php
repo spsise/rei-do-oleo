@@ -115,7 +115,7 @@ class WebhookController extends Controller
             Log::info('Webhook: Deploy process completed successfully', [
                 'exit_code' => $process->getExitCode(),
                 'output' => $process->getOutput(),
-                'deploy_script' => $deployScript
+                //'deploy_script' => $deployScript
             ]);
 
             return response()->json([
