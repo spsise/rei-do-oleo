@@ -124,7 +124,8 @@ class WebhookController extends Controller
                 'branch' => 'hostinger-hom',
                 'commit' => $payload['head_commit']['id'] ?? 'unknown',
                 'exit_code' => $process->getExitCode(),
-                'output' => $process->getOutput()
+                'output' => $process->getOutput(),
+                'deploy_script' => $deployScript
             ]);
 
         } catch (\Exception $e) {
