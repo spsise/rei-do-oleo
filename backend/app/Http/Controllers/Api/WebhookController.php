@@ -121,12 +121,12 @@ class WebhookController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Deployment completed successfully',
-                'branch' => 'hostinger-hom',
-                'commit' => $payload['head_commit']['id'] ?? 'unknown',
-                'exit_code' => $process->getExitCode(),
-                'output' => $process->getOutput(),
-                'deploy_script' => $deployScript,
-                'process_id' => $process->getPid()
+                // 'branch' => 'hostinger-hom',
+                // 'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                // 'exit_code' => $process->getExitCode(),
+                // 'output' => $process->getOutput(),
+                // 'deploy_script' => $deployScript,
+                // 'process_id' => $process->getPid()
             ]);
 
         } catch (\Exception $e) {
