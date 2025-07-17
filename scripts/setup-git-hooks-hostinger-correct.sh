@@ -259,6 +259,12 @@ if [ -d "backend" ]; then
         fi
     fi
 
+    # Copiar .env do diretório de produção existente (prioridade sobre backup)
+    if [ -f "$API_DIR/.env" ]; then
+        echo "📋 Copiando .env do diretório de produção..."
+        cp "$API_DIR/.env" "$TEMP_API_DIR/"
+    fi
+
     # Verificar se vendor foi copiado com sucesso
     echo "📦 Verificando dependências..."
     if [ -d "$TEMP_API_DIR/vendor" ]; then
@@ -286,11 +292,13 @@ if [ -d "backend" ]; then
         exit 1
     fi
 
-    # Configurar ambiente se não existir
+    # Verificar se .env foi restaurado do backup, senão criar um novo
     if [ ! -f ".env" ]; then
         echo "⚙️ Criando arquivo .env..."
         cp .env.example .env
         php artisan key:generate
+    else
+        echo "✅ Usando .env existente do backup"
     fi
 
     # Otimizar para produção
@@ -314,24 +322,36 @@ if [ -d "backend" ]; then
     rm -rf storage/framework/sessions/* 2>/dev/null || true
     rm -rf storage/framework/views/* 2>/dev/null || true
 
+    # Garantir permissões corretas para logs
+    chmod -R 755 storage/logs
+
     # Configurar .htaccess para API
     cat > .htaccess << 'HTACCESS'
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^ index.php [L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# Security headers
-Header always set X-Content-Type-Options nosniff
-Header always set X-Frame-Options DENY
-Header always set X-XSS-Protection "1; mode=block"
-Header always set Access-Control-Allow-Origin "*"
-Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    # Redireciona tudo para public/index.php
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ public/index.php [L]
+
+    # Protege arquivos sensíveis
+    <FilesMatch "\.(env|env\.example|gitignore|gitattributes|git|lock|json|md|yml|yaml|xml|sh|bat|ini|log|sql|bak|zip|tar|gz|rar|7z)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection 1; mode=block"
+</IfModule>
 HTACCESS
 
     # Configurar permissões
     chmod -R 755 storage
+    chmod -R 755 storage/logs
     chmod -R 755 bootstrap/cache
     chmod 644 .env
 
@@ -349,6 +369,8 @@ HTACCESS
     fi
 
     echo "✅ Backend Laravel configurado em api-hom.virtualt.com.br"
+    echo "ℹ️ Para ver os logs da aplicação, acesse: $API_DIR/storage/logs/laravel.log"
+    echo "ℹ️ Para ver o log do deploy, acesse: $PROJECT_ROOT/deploy.log"
 fi
 
 cd "$PROJECT_ROOT"
@@ -364,17 +386,16 @@ if [ -d "frontend" ]; then
 
     cd frontend
 
-    # Instalar dependências
-    echo "📦 Instalando dependências..."
-    npm ci
-
-    # Build para produção
-    echo "🔨 Fazendo build para produção..."
-    npm run build
-
-    # Mover arquivos buildados para o diretório temporário
-    echo "📋 Copiando arquivos buildados..."
-    cp -r dist/* "$TEMP_FRONTEND_DIR/"
+    # Verificar se existe build local do frontend
+    if [ -d "dist" ]; then
+        echo "📋 Usando build local existente..."
+        cp -r dist/* "$TEMP_FRONTEND_DIR/"
+    else
+        echo "⚠️ Build local não encontrado. Execute npm run build no frontend antes do deploy."
+        echo "   Comandos: cd frontend && npm install && npm run build"
+        echo "❌Deploy do frontend interrompido - build necessário"
+        exit 1
+    fi
 
     # Limpar arquivos de desenvolvimento
     echo "🧹 Limpando arquivos de desenvolvimento..."
