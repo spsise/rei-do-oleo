@@ -125,7 +125,8 @@ class WebhookController extends Controller
                 'commit' => $payload['head_commit']['id'] ?? 'unknown',
                 'exit_code' => $process->getExitCode(),
                 'output' => $process->getOutput(),
-                'deploy_script' => $deployScript
+                'deploy_script' => $deployScript,
+                'process_id' => $process->getPid()
             ]);
 
         } catch (\Exception $e) {
