@@ -222,6 +222,17 @@ if [ -d "backend" ]; then
     echo "📋 Copiando arquivos do backend..."
     cp -r backend/* "$TEMP_API_DIR/"
 
+    # Copiar arquivos ocultos importantes (que começam com .)
+    echo "📋 Copiando arquivos ocultos importantes..."
+    cp backend/.env.example "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/.env.testing.example "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/.gitignore "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/.gitattributes "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/.editorconfig "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/phpunit.xml "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/vite.config.js "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/package.json "$TEMP_API_DIR/" 2>/dev/null || true
+
     # Copiar vendor do diretório original (se existir)
     if [ -d "$API_DIR/vendor" ]; then
         echo "📦 Copiando vendor do diretório original..."
@@ -284,6 +295,9 @@ if [ -d "backend" ]; then
 
     # Otimizar para produção
     echo "⚡ Otimizando para produção..."
+    # Garantir que o diretório de views compiladas existe
+    mkdir -p storage/framework/views
+    chmod -R 755 storage
     php artisan config:cache
     php artisan route:cache
     php artisan view:cache
