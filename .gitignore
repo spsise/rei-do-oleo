@@ -212,3 +212,4 @@ public/storage
 .vagrant/
 Vagrantfile.local
 mix-manifest.json
+deploy.sh
