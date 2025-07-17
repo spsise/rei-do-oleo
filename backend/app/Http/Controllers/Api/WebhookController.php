@@ -107,9 +107,9 @@ class WebhookController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Deployment started successfully',
-                'branch' => 'hostinger-hom',
-                'commit' => $payload['head_commit']['id'] ?? 'unknown',
-                'process_id' => $process->getPid(),
+                //'branch' => 'hostinger-hom',
+                //'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                //'process_id' => $process->getPid(),
             ]);
 
         } catch (\Exception $e) {
