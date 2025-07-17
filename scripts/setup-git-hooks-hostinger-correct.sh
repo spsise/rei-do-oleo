@@ -144,6 +144,15 @@ chmod 644 "$PROJECT_ROOT/deploy.log"
 
 cd "$PROJECT_ROOT"
 
+# ATUALIZAR REPOSITÓRIO LOCAL COM AS MUDANÇAS DO GITHUB
+echo "📥 Atualizando repositório local..."
+git fetch origin
+git reset --hard origin/hostinger-hom
+echo "✅ Repositório atualizado com sucesso"
+
+# Log do deploy
+echo "$(date): Deploy iniciado - repositório atualizado" >> "$PROJECT_ROOT/deploy.log"
+
 # Função para fazer backup de arquivos importantes
 backup_important_files() {
     local target_dir="$1"
@@ -499,8 +508,8 @@ echo "🎉 Deploy incremental concluído com sucesso!"
 echo "🌐 Frontend: https://app-hom.virtualt.com.br"
 echo "🔗 API: https://api-hom.virtualt.com.br"
 
-# Log do deploy
-echo "$(date): Deploy incremental realizado com sucesso" >> "$PROJECT_ROOT/deploy.log"
+# Log do deploy com informações detalhadas
+echo "$(date): Deploy incremental realizado com sucesso - Repositório atualizado via git pull" >> "$PROJECT_ROOT/deploy.log"
 
 # Configurar permissões do arquivo de log
 if [ -f "$PROJECT_ROOT/deploy.log" ]; then
