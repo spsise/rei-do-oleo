@@ -72,45 +72,59 @@ class WebhookController extends Controller
                 ], 500);
             }
 
-            // Create process to run deploy script
+            // Check if script is executable
+            if (!is_executable($deployScript)) {
+                Log::warning('Webhook: Deploy script not executable, making it executable', ['script' => $deployScript]);
+                chmod($deployScript, 0755);
+            }
+
+            // Create process to run deploy script with better error handling
             $process = new Process(['bash', $deployScript]);
             $process->setWorkingDirectory('/home/' . get_current_user() . '/rei-do-oleo');
+            $process->setTimeout(300); // 5 minutes timeout
+            $process->setIdleTimeout(60); // 1 minute idle timeout
 
-            // Start the process in background
+            // Start the process and capture output
             $process->start(function ($type, $buffer) {
                 if ($type === Process::ERR) {
-                    Log::error('Webhook: Deploy error', ['output' => $buffer]);
+                    Log::error('Webhook: Deploy error', ['output' => trim($buffer)]);
                 } else {
-                    Log::info('Webhook: Deploy output', ['output' => $buffer]);
+                    Log::info('Webhook: Deploy output', ['output' => trim($buffer)]);
                 }
             });
 
-            // Wait a bit to see if process starts successfully
-            sleep(2);
+            // Wait for process to complete
+            $process->wait();
 
-            if (!$process->isRunning()) {
-                Log::error('Webhook: Deploy process failed to start', [
+            // Check if process completed successfully
+            if (!$process->isSuccessful()) {
+                Log::error('Webhook: Deploy process failed', [
                     'exit_code' => $process->getExitCode(),
-                    'error_output' => $process->getErrorOutput()
+                    'error_output' => $process->getErrorOutput(),
+                    'output' => $process->getOutput()
                 ]);
 
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Deploy process failed to start'
+                    'message' => 'Deploy process failed',
+                    'exit_code' => $process->getExitCode(),
+                    'error' => $process->getErrorOutput()
                 ], 500);
             }
 
-            Log::info('Webhook: Deploy process started successfully', [
-                'pid' => $process->getPid(),
+            Log::info('Webhook: Deploy process completed successfully', [
+                'exit_code' => $process->getExitCode(),
+                'output' => $process->getOutput(),
                 'deploy_script' => $deployScript
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Deployment started successfully',
-                //'branch' => 'hostinger-hom',
-                //'commit' => $payload['head_commit']['id'] ?? 'unknown',
-                //'process_id' => $process->getPid(),
+                'message' => 'Deployment completed successfully',
+                'branch' => 'hostinger-hom',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                'exit_code' => $process->getExitCode(),
+                'output' => $process->getOutput()
             ]);
 
         } catch (\Exception $e) {
@@ -133,11 +147,17 @@ class WebhookController extends Controller
      */
     public function health()
     {
+        $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh';
+        
         return response()->json([
             'status' => 'healthy',
             'message' => 'Webhook endpoint is working',
             'timestamp' => now()->toISOString(),
-            'deploy_script_exists' => file_exists('/home/' . get_current_user() . '/rei-do-oleo/deploy.sh')
+            'deploy_script_exists' => file_exists($deployScript),
+            'deploy_script_executable' => file_exists($deployScript) ? is_executable($deployScript) : false,
+            'deploy_script_path' => $deployScript,
+            'current_user' => get_current_user(),
+            'working_directory' => getcwd()
         ]);
     }
 }
