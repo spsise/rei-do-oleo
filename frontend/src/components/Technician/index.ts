@@ -1,7 +1,13 @@
 export { ClientInfoCard } from './ClientInfoCard';
+export { ClientSearchContainer } from './ClientSearchContainer';
+export { ClientSearchContent } from './ClientSearchContent';
 export { ClientSearchForm } from './ClientSearchForm';
+export { ClientSearchHeader } from './ClientSearchHeader';
 export { ClientSearchResults } from './ClientSearchResults';
+export { ClientStatisticsCard } from './ClientStatisticsCard';
 export { NewServiceModal } from './NewServiceModal';
 export { RecentServicesCard } from './RecentServicesCard';
+export { StatisticItem } from './StatisticItem';
+export { StatisticsIcon } from './StatisticsIcon';
 export { TechnicianHeader } from './TechnicianHeader';
 export { VehicleListCard } from './VehicleListCard';
