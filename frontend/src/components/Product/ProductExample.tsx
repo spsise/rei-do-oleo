@@ -123,7 +123,7 @@ export const ProductExample: React.FC = () => {
             selectedProductIds={selectedProducts}
             title="Catálogo Completo"
             showFilters={true}
-            compact={false}
+            compact={true}
           />
         </div>
 
@@ -150,7 +150,7 @@ export const ProductExample: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             3. ProductCard Compacto
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {mockProducts.map((product) => (
               <ProductCard
                 key={product.id}

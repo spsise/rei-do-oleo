@@ -70,6 +70,7 @@ export const ServiceProductsTab: React.FC<ServiceProductsTabProps> = ({
         selectedProductIds={
           serviceData.items?.map((item) => item.product_id) || []
         }
+        compact={true}
       />
 
       {/* Resumo Financeiro */}
