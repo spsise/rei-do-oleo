@@ -36,11 +36,18 @@ return [
     ],
 
     'whatsapp' => [
+        'enabled' => env('WHATSAPP_ENABLED', true),
         'api_url' => env('WHATSAPP_API_URL', 'https://graph.facebook.com'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'version' => env('WHATSAPP_VERSION', 'v18.0'),
         'deploy_recipients' => explode(',', env('WHATSAPP_DEPLOY_RECIPIENTS', '')),
+    ],
+
+    'telegram' => [
+        'enabled' => env('TELEGRAM_ENABLED', true),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'recipients' => explode(',', env('TELEGRAM_RECIPIENTS', '')),
     ],
 
 ];

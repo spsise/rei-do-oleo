@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Notifications\DeployNotification;
 use App\Services\WhatsAppService;
+use App\Services\UnifiedNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -155,7 +156,7 @@ class WebhookController extends Controller
     }
 
     /**
-     * Send deploy notification via WhatsApp
+     * Send deploy notification via unified service
      *
      * @param string $status
      * @param array $payload
@@ -174,25 +175,26 @@ class WebhookController extends Controller
                 'output' => $output
             ];
 
-            // Send notification using WhatsApp service directly
-            $whatsappService = app(WhatsAppService::class);
-            $result = $whatsappService->sendDeployNotification($deployData);
+            // Send notification using unified service
+            $notificationService = app(UnifiedNotificationService::class);
+            $result = $notificationService->sendDeployNotification($deployData);
 
             if ($result['success']) {
-                Log::info('Deploy WhatsApp notification sent successfully', [
+                Log::info('Deploy notification sent successfully', [
                     'status' => $status,
-                    'sent_to' => $result['sent_to'],
-                    'total_recipients' => $result['total_recipients']
+                    'sent_to_channels' => $result['sent_to_channels'],
+                    'total_channels' => $result['total_channels'],
+                    'channels' => array_keys(array_filter($result['results'], fn($r) => $r['success']))
                 ]);
             } else {
-                Log::error('Failed to send deploy WhatsApp notification', [
+                Log::error('Failed to send deploy notification', [
                     'status' => $status,
-                    'error' => $result['error'] ?? 'Unknown error'
+                    'results' => $result['results']
                 ]);
             }
 
         } catch (\Exception $e) {
-            Log::error('Exception sending deploy WhatsApp notification', [
+            Log::error('Exception sending deploy notification', [
                 'error' => $e->getMessage(),
                 'status' => $status
             ]);

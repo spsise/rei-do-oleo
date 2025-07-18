@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\TechnicianController;
 use App\Http\Controllers\Api\AttendantServiceController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\UnifiedNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -312,6 +313,18 @@ Route::prefix('notifications')->group(function () {
     Route::post('/whatsapp/order', [NotificationController::class, 'sendOrderNotification']); // POST /api/notifications/whatsapp/order
     Route::post('/whatsapp/stock-alert', [NotificationController::class, 'sendStockAlert']);   // POST /api/notifications/whatsapp/stock-alert
     Route::get('/whatsapp/test-connection', [NotificationController::class, 'testConnection']); // GET /api/notifications/whatsapp/test-connection
+});
+
+// =============================================================================
+// UNIFIED NOTIFICATION ROUTES (Multi-channel notifications)
+// =============================================================================
+Route::prefix('unified-notifications')->group(function () {
+    Route::post('/send-message', [UnifiedNotificationController::class, 'sendMessage']);           // POST /api/unified-notifications/send-message
+    Route::post('/system-alert', [UnifiedNotificationController::class, 'sendSystemAlert']);       // POST /api/unified-notifications/system-alert
+    Route::post('/deploy', [UnifiedNotificationController::class, 'sendDeployNotification']);      // POST /api/unified-notifications/deploy
+    Route::get('/test-channels', [UnifiedNotificationController::class, 'testChannels']);          // GET /api/unified-notifications/test-channels
+    Route::get('/channels', [UnifiedNotificationController::class, 'getChannels']);                // GET /api/unified-notifications/channels
+    Route::get('/test-channel/{channel}', [UnifiedNotificationController::class, 'testChannel']); // GET /api/unified-notifications/test-channel/{channel}
 });
 
 // Fallback Route
