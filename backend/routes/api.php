@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\AttendantServiceController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UnifiedNotificationController;
+use App\Http\Controllers\Api\TelegramWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -325,6 +326,17 @@ Route::prefix('unified-notifications')->group(function () {
     Route::get('/test-channels', [UnifiedNotificationController::class, 'testChannels']);          // GET /api/unified-notifications/test-channels
     Route::get('/channels', [UnifiedNotificationController::class, 'getChannels']);                // GET /api/unified-notifications/channels
     Route::get('/test-channel/{channel}', [UnifiedNotificationController::class, 'testChannel']); // GET /api/unified-notifications/test-channel/{channel}
+});
+
+// =============================================================================
+// TELEGRAM BOT ROUTES
+// =============================================================================
+Route::prefix('telegram')->group(function () {
+    Route::post('/webhook', [TelegramWebhookController::class, 'handle']);                         // POST /api/telegram/webhook
+    Route::post('/set-webhook', [TelegramWebhookController::class, 'setWebhook']);                  // POST /api/telegram/set-webhook
+    Route::get('/webhook-info', [TelegramWebhookController::class, 'getWebhookInfo']);              // GET /api/telegram/webhook-info
+    Route::delete('/webhook', [TelegramWebhookController::class, 'deleteWebhook']);                 // DELETE /api/telegram/webhook
+    Route::post('/test', [TelegramWebhookController::class, 'test']);                               // POST /api/telegram/test
 });
 
 // Fallback Route
