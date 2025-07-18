@@ -180,6 +180,16 @@ class TechnicianService {
       )
     );
   }
+
+  async getCategories(): Promise<
+    ApiResponse<Array<{ id: number; name: string }>>
+  > {
+    return apiCall(() =>
+      httpClient.instance.get<ApiResponse<Array<{ id: number; name: string }>>>(
+        '/products/categories'
+      )
+    );
+  }
 }
 
 export const technicianService = new TechnicianService();

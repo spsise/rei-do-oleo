@@ -45,6 +45,9 @@ export const useTechnician = () => {
 
   // Estados para produtos
   const [products, setProducts] = useState<TechnicianProduct[]>([]);
+  const [categories, setCategories] = useState<
+    Array<{ id: number; name: string }>
+  >([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState('');
 
@@ -102,8 +105,9 @@ export const useTechnician = () => {
         client_id: searchResult.client.id || 0,
       }));
       setShowNewServiceForm(true);
-      // Carregar produtos ativos
+      // Carregar produtos ativos e categorias
       loadActiveProducts();
+      loadCategories();
     }
   };
 
@@ -184,7 +188,22 @@ export const useTechnician = () => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const response = await technicianService.getCategories();
+      if (response.status === 'success' && response.data) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      toast.error('Erro ao carregar categorias');
+    }
+  };
+
   const searchProducts = async (search: string) => {
+    // Atualizar o termo de busca no estado
+    setProductSearchTerm(search);
+
     if (!search.trim()) {
       loadActiveProducts();
       return;
@@ -323,6 +342,7 @@ export const useTechnician = () => {
     isCreatingService,
     newServiceData,
     products,
+    categories,
     isLoadingProducts,
     productSearchTerm,
 

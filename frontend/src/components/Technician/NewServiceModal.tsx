@@ -1,4 +1,6 @@
 import {
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
   CalendarIcon,
   ClockIcon,
   CurrencyDollarIcon,
@@ -15,7 +17,7 @@ import {
   type TechnicianProduct,
   type TechnicianVehicle,
 } from '../../types/technician';
-import { ProductSelector } from './ProductSelector';
+import { ProductSelectionModal } from './ProductSelectionModal';
 import { ServiceItemsList } from './ServiceItemsList';
 
 interface NewServiceModalProps {
@@ -28,10 +30,10 @@ interface NewServiceModalProps {
   isLoading?: boolean;
   // Props para produtos
   products: TechnicianProduct[];
+  categories: Array<{ id: number; name: string }>;
   isLoadingProducts: boolean;
   productSearchTerm: string;
   onProductSearch: (search: string) => void;
-  onProductSearchTermChange: (term: string) => void;
   onAddProduct: (
     product: TechnicianProduct,
     quantity: number,
@@ -54,10 +56,10 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
   onSubmit,
   isLoading = false,
   products,
+  categories,
   isLoadingProducts,
   productSearchTerm,
   onProductSearch,
-  onProductSearchTermChange,
   onAddProduct,
   onRemoveProduct,
   onUpdateProductQuantity,
@@ -67,6 +69,8 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
   calculateFinalTotal,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'products'>('details');
+  const [showProductSelection, setShowProductSelection] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const formatLicensePlate = (plate: string) => {
     if (!plate) return 'N/A';
@@ -84,7 +88,13 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-modalFadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto animate-modalSlideInUp">
+      <div
+        className={`bg-white rounded-2xl shadow-2xl overflow-hidden animate-modalSlideInUp transition-all duration-300 ${
+          isMaximized
+            ? 'w-full h-full max-w-none max-h-none rounded-none'
+            : 'w-full max-w-6xl max-h-[90vh]'
+        }`}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white rounded-t-2xl p-6 border-b border-gray-100 z-10">
           <div className="flex items-center justify-between">
@@ -101,13 +111,26 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsMaximized(!isMaximized)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title={isMaximized ? 'Restaurar' : 'Maximizar'}
+              >
+                {isMaximized ? (
+                  <ArrowsPointingInIcon className="h-5 w-5" />
+                ) : (
+                  <ArrowsPointingOutIcon className="h-5 w-5" />
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                disabled={isLoading}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -138,7 +161,9 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div
+          className={`p-6 ${isMaximized ? 'h-[calc(100vh-200px)] overflow-y-auto' : 'max-h-[60vh] overflow-y-auto'}`}
+        >
           {activeTab === 'details' ? (
             <div className="space-y-6">
               {/* Seleção de Veículo */}
@@ -398,23 +423,30 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Seletor de Produtos */}
-              <ProductSelector
-                products={products}
-                isLoading={isLoadingProducts}
-                onSearch={onProductSearch}
-                onAddProduct={onAddProduct}
-                searchTerm={productSearchTerm}
-                onSearchTermChange={onProductSearchTermChange}
-              />
-
-              {/* Lista de Itens */}
+              {/* Lista de Itens (Carrinho) */}
               <ServiceItemsList
                 items={serviceData.items || []}
                 onRemoveItem={onRemoveProduct}
                 onUpdateQuantity={onUpdateProductQuantity}
                 onUpdatePrice={onUpdateProductPrice}
                 onUpdateNotes={onUpdateProductNotes}
+                onAddProduct={() => setShowProductSelection(true)}
+                isLoading={isLoading}
+              />
+
+              {/* Modal de Seleção de Produtos */}
+              <ProductSelectionModal
+                isOpen={showProductSelection}
+                onClose={() => setShowProductSelection(false)}
+                products={products}
+                categories={categories}
+                isLoading={isLoadingProducts}
+                searchTerm={productSearchTerm}
+                onSearch={onProductSearch}
+                onAddProduct={onAddProduct}
+                selectedProductIds={
+                  serviceData.items?.map((item) => item.product_id) || []
+                }
               />
 
               {/* Resumo Financeiro */}

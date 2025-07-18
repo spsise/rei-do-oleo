@@ -19,6 +19,7 @@ export const TechnicianPage: React.FC = () => {
     isCreatingService,
     newServiceData,
     products,
+    categories,
     isLoadingProducts,
     productSearchTerm,
 
@@ -27,7 +28,6 @@ export const TechnicianPage: React.FC = () => {
     setSearchValue,
     setNewServiceData,
     setShowNewServiceForm,
-    setProductSearchTerm,
     handleSearch,
     handleVoiceResult,
     handleCreateNewService,
@@ -169,10 +169,10 @@ export const TechnicianPage: React.FC = () => {
           isLoading={isCreatingService}
           // Props para produtos
           products={products}
+          categories={categories}
           isLoadingProducts={isLoadingProducts}
           productSearchTerm={productSearchTerm}
           onProductSearch={searchProducts}
-          onProductSearchTermChange={setProductSearchTerm}
           onAddProduct={addProductToService}
           onRemoveProduct={removeProductFromService}
           onUpdateProductQuantity={updateServiceItemQuantity}
