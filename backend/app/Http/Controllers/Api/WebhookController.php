@@ -125,7 +125,7 @@ class WebhookController extends Controller
                 //'deploy_script' => $deployScript
             ]);
 
-            // Send WhatsApp notification for successful deploy
+            // Send WhatsApp notification for successful deploy (Telegram)
             $this->sendDeployNotification('success', $payload, $process->getOutput());
 
             return response()->json([
