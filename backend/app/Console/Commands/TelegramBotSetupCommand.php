@@ -125,8 +125,16 @@ class TelegramBotSetupCommand extends Command
 
                 if ($data['ok']) {
                     $this->info("✅ Webhook set successfully");
-                    $this->info("Webhook URL: {$data['result']['url']}");
-                    $this->info("Pending updates: {$data['result']['pending_update_count']}");
+
+                    // Verificar se há informações adicionais na resposta
+                    if (isset($data['result']) && is_array($data['result'])) {
+                        if (isset($data['result']['url'])) {
+                            $this->info("Webhook URL: {$data['result']['url']}");
+                        }
+                        if (isset($data['result']['pending_update_count'])) {
+                            $this->info("Pending updates: {$data['result']['pending_update_count']}");
+                        }
+                    }
                 } else {
                     $this->error("❌ Failed to set webhook");
                     $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
