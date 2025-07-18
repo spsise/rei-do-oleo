@@ -122,6 +122,20 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
     onClose();
   };
 
+  const getWarnings = () => {
+    return validationResult?.warnings &&
+      Array.isArray(validationResult.warnings)
+      ? (validationResult.warnings as string[])
+      : [];
+  };
+
+  const getSuggestions = () => {
+    return validationResult?.suggestions &&
+      Array.isArray(validationResult.suggestions)
+      ? (validationResult.suggestions as string[])
+      : [];
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -374,27 +388,23 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
                 </span>
               </div>
 
-              {validationResult.warnings.length > 0 && (
+              {getWarnings().length > 0 && (
                 <div className="space-y-1">
-                  {validationResult.warnings.map(
-                    (warning: string, index: number) => (
-                      <p key={index} className="text-sm text-red-700">
-                        ⚠️ {warning}
-                      </p>
-                    )
-                  )}
+                  {getWarnings().map((warning: string, index: number) => (
+                    <div key={index} className="text-sm text-red-700">
+                      ⚠️ {warning}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {validationResult.suggestions.length > 0 && (
+              {getSuggestions().length > 0 && (
                 <div className="space-y-1 mt-2">
-                  {validationResult.suggestions.map(
-                    (suggestion: string, index: number) => (
-                      <p key={index} className="text-sm text-blue-700">
-                        💡 {suggestion}
-                      </p>
-                    )
-                  )}
+                  {getSuggestions().map((suggestion: string, index: number) => (
+                    <div key={index} className="text-sm text-blue-700">
+                      💡 {suggestion}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

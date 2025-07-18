@@ -27,10 +27,10 @@ export const ClientSearchHeader: React.FC<ClientSearchHeaderProps> = ({
           <h2 className="text-lg sm:text-xl font-bold text-gray-900">
             Cliente Encontrado
           </h2>
-          <p className="text-sm text-green-600 font-medium flex items-center gap-2">
+          <div className="text-sm text-green-600 font-medium flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
             Dados carregados
-          </p>
+          </div>
         </div>
       </div>
 

@@ -289,7 +289,7 @@ export const StockUpdateForm: React.FC<StockUpdateFormProps> = ({
                     </div>
                   </div>
                   {errors.quantity && (
-                    <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <div className="text-red-500 text-xs mt-1 flex items-center">
                       <svg
                         className="w-3 h-3 mr-1"
                         fill="currentColor"
@@ -302,7 +302,7 @@ export const StockUpdateForm: React.FC<StockUpdateFormProps> = ({
                         />
                       </svg>
                       {errors.quantity}
-                    </p>
+                    </div>
                   )}
                 </div>
 

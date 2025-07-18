@@ -47,6 +47,20 @@ export const ServiceValidation: React.FC = () => {
     });
   };
 
+  const getWarnings = () => {
+    return validationResult?.warnings &&
+      Array.isArray(validationResult.warnings)
+      ? (validationResult.warnings as string[])
+      : [];
+  };
+
+  const getSuggestions = () => {
+    return validationResult?.suggestions &&
+      Array.isArray(validationResult.suggestions)
+      ? (validationResult.suggestions as string[])
+      : [];
+  };
+
   const getValidationStatus = () => {
     if (!validationResult) return 'idle';
     return validationResult.is_valid ? 'valid' : 'invalid';
@@ -222,35 +236,31 @@ export const ServiceValidation: React.FC = () => {
                   : 'Serviço Inválido'}
               </h4>
 
-              {validationResult.warnings.length > 0 && (
+              {getWarnings().length > 0 && (
                 <div className="mt-2 space-y-1">
-                  {validationResult.warnings.map(
-                    (warning: string, index: number) => (
-                      <p
-                        key={index}
-                        className="text-sm text-red-700 flex items-start gap-1"
-                      >
-                        <ExclamationTriangleIcon className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                        {warning}
-                      </p>
-                    )
-                  )}
+                  {getWarnings().map((warning: string, index: number) => (
+                    <div
+                      key={index}
+                      className="text-sm text-red-700 flex items-start gap-1"
+                    >
+                      <ExclamationTriangleIcon className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      {warning}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {validationResult.suggestions.length > 0 && (
+              {getSuggestions().length > 0 && (
                 <div className="mt-2 space-y-1">
-                  {validationResult.suggestions.map(
-                    (suggestion: string, index: number) => (
-                      <p
-                        key={index}
-                        className="text-sm text-blue-700 flex items-start gap-1"
-                      >
-                        <InformationCircleIcon className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                        {suggestion}
-                      </p>
-                    )
-                  )}
+                  {getSuggestions().map((suggestion: string, index: number) => (
+                    <div
+                      key={index}
+                      className="text-sm text-blue-700 flex items-start gap-1"
+                    >
+                      <InformationCircleIcon className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      {suggestion}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

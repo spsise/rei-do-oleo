@@ -75,7 +75,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <span className="text-2xl font-bold text-gray-900">{value}</span>
             {trend && (
               <span
                 className={`text-sm font-medium ${

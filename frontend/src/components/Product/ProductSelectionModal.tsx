@@ -147,7 +147,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 bg-white rounded-b-2xl p-6 border-t border-gray-100">
+          <div className="sticky bottom-0 bg-white rounded-b-2xl px-3 py-2 border-t border-gray-100">
             <div className="flex justify-between items-center">
               <div className="text-sm text-gray-600">
                 {filteredProducts.length}{' '}
@@ -163,7 +163,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 font-medium"
+                  className="px-4 py-1 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 font-medium"
                 >
                   Fechar
                 </button>

@@ -177,9 +177,9 @@ export const RecentServices: React.FC = () => {
               {/* Service Notes (if any) */}
               {service.notes && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-600 italic">
+                  <span className="text-xs text-gray-600 italic">
                     "{service.notes}"
-                  </p>
+                  </span>
                 </div>
               )}
             </div>

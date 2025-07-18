@@ -41,7 +41,11 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
   const stockStatus = getStockStatus(product.stock_quantity || 0);
   const isOutOfStock = (product.stock_quantity || 0) <= 0;
 
-  const handleAddToCart = (quantity: number, notes?: string) => {
+  const handleAddToCart = (
+    product: TechnicianProduct,
+    quantity: number,
+    notes?: string
+  ) => {
     onAddToCart(product, quantity, notes);
     setShowAddModal(false);
   };
@@ -134,22 +138,24 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">Preço:</span>
-                      <p className="font-semibold text-green-600">
+                      <span className="font-semibold text-green-600">
                         {formatPrice(product.price || 0)}
-                      </p>
+                      </span>
                     </div>
                     <div>
                       <span className="text-gray-500">Estoque:</span>
-                      <p className="font-medium">
+                      <span className="font-medium">
                         {product.stock_quantity || 0} unidades
-                      </p>
+                      </span>
                     </div>
                   </div>
 
                   {product.category && (
                     <div>
                       <span className="text-gray-500 text-sm">Categoria:</span>
-                      <p className="font-medium">{product.category.name}</p>
+                      <span className="font-medium">
+                        {product.category.name}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -273,22 +279,22 @@ export const ProductQuickView: React.FC<ProductQuickViewProps> = ({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Preço:</span>
-                    <p className="font-semibold text-green-600">
+                    <span className="font-semibold text-green-600">
                       {formatPrice(product.price || 0)}
-                    </p>
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Estoque:</span>
-                    <p className="font-medium">
+                    <span className="font-medium">
                       {product.stock_quantity || 0} unidades
-                    </p>
+                    </span>
                   </div>
                 </div>
 
                 {product.category && (
                   <div>
                     <span className="text-gray-500 text-sm">Categoria:</span>
-                    <p className="font-medium">{product.category.name}</p>
+                    <span className="font-medium">{product.category.name}</span>
                   </div>
                 )}
               </div>

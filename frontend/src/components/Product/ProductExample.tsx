@@ -90,12 +90,14 @@ export const ProductExample: React.FC = () => {
                 >
                   <div>
                     <h4 className="font-medium">{item.product.name}</h4>
-                    <p className="text-sm text-gray-600">
+                    <span className="text-sm text-gray-600">
                       Qtd: {item.quantity} - R${' '}
                       {(item.product.price * item.quantity).toFixed(2)}
-                    </p>
+                    </span>
                     {item.notes && (
-                      <p className="text-xs text-gray-500">Obs: {item.notes}</p>
+                      <span className="text-xs text-gray-500">
+                        Obs: {item.notes}
+                      </span>
                     )}
                   </div>
                   <button
