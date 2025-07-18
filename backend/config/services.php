@@ -36,7 +36,7 @@ return [
     ],
 
     'whatsapp' => [
-        'enabled' => env('WHATSAPP_ENABLED', true),
+        'enabled' => env('WHATSAPP_ENABLED', false),
         'api_url' => env('WHATSAPP_API_URL', 'https://graph.facebook.com'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
@@ -45,7 +45,7 @@ return [
     ],
 
     'telegram' => [
-        'enabled' => env('TELEGRAM_ENABLED', true),
+        'enabled' => env('TELEGRAM_ENABLED', false),
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'recipients' => explode(',', env('TELEGRAM_RECIPIENTS', '')),
     ],
