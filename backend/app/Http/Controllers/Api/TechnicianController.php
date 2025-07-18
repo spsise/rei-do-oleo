@@ -13,6 +13,7 @@ use App\Http\Requests\Api\Service\StoreServiceRequest;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class TechnicianController extends Controller
 {
@@ -152,8 +153,16 @@ class TechnicianController extends Controller
     public function createService(StoreServiceRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['technician_id'] = auth()->user()->id;
-        $data['attendant_id'] = auth()->user()->id; // Técnico também é o atendente neste caso
+
+        // Set technician as the current user if not provided
+        if (!$data['technician_id']) {
+            $data['technician_id'] = Auth::user()->id;
+        }
+
+        // Set attendant as the current user if not provided
+        if (!$data['attendant_id']) {
+            $data['attendant_id'] = Auth::user()->id;
+        }
 
         $service = $this->serviceService->create($data);
 
@@ -191,7 +200,7 @@ class TechnicianController extends Controller
      */
     public function dashboard(): JsonResponse
     {
-        $technicianId = auth()->user()->id;
+        $technicianId = Auth::user()->id;
 
         $stats = [
             'today_services' => $this->serviceRepository->getTodayServicesCount($technicianId),
@@ -223,7 +232,7 @@ class TechnicianController extends Controller
     public function myServices(Request $request): JsonResponse
     {
         $filters = $request->only(['status', 'per_page']);
-        $filters['technician_id'] = auth()->user()->id;
+        $filters['technician_id'] = Auth::user()->id;
 
         $services = $this->serviceRepository->searchByFilters($filters);
 
@@ -273,7 +282,7 @@ class TechnicianController extends Controller
         }
 
         // Verificar se o técnico é responsável pelo serviço
-        if ($service->technician_id !== auth()->user()->id) {
+        if ($service->technician_id !== Auth::user()->id) {
             return $this->errorResponse('Você não tem permissão para atualizar este serviço', 403);
         }
 
