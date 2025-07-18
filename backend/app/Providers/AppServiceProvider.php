@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Domain\Service\Repositories\ServiceTemplateRepositoryInterface;
+use App\Domain\Service\Repositories\ServiceTemplateRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register Service Template Repository
+        $this->app->bind(ServiceTemplateRepositoryInterface::class, ServiceTemplateRepository::class);
     }
 
     /**

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ServiceItemController;
 use App\Http\Controllers\Api\ServiceCenterController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TechnicianController;
+use App\Http\Controllers\Api\AttendantServiceController;
 use App\Http\Controllers\Api\WebhookController;
 
 /*
@@ -245,6 +246,23 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         Route::post('/services', [TechnicianController::class, 'createService']);               // POST /api/v1/technician/services
         Route::get('/services/my', [TechnicianController::class, 'myServices']);                // GET /api/v1/technician/services/my
         Route::put('/services/{id}/status', [TechnicianController::class, 'updateServiceStatus']); // PUT /api/v1/technician/services/{id}/status
+    });
+
+    // =============================================================================
+    // ATTENDANT SERVICE ROUTES
+    // =============================================================================
+    Route::prefix('attendant/services')->group(function () {
+        // Criação de serviços
+        Route::post('/quick', [AttendantServiceController::class, 'createQuickService']);       // POST /api/v1/attendant/services/quick
+        Route::post('/complete', [AttendantServiceController::class, 'createCompleteService']); // POST /api/v1/attendant/services/complete
+
+        // Templates e sugestões
+        Route::get('/templates', [AttendantServiceController::class, 'getTemplates']);          // GET /api/v1/attendant/services/templates
+        Route::get('/suggestions', [AttendantServiceController::class, 'getSuggestions']);      // GET /api/v1/attendant/services/suggestions
+
+        // Validação e estatísticas
+        Route::post('/validate', [AttendantServiceController::class, 'validateService']);      // POST /api/v1/attendant/services/validate
+        Route::get('/quick-stats', [AttendantServiceController::class, 'getQuickStats']);       // GET /api/v1/attendant/services/quick-stats
     });
 
     // =============================================================================
