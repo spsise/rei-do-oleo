@@ -3,7 +3,9 @@ import { toast } from 'react-hot-toast';
 import { technicianService } from '../services';
 import {
   type CreateTechnicianServiceData,
+  type TechnicianProduct,
   type TechnicianSearchResult,
+  type TechnicianServiceItem,
 } from '../types/technician';
 
 export const useTechnician = () => {
@@ -20,11 +22,31 @@ export const useTechnician = () => {
     useState<CreateTechnicianServiceData>({
       client_id: 0,
       vehicle_id: 0,
+      service_center_id: undefined,
+      technician_id: undefined,
+      attendant_id: undefined,
+      service_number: undefined,
       description: '',
       estimated_duration: 60,
-      priority: 'medium',
+      scheduled_at: undefined,
+      started_at: undefined,
+      completed_at: undefined,
+      service_status_id: undefined,
+      payment_method_id: undefined,
+      mileage_at_service: undefined,
+      total_amount: undefined,
+      discount_amount: undefined,
+      final_amount: undefined,
+      observations: undefined,
       notes: '',
+      active: true,
+      items: [],
     });
+
+  // Estados para produtos
+  const [products, setProducts] = useState<TechnicianProduct[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
 
   const handleSearch = async () => {
     if (!searchValue.trim()) {
@@ -80,6 +102,8 @@ export const useTechnician = () => {
         client_id: searchResult.client.id || 0,
       }));
       setShowNewServiceForm(true);
+      // Carregar produtos ativos
+      loadActiveProducts();
     }
   };
 
@@ -102,11 +126,27 @@ export const useTechnician = () => {
         setNewServiceData({
           client_id: 0,
           vehicle_id: 0,
+          service_center_id: undefined,
+          technician_id: undefined,
+          attendant_id: undefined,
+          service_number: undefined,
           description: '',
           estimated_duration: 60,
-          priority: 'medium',
+          scheduled_at: undefined,
+          started_at: undefined,
+          completed_at: undefined,
+          service_status_id: undefined,
+          payment_method_id: undefined,
+          mileage_at_service: undefined,
+          total_amount: undefined,
+          discount_amount: undefined,
+          final_amount: undefined,
+          observations: undefined,
           notes: '',
+          active: true,
+          items: [],
         });
+
         // Recarregar dados do cliente
         if (searchResult) {
           handleSearch();
@@ -128,6 +168,151 @@ export const useTechnician = () => {
     setShowNewServiceForm(false);
   };
 
+  // Métodos para produtos
+  const loadActiveProducts = async () => {
+    setIsLoadingProducts(true);
+    try {
+      const response = await technicianService.getActiveProducts();
+      if (response.status === 'success' && response.data) {
+        setProducts(response.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+      toast.error('Erro ao carregar produtos');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  const searchProducts = async (search: string) => {
+    if (!search.trim()) {
+      loadActiveProducts();
+      return;
+    }
+
+    setIsLoadingProducts(true);
+    try {
+      const response = await technicianService.searchProducts(search);
+      if (response.status === 'success' && response.data) {
+        setProducts(response.data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+      toast.error('Erro ao buscar produtos');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  const addProductToService = (
+    product: TechnicianProduct,
+    quantity: number = 1,
+    notes?: string
+  ) => {
+    const existingItemIndex = newServiceData.items?.findIndex(
+      (item) => item.product_id === product.id
+    );
+
+    if (existingItemIndex !== undefined && existingItemIndex >= 0) {
+      // Atualizar quantidade do item existente
+      const updatedItems = [...(newServiceData.items || [])];
+      updatedItems[existingItemIndex].quantity += quantity;
+      updatedItems[existingItemIndex].total_price =
+        updatedItems[existingItemIndex].quantity *
+        updatedItems[existingItemIndex].unit_price;
+
+      setNewServiceData((prev) => ({
+        ...prev,
+        items: updatedItems,
+      }));
+    } else {
+      // Adicionar novo item
+      const newItem: TechnicianServiceItem = {
+        product_id: product.id,
+        quantity,
+        unit_price: product.price,
+        total_price: product.price * quantity,
+        notes,
+        product,
+      };
+
+      setNewServiceData((prev) => ({
+        ...prev,
+        items: [...(prev.items || []), newItem],
+      }));
+    }
+
+    toast.success(`${product.name} adicionado ao serviço`);
+  };
+
+  const removeProductFromService = (productId: number) => {
+    setNewServiceData((prev) => ({
+      ...prev,
+      items: prev.items?.filter((item) => item.product_id !== productId) || [],
+    }));
+    toast.success('Produto removido do serviço');
+  };
+
+  const updateServiceItemQuantity = (productId: number, quantity: number) => {
+    if (quantity <= 0) {
+      removeProductFromService(productId);
+      return;
+    }
+
+    setNewServiceData((prev) => ({
+      ...prev,
+      items:
+        prev.items?.map((item) =>
+          item.product_id === productId
+            ? { ...item, quantity, total_price: item.unit_price * quantity }
+            : item
+        ) || [],
+    }));
+  };
+
+  const updateServiceItemPrice = (productId: number, unitPrice: number) => {
+    setNewServiceData((prev) => ({
+      ...prev,
+      items:
+        prev.items?.map((item) =>
+          item.product_id === productId
+            ? {
+                ...item,
+                unit_price: unitPrice,
+                total_price: item.quantity * unitPrice,
+              }
+            : item
+        ) || [],
+    }));
+  };
+
+  const updateServiceItemNotes = (productId: number, notes: string) => {
+    setNewServiceData((prev) => ({
+      ...prev,
+      items:
+        prev.items?.map((item) =>
+          item.product_id === productId ? { ...item, notes } : item
+        ) || [],
+    }));
+  };
+
+  // Calcular total dos itens
+  const calculateItemsTotal = () => {
+    return (
+      newServiceData.items?.reduce(
+        (total, item) => total + item.total_price,
+        0
+      ) || 0
+    );
+  };
+
+  // Calcular total final (itens + desconto)
+  const calculateFinalTotal = () => {
+    const itemsTotal = calculateItemsTotal();
+    const discount = newServiceData.discount_amount || 0;
+    return Math.max(0, itemsTotal - discount);
+  };
+
   return {
     // Estado
     searchType,
@@ -137,16 +322,31 @@ export const useTechnician = () => {
     showNewServiceForm,
     isCreatingService,
     newServiceData,
+    products,
+    isLoadingProducts,
+    productSearchTerm,
 
     // Ações
     setSearchType,
     setSearchValue,
     setNewServiceData,
     setShowNewServiceForm,
+    setProductSearchTerm,
     handleSearch,
     handleVoiceResult,
     handleCreateNewService,
     handleSubmitService,
     resetSearch,
+
+    // Métodos para produtos
+    loadActiveProducts,
+    searchProducts,
+    addProductToService,
+    removeProductFromService,
+    updateServiceItemQuantity,
+    updateServiceItemPrice,
+    updateServiceItemNotes,
+    calculateItemsTotal,
+    calculateFinalTotal,
   };
 };

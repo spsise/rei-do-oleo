@@ -1,4 +1,5 @@
 import type { Service } from '../types/service';
+import type { TechnicianProduct } from '../types/technician';
 import { apiCall, httpClient, type ApiResponse } from './http-client';
 
 // Interfaces para o technician
@@ -38,10 +39,31 @@ export interface TechnicianSearchResult {
 export interface CreateServiceData {
   client_id: number;
   vehicle_id: number;
+  service_center_id?: number;
+  technician_id?: number;
+  attendant_id?: number;
+  service_number?: string;
   description: string;
   estimated_duration: number;
-  priority: 'low' | 'medium' | 'high';
+  scheduled_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  service_status_id?: number;
+  payment_method_id?: number;
+  mileage_at_service?: number;
+  total_amount?: number;
+  discount_amount?: number;
+  final_amount?: number;
+  observations?: string;
   notes?: string;
+  active?: boolean;
+  items?: Array<{
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    notes?: string;
+  }>;
 }
 
 export interface TechnicianDashboard {
@@ -123,6 +145,38 @@ class TechnicianService {
       httpClient.instance.put<ApiResponse<Service>>(
         `/technician/services/${serviceId}/status`,
         data
+      )
+    );
+  }
+
+  // Métodos para produtos
+  async getActiveProducts(): Promise<ApiResponse<TechnicianProduct[]>> {
+    return apiCall(() =>
+      httpClient.instance.get<ApiResponse<TechnicianProduct[]>>(
+        '/products/active/list'
+      )
+    );
+  }
+
+  async searchProducts(
+    search: string
+  ): Promise<ApiResponse<TechnicianProduct[]>> {
+    return apiCall(() =>
+      httpClient.instance.post<ApiResponse<TechnicianProduct[]>>(
+        '/products/search/name',
+        {
+          name: search,
+        }
+      )
+    );
+  }
+
+  async getProductsByCategory(
+    categoryId: number
+  ): Promise<ApiResponse<TechnicianProduct[]>> {
+    return apiCall(() =>
+      httpClient.instance.get<ApiResponse<TechnicianProduct[]>>(
+        `/products/category/${categoryId}`
       )
     );
   }

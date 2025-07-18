@@ -18,17 +18,31 @@ export const TechnicianPage: React.FC = () => {
     showNewServiceForm,
     isCreatingService,
     newServiceData,
+    products,
+    isLoadingProducts,
+    productSearchTerm,
 
     // Ações
     setSearchType,
     setSearchValue,
     setNewServiceData,
     setShowNewServiceForm,
+    setProductSearchTerm,
     handleSearch,
     handleVoiceResult,
     handleCreateNewService,
     handleSubmitService,
     resetSearch,
+
+    // Métodos para produtos
+    searchProducts,
+    addProductToService,
+    removeProductFromService,
+    updateServiceItemQuantity,
+    updateServiceItemPrice,
+    updateServiceItemNotes,
+    calculateItemsTotal,
+    calculateFinalTotal,
   } = useTechnician();
 
   return (
@@ -153,6 +167,19 @@ export const TechnicianPage: React.FC = () => {
           vehicles={searchResult?.vehicles || []}
           onSubmit={handleSubmitService}
           isLoading={isCreatingService}
+          // Props para produtos
+          products={products}
+          isLoadingProducts={isLoadingProducts}
+          productSearchTerm={productSearchTerm}
+          onProductSearch={searchProducts}
+          onProductSearchTermChange={setProductSearchTerm}
+          onAddProduct={addProductToService}
+          onRemoveProduct={removeProductFromService}
+          onUpdateProductQuantity={updateServiceItemQuantity}
+          onUpdateProductPrice={updateServiceItemPrice}
+          onUpdateProductNotes={updateServiceItemNotes}
+          calculateItemsTotal={calculateItemsTotal}
+          calculateFinalTotal={calculateFinalTotal}
         />
       </div>
     </div>

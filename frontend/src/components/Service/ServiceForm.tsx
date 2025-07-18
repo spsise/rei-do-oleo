@@ -47,8 +47,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
     observations: '',
     internal_notes: '',
     warranty_months: 0,
-    priority:
-      (service?.priority as 'low' | 'normal' | 'high' | 'urgent') ?? 'normal',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,9 +82,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
         observations: service.observations || '',
         internal_notes: service.internal_notes || '',
         warranty_months: service.warranty_months || 0,
-        priority:
-          (service.priority as 'low' | 'normal' | 'high' | 'urgent') ??
-          'normal',
       });
     }
   }, [service]);
@@ -572,26 +567,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
             <option value="1/2">1/2</option>
             <option value="3/4">3/4</option>
             <option value="full">Cheio</option>
-          </select>
-        </div>
-
-        <div>
-          <label
-            htmlFor="priority"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Prioridade
-          </label>
-          <select
-            id="priority"
-            value={formData.priority}
-            onChange={(e) => handleInputChange('priority', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="low">Baixa</option>
-            <option value="normal">Normal</option>
-            <option value="high">Alta</option>
-            <option value="urgent">Urgente</option>
           </select>
         </div>
       </div>

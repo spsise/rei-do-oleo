@@ -211,7 +211,6 @@ export interface CreateServiceData {
   observations?: string;
   internal_notes?: string;
   warranty_months?: number;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
   items?: CreateServiceItemData[];
 }
 
@@ -240,7 +239,6 @@ export interface UpdateServiceData {
   observations?: string;
   internal_notes?: string;
   warranty_months?: number;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
 }
 
 // Dados para criação de item
