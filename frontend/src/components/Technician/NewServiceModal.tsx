@@ -17,7 +17,7 @@ import {
   type TechnicianProduct,
   type TechnicianVehicle,
 } from '../../types/technician';
-import { ProductSelectionModal } from './ProductSelectionModal';
+import { ProductSelectionModal } from '../Product/ProductSelectionModal';
 import { ServiceItemsList } from './ServiceItemsList';
 
 interface NewServiceModalProps {
