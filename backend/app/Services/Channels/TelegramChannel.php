@@ -76,6 +76,121 @@ class TelegramChannel implements NotificationChannelInterface
     }
 
     /**
+     * Send message with inline keyboard via Telegram
+     *
+     * @param string $message
+     * @param string $chatId
+     * @param array $keyboard
+     * @return array
+     */
+    public function sendMessageWithKeyboard(string $message, string $chatId, array $keyboard): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::post("{$this->apiUrl}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $message,
+                'parse_mode' => 'Markdown',
+                'reply_markup' => [
+                    'inline_keyboard' => $keyboard
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'message_id' => $data['result']['message_id'] ?? null,
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Telegram keyboard message error', [
+                'error' => $e->getMessage(),
+                'message' => $message,
+                'chat_id' => $chatId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Answer callback query (for inline keyboard buttons)
+     *
+     * @param string $callbackQueryId
+     * @param string|null $text
+     * @param bool $showAlert
+     * @return array
+     */
+    public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $data = [
+                'callback_query_id' => $callbackQueryId
+            ];
+
+            if ($text) {
+                $data['text'] = $text;
+            }
+
+            if ($showAlert) {
+                $data['show_alert'] = $showAlert;
+            }
+
+            $response = Http::post("{$this->apiUrl}/answerCallbackQuery", $data);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Telegram answer callback query error', [
+                'error' => $e->getMessage(),
+                'callback_query_id' => $callbackQueryId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Send notification with data via Telegram
      *
      * @param array $data

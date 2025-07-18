@@ -29,6 +29,11 @@ class TelegramWebhookController extends Controller
                 'payload' => $payload
             ]);
 
+            // Check if it's a callback query (button click)
+            if (isset($payload['callback_query'])) {
+                return $this->handleCallbackQuery($payload['callback_query']);
+            }
+
             // Verify if it's a message
             if (!isset($payload['message'])) {
                 return response()->json(['status' => 'ignored', 'message' => 'No message in payload']);
@@ -64,6 +69,60 @@ class TelegramWebhookController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Telegram webhook error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle callback query from inline keyboard buttons
+     */
+    private function handleCallbackQuery(array $callbackQuery): JsonResponse
+    {
+        try {
+            $callbackQueryId = $callbackQuery['id'] ?? '';
+            $chatId = $callbackQuery['message']['chat']['id'] ?? '';
+            $callbackData = $callbackQuery['data'] ?? '';
+
+            Log::info('Telegram callback query received', [
+                'callback_query_id' => $callbackQueryId,
+                'chat_id' => $chatId,
+                'callback_data' => $callbackData
+            ]);
+
+            // Answer the callback query to remove loading state
+            $this->telegramBotService->getTelegramChannel()->answerCallbackQuery($callbackQueryId);
+
+            // Process the callback query
+            $result = $this->telegramBotService->processCallbackQuery($callbackQuery);
+
+            if ($result['success']) {
+                Log::info('Telegram callback query processed successfully', [
+                    'chat_id' => $chatId,
+                    'callback_data' => $callbackData
+                ]);
+            } else {
+                Log::error('Failed to process Telegram callback query', [
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'chat_id' => $chatId,
+                    'callback_data' => $callbackData
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Callback query processed',
+                'result' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Telegram callback query error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
