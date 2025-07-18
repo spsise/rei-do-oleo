@@ -4,6 +4,7 @@ import { ProtectedRoute } from '../components/routing/ProtectedRoute';
 import { PublicRoute } from '../components/routing/PublicRoute';
 import { VoiceRecognitionProvider } from '../components/VoiceRecognition';
 import { VoiceModalProvider } from '../components/VoiceRecognition/VoiceModalContext';
+import { AttendantDashboard } from '../pages/AttendantDashboard';
 import { CategoriesPage } from '../pages/Categories';
 import { ClientsPage } from '../pages/Clients';
 import { Dashboard } from '../pages/Dashboard';
@@ -44,6 +45,15 @@ export const AppRoutes = () => {
                 <TechnicianPage />
               </VoiceModalProvider>
             </VoiceRecognitionProvider>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/attendant"
+        element={
+          <ProtectedRoute path="/attendant">
+            <AttendantDashboard />
           </ProtectedRoute>
         }
       />
