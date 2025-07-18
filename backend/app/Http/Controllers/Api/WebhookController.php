@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\DeployNotification;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -65,6 +67,7 @@ class WebhookController extends Controller
 
             if (!file_exists($deployScript)) {
                 Log::error('Webhook: Deploy script not found', ['script' => $deployScript]);
+                $this->sendDeployNotification('error', $payload, 'Deploy script not found');
 
                 return response()->json([
                     'status' => 'error',
@@ -104,6 +107,9 @@ class WebhookController extends Controller
                     'output' => $process->getOutput()
                 ]);
 
+                // Send WhatsApp notification for failed deploy
+                $this->sendDeployNotification('error', $payload, $process->getErrorOutput());
+
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Deploy process failed',
@@ -117,6 +123,9 @@ class WebhookController extends Controller
                 'output' => $process->getOutput(),
                 //'deploy_script' => $deployScript
             ]);
+
+            // Send WhatsApp notification for successful deploy
+            $this->sendDeployNotification('success', $payload, $process->getOutput());
 
             return response()->json([
                 'status' => 'success',
@@ -135,10 +144,58 @@ class WebhookController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
+            // Send WhatsApp notification for exception
+            $this->sendDeployNotification('error', $payload ?? [], $e->getMessage());
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Exception during deployment: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Send deploy notification via WhatsApp
+     *
+     * @param string $status
+     * @param array $payload
+     * @param string $output
+     * @return void
+     */
+    private function sendDeployNotification(string $status, array $payload, string $output = ''): void
+    {
+        try {
+            $deployData = [
+                'status' => $status,
+                'branch' => $payload['ref'] ?? 'unknown',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                'message' => $payload['head_commit']['message'] ?? 'no message',
+                'timestamp' => now()->format('d/m/Y H:i:s'),
+                'output' => $output
+            ];
+
+            // Send notification using WhatsApp service directly
+            $whatsappService = app(WhatsAppService::class);
+            $result = $whatsappService->sendDeployNotification($deployData);
+
+            if ($result['success']) {
+                Log::info('Deploy WhatsApp notification sent successfully', [
+                    'status' => $status,
+                    'sent_to' => $result['sent_to'],
+                    'total_recipients' => $result['total_recipients']
+                ]);
+            } else {
+                Log::error('Failed to send deploy WhatsApp notification', [
+                    'status' => $status,
+                    'error' => $result['error'] ?? 'Unknown error'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Exception sending deploy WhatsApp notification', [
+                'error' => $e->getMessage(),
+                'status' => $status
+            ]);
         }
     }
 
@@ -150,7 +207,7 @@ class WebhookController extends Controller
     public function health()
     {
         $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh';
-        
+
         return response()->json([
             'status' => 'healthy',
             'message' => 'Webhook endpoint is working',
@@ -160,6 +217,16 @@ class WebhookController extends Controller
             'deploy_script_path' => $deployScript,
             'current_user' => get_current_user(),
             'working_directory' => getcwd()
+        ]);
+    }
+
+    public function testSendNotification()
+    {
+        $this->sendDeployNotification('testNotification', [], 'Test');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Test notification sent'
         ]);
     }
 }

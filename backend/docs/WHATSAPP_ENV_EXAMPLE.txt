@@ -1,0 +1,15 @@
+# Adicione estas variáveis no seu arquivo .env
+
+# WhatsApp Business API Configuration
+WHATSAPP_API_URL=https://graph.facebook.com
+WHATSAPP_ACCESS_TOKEN=your_access_token_here
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
+WHATSAPP_VERSION=v18.0
+WHATSAPP_DEPLOY_RECIPIENTS=5511999999999,5511888888888
+
+# Explicação das variáveis:
+# WHATSAPP_API_URL: URL base da API do Facebook (não altere)
+# WHATSAPP_ACCESS_TOKEN: Token de acesso gerado no Facebook Developers
+# WHATSAPP_PHONE_NUMBER_ID: ID do número de telefone no WhatsApp Business
+# WHATSAPP_VERSION: Versão da API (recomendado v18.0)
+# WHATSAPP_DEPLOY_RECIPIENTS: Números que receberão notificações (separados por vírgula)

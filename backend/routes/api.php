@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TechnicianController;
 use App\Http\Controllers\Api\AttendantServiceController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -299,6 +300,18 @@ Route::middleware(['auth:sanctum', 'sensitive.data'])->group(function () {
 Route::prefix('webhook')->group(function () {
     Route::post('/deploy', [WebhookController::class, 'deploy']);     // POST /api/webhook/deploy
     Route::get('/health', [WebhookController::class, 'health']);      // GET /api/webhook/health
+    Route::get('/test-send-notification', [WebhookController::class, 'testSendNotification']); // GET /api/webhook/test-send-notification
+});
+
+// =============================================================================
+// NOTIFICATION ROUTES (WhatsApp notifications)
+// =============================================================================
+Route::prefix('notifications')->group(function () {
+    Route::post('/whatsapp/custom', [NotificationController::class, 'sendCustomMessage']);     // POST /api/notifications/whatsapp/custom
+    Route::post('/whatsapp/system-alert', [NotificationController::class, 'sendSystemAlert']); // POST /api/notifications/whatsapp/system-alert
+    Route::post('/whatsapp/order', [NotificationController::class, 'sendOrderNotification']); // POST /api/notifications/whatsapp/order
+    Route::post('/whatsapp/stock-alert', [NotificationController::class, 'sendStockAlert']);   // POST /api/notifications/whatsapp/stock-alert
+    Route::get('/whatsapp/test-connection', [NotificationController::class, 'testConnection']); // GET /api/notifications/whatsapp/test-connection
 });
 
 // Fallback Route
