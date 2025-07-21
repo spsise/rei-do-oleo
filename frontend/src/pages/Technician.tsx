@@ -75,6 +75,10 @@ export const TechnicianPage: React.FC = () => {
       await updateServiceStatus(serviceId, statusId, notes);
       setShowUpdateStatusModal(false);
       setSelectedServiceForUpdate(null);
+
+      if (searchResult) {
+        handleSearch();
+      }
     } catch {
       // Erro já tratado no hook
     }

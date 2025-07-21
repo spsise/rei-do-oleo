@@ -12,7 +12,7 @@ import { ServiceActionsMenu } from './ServiceActionsMenu';
 import { UpdateStatusModal } from './UpdateStatusModal';
 
 export const RecentServices: React.FC = () => {
-  const { services, isLoading } = useServiceList({ per_page: 5 });
+  const { services, isLoading, refetch } = useServiceList({ per_page: 5 });
   const { updateServiceStatus, isUpdatingStatus } = useServiceStatus();
 
   // Estados para modais
@@ -106,6 +106,7 @@ export const RecentServices: React.FC = () => {
       await updateServiceStatus(serviceId, statusId, notes);
       setShowUpdateStatusModal(false);
       setSelectedService(null);
+      refetch(); // Recarrega os dados após a atualização
     } catch {
       // Erro já tratado no hook
     }
