@@ -1,15 +1,24 @@
 import {
   CalendarIcon,
   ClockIcon,
-  EyeIcon,
   TruckIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
-import React from 'react';
+import React, { useState } from 'react';
 import { useServiceList } from '../../hooks/useAttendantServices';
+import { useServiceStatus } from '../../hooks/useServiceStatus';
+import { type AttendantService } from '../../types/attendant';
+import { ServiceActionsMenu } from './ServiceActionsMenu';
+import { UpdateStatusModal } from './UpdateStatusModal';
 
 export const RecentServices: React.FC = () => {
   const { services, isLoading } = useServiceList({ per_page: 5 });
+  const { updateServiceStatus, isUpdatingStatus } = useServiceStatus();
+
+  // Estados para modais
+  const [selectedService, setSelectedService] =
+    useState<AttendantService | null>(null);
+  const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -75,6 +84,36 @@ export const RecentServices: React.FC = () => {
       return `${hours}h ${mins}min`;
     }
     return `${mins}min`;
+  };
+
+  // Handlers para ações do menu
+  const handleViewDetails = (service: AttendantService) => {
+    // TODO: Implementar modal de detalhes
+    console.log('Ver detalhes do serviço:', service.id);
+  };
+
+  const handleUpdateStatus = (service: AttendantService) => {
+    setSelectedService(service);
+    setShowUpdateStatusModal(true);
+  };
+
+  const handleUpdateStatusSubmit = async (
+    serviceId: number,
+    statusId: number,
+    notes?: string
+  ) => {
+    try {
+      await updateServiceStatus(serviceId, statusId, notes);
+      setShowUpdateStatusModal(false);
+      setSelectedService(null);
+    } catch {
+      // Erro já tratado no hook
+    }
+  };
+
+  const handleCloseUpdateStatusModal = () => {
+    setShowUpdateStatusModal(false);
+    setSelectedService(null);
   };
 
   if (isLoading) {
@@ -168,10 +207,12 @@ export const RecentServices: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Action Button */}
-                <button className="ml-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                  <EyeIcon className="h-4 w-4" />
-                </button>
+                {/* Menu de Ações */}
+                <ServiceActionsMenu
+                  service={service}
+                  onViewDetails={handleViewDetails}
+                  onUpdateStatus={handleUpdateStatus}
+                />
               </div>
 
               {/* Service Notes (if any) */}
@@ -233,6 +274,15 @@ export const RecentServices: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Atualização de Status */}
+      <UpdateStatusModal
+        isOpen={showUpdateStatusModal}
+        onClose={handleCloseUpdateStatusModal}
+        service={selectedService}
+        onUpdateStatus={handleUpdateStatusSubmit}
+        isLoading={isUpdatingStatus}
+      />
     </div>
   );
 };

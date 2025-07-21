@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ClientSearchForm,
   ClientSearchResults,
   NewServiceModal,
   ServiceDetailsModal,
   TechnicianHeader,
+  UpdateStatusModal,
 } from '../components/Technician';
+import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useTechnician } from '../hooks/useTechnician';
 import '../styles/Technician.css';
+import { type TechnicianService } from '../types/technician';
 
 export const TechnicianPage: React.FC = () => {
   const {
@@ -52,6 +55,36 @@ export const TechnicianPage: React.FC = () => {
     calculateFinalTotal,
   } = useTechnician();
 
+  // Estados para modal de atualização de status
+  const { updateServiceStatus, isUpdatingStatus } = useServiceStatus();
+  const [selectedServiceForUpdate, setSelectedServiceForUpdate] =
+    useState<TechnicianService | null>(null);
+  const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
+
+  const handleUpdateStatus = (service: TechnicianService) => {
+    setSelectedServiceForUpdate(service);
+    setShowUpdateStatusModal(true);
+  };
+
+  const handleUpdateStatusSubmit = async (
+    serviceId: number,
+    statusId: number,
+    notes?: string
+  ) => {
+    try {
+      await updateServiceStatus(serviceId, statusId, notes);
+      setShowUpdateStatusModal(false);
+      setSelectedServiceForUpdate(null);
+    } catch {
+      // Erro já tratado no hook
+    }
+  };
+
+  const handleCloseUpdateStatusModal = () => {
+    setShowUpdateStatusModal(false);
+    setSelectedServiceForUpdate(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Background Pattern */}
@@ -85,6 +118,7 @@ export const TechnicianPage: React.FC = () => {
                 searchResult={searchResult}
                 onCreateNewService={handleCreateNewService}
                 onServiceClick={handleServiceClick}
+                onUpdateStatus={handleUpdateStatus}
               />
             </div>
           )}
@@ -203,6 +237,15 @@ export const TechnicianPage: React.FC = () => {
           }
           serviceDetails={serviceDetails}
           isLoadingDetails={isLoadingServiceDetails}
+        />
+
+        {/* Update Status Modal */}
+        <UpdateStatusModal
+          isOpen={showUpdateStatusModal}
+          onClose={handleCloseUpdateStatusModal}
+          service={selectedServiceForUpdate}
+          onUpdateStatus={handleUpdateStatusSubmit}
+          isLoading={isUpdatingStatus}
         />
       </div>
     </div>

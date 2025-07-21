@@ -8,15 +8,18 @@ import {
 } from '@heroicons/react/24/outline';
 import React, { useState } from 'react';
 import { type TechnicianService } from '../../types/technician';
+import { ServiceActionsMenu } from './ServiceActionsMenu';
 
 interface RecentServicesCardProps {
   services: TechnicianService[];
   onServiceClick?: (service: TechnicianService) => void;
+  onUpdateStatus?: (service: TechnicianService) => void;
 }
 
 export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
   services,
   onServiceClick,
+  onUpdateStatus,
 }) => {
   const [showAllValues, setShowAllValues] = useState(false);
   const [visibleValues, setVisibleValues] = useState<Set<number>>(new Set());
@@ -110,8 +113,17 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
     onServiceClick?.(service);
   };
 
+  // Handlers para ações do menu
+  const handleViewDetails = (service: TechnicianService) => {
+    onServiceClick?.(service);
+  };
+
+  const handleUpdateStatus = (service: TechnicianService) => {
+    onUpdateStatus?.(service);
+  };
+
   return (
-    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-3 sm:p-4 border border-yellow-200 shadow-lg">
+    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-3 sm:p-4 border border-yellow-200 shadow-lg overflow-visible">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -152,7 +164,7 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
       </div>
 
       {/* Lista de serviços */}
-      <div className="space-y-2.5 sm:space-y-3">
+      <div className="space-y-2.5 sm:space-y-3 relative overflow-visible">
         {services?.length ? (
           services.map((service, index) => (
             <div
@@ -175,13 +187,20 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
                     </div>
                   </div>
                 </div>
-                <div
-                  className={`text-xs px-2 py-1 rounded-full font-medium border ${getStatusColor(service.status)} self-start sm:self-auto`}
-                >
-                  <span className="hidden sm:inline">
-                    {getStatusIcon(service.status)}{' '}
-                  </span>
-                  {getStatusText(service.status)}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`text-xs px-2 py-1 rounded-full font-medium border ${getStatusColor(service.status)} self-start sm:self-auto`}
+                  >
+                    <span className="hidden sm:inline">
+                      {getStatusIcon(service.status)}{' '}
+                    </span>
+                    {getStatusText(service.status)}
+                  </div>
+                  <ServiceActionsMenu
+                    service={service}
+                    onViewDetails={handleViewDetails}
+                    onUpdateStatus={handleUpdateStatus}
+                  />
                 </div>
               </div>
 

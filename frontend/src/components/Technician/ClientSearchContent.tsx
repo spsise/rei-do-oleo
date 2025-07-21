@@ -10,11 +10,13 @@ import { VehicleListCard } from './VehicleListCard';
 interface ClientSearchContentProps {
   searchResult: TechnicianSearchResult;
   onServiceClick?: (service: TechnicianService) => void;
+  onUpdateStatus?: (service: TechnicianService) => void;
 }
 
 export const ClientSearchContent: React.FC<ClientSearchContentProps> = ({
   searchResult,
   onServiceClick,
+  onUpdateStatus,
 }) => {
   return (
     <>
@@ -38,6 +40,7 @@ export const ClientSearchContent: React.FC<ClientSearchContentProps> = ({
           <RecentServicesCard
             services={searchResult.recent_services}
             onServiceClick={onServiceClick}
+            onUpdateStatus={onUpdateStatus}
           />
         </div>
       )}
