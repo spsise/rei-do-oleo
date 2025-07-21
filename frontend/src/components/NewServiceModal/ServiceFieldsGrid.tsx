@@ -9,7 +9,7 @@ import { type CreateTechnicianServiceData } from '../../types/technician';
 
 interface ServiceFieldsGridProps {
   serviceData: CreateTechnicianServiceData;
-  onServiceDataChange: (data: CreateTechnicianServiceData) => void;
+  onServiceDataChange: (data: Partial<CreateTechnicianServiceData>) => void;
 }
 
 export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
@@ -29,7 +29,6 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
           value={serviceData.estimated_duration}
           onChange={(e) =>
             onServiceDataChange({
-              ...serviceData,
               estimated_duration: Number(e.target.value),
             })
           }
@@ -50,7 +49,6 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
           value={serviceData.mileage_at_service || ''}
           onChange={(e) =>
             onServiceDataChange({
-              ...serviceData,
               mileage_at_service: e.target.value
                 ? Number(e.target.value)
                 : undefined,
@@ -73,7 +71,6 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
           value={serviceData.scheduled_at || ''}
           onChange={(e) =>
             onServiceDataChange({
-              ...serviceData,
               scheduled_at: e.target.value || undefined,
             })
           }
@@ -92,7 +89,6 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
           value={serviceData.total_amount || ''}
           onChange={(e) =>
             onServiceDataChange({
-              ...serviceData,
               total_amount: e.target.value ? Number(e.target.value) : undefined,
             })
           }
@@ -114,7 +110,6 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
           value={serviceData.discount_amount || ''}
           onChange={(e) =>
             onServiceDataChange({
-              ...serviceData,
               discount_amount: e.target.value
                 ? Number(e.target.value)
                 : undefined,

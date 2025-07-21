@@ -16,6 +16,8 @@ interface ModalHeaderProps {
   activeTab: 'details' | 'products';
   setActiveTab: (tab: 'details' | 'products') => void;
   itemsCount: number;
+  title?: string;
+  subtitle?: string;
 }
 
 export const ModalHeader: React.FC<ModalHeaderProps> = ({
@@ -26,6 +28,8 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   activeTab,
   setActiveTab,
   itemsCount,
+  title = 'Novo Serviço',
+  subtitle = 'Registre um novo serviço para o cliente',
 }) => {
   return (
     <div className="sticky top-0 bg-white rounded-t-2xl p-6 border-b border-gray-100 z-10">
@@ -35,10 +39,8 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
             <PlusIcon className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">Novo Serviço</h3>
-            <p className="text-gray-600 text-sm">
-              Registre um novo serviço para o cliente
-            </p>
+            <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
+            <p className="text-gray-600 text-sm">{subtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

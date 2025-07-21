@@ -13,6 +13,7 @@ interface ClientSearchResultsProps {
   onCreateNewService: () => void;
   onServiceClick?: (service: TechnicianService) => void;
   onUpdateStatus?: (service: TechnicianService) => void;
+  onEditService?: (service: TechnicianService) => void;
 }
 
 export const ClientSearchResults: React.FC<ClientSearchResultsProps> = ({
@@ -20,6 +21,7 @@ export const ClientSearchResults: React.FC<ClientSearchResultsProps> = ({
   onCreateNewService,
   onServiceClick,
   onUpdateStatus,
+  onEditService,
 }) => {
   return (
     <ClientSearchContainer>
@@ -28,6 +30,7 @@ export const ClientSearchResults: React.FC<ClientSearchResultsProps> = ({
         searchResult={searchResult}
         onServiceClick={onServiceClick}
         onUpdateStatus={onUpdateStatus}
+        onEditService={onEditService}
       />
       <ClientStatisticsCard searchResult={searchResult} />
     </ClientSearchContainer>

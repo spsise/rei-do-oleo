@@ -19,6 +19,7 @@ interface ServiceDetailsModalProps {
   vehicleInfo?: string;
   serviceDetails?: Service | null;
   isLoadingDetails?: boolean;
+  onEditService?: (service: Service) => void;
 }
 
 export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
@@ -29,6 +30,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
   vehicleInfo,
   serviceDetails,
   isLoadingDetails = false,
+  onEditService,
 }) => {
   if (!isOpen || !service) return null;
 
@@ -482,8 +484,59 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
             </button>
             <button
               onClick={() => {
-                // TODO: Implementar edição do serviço
-                console.log('Editar serviço:', displayService.id);
+                if (onEditService) {
+                  if (serviceDetails) {
+                    onEditService(serviceDetails);
+                  } else {
+                    // Converter TechnicianService para Service se necessário
+                    const serviceAsService: Service = {
+                      id: service.id,
+                      service_number: service.service_number,
+                      description: service.description,
+                      status: {
+                        name: service.status,
+                        id: null,
+                        label: null,
+                        color: null,
+                      },
+                      financial: {
+                        total_amount: service.total_amount.toString(),
+                        items_total: 0,
+                        items_total_formatted: 'R$ 0,00',
+                        total_amount_formatted: `R$ ${service.total_amount.toFixed(2)}`,
+                      },
+                      created_at: service.created_at,
+                      updated_at: service.created_at,
+                      observations: service.observations,
+                      internal_notes: service.notes,
+                      items:
+                        service.items?.map((item) => ({
+                          id: 0,
+                          service_id: service.id,
+                          product_id: item.product_id,
+                          quantity: item.quantity,
+                          unit_price: item.unit_price,
+                          total_price: item.total_price,
+                          notes: item.notes,
+                          created_at: service.created_at,
+                          updated_at: service.created_at,
+                          product: item.product
+                            ? {
+                                id: item.product.id,
+                                name: item.product.name,
+                                sku: item.product.sku,
+                                category: item.product.category?.name || '',
+                                unit: 'un',
+                                current_stock: item.product.stock_quantity,
+                              }
+                            : undefined,
+                        })) || [],
+                    };
+                    onEditService(serviceAsService);
+                  }
+                } else {
+                  console.log('Editar serviço:', displayService.id);
+                }
               }}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >

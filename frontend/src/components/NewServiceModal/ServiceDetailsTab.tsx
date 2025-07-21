@@ -11,7 +11,7 @@ import { VehicleSelector } from './VehicleSelector';
 
 interface ServiceDetailsTabProps {
   serviceData: CreateTechnicianServiceData;
-  onServiceDataChange: (data: CreateTechnicianServiceData) => void;
+  onServiceDataChange: (data: Partial<CreateTechnicianServiceData>) => void;
   vehicles: TechnicianVehicle[];
 }
 
@@ -28,7 +28,6 @@ export const ServiceDetailsTab: React.FC<ServiceDetailsTabProps> = ({
         selectedVehicleId={serviceData.vehicle_id}
         onVehicleChange={(vehicleId) =>
           onServiceDataChange({
-            ...serviceData,
             vehicle_id: vehicleId,
           })
         }
@@ -39,7 +38,6 @@ export const ServiceDetailsTab: React.FC<ServiceDetailsTabProps> = ({
         description={serviceData.description}
         onChange={(description) =>
           onServiceDataChange({
-            ...serviceData,
             description,
           })
         }
@@ -57,7 +55,6 @@ export const ServiceDetailsTab: React.FC<ServiceDetailsTabProps> = ({
         observations={serviceData.observations}
         onChange={(field, value) =>
           onServiceDataChange({
-            ...serviceData,
             [field]: value,
           })
         }

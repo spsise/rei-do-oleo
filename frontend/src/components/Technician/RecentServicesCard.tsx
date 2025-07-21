@@ -14,12 +14,14 @@ interface RecentServicesCardProps {
   services: TechnicianService[];
   onServiceClick?: (service: TechnicianService) => void;
   onUpdateStatus?: (service: TechnicianService) => void;
+  onEditService?: (service: TechnicianService) => void;
 }
 
 export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
   services,
   onServiceClick,
   onUpdateStatus,
+  onEditService,
 }) => {
   const [showAllValues, setShowAllValues] = useState(false);
   const [visibleValues, setVisibleValues] = useState<Set<number>>(new Set());
@@ -200,6 +202,7 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
                     service={service}
                     onViewDetails={handleViewDetails}
                     onUpdateStatus={handleUpdateStatus}
+                    onEditService={onEditService}
                   />
                 </div>
               </div>

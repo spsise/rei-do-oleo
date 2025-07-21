@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import {
   ClientSearchForm,
   ClientSearchResults,
+  EditServiceModal,
   NewServiceModal,
   ServiceDetailsModal,
   TechnicianHeader,
   UpdateStatusModal,
 } from '../components/Technician';
+import { useUpdateService } from '../hooks/useServices';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useTechnician } from '../hooks/useTechnician';
 import '../styles/Technician.css';
+import { type Service, type UpdateServiceData } from '../types/service';
 import { type TechnicianService } from '../types/technician';
 
 export const TechnicianPage: React.FC = () => {
@@ -61,6 +64,12 @@ export const TechnicianPage: React.FC = () => {
     useState<TechnicianService | null>(null);
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
 
+  // Estados para modal de edição de serviço
+  const updateServiceMutation = useUpdateService();
+  const [selectedServiceForEdit, setSelectedServiceForEdit] =
+    useState<TechnicianService | null>(null);
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
+
   const handleUpdateStatus = (service: TechnicianService) => {
     setSelectedServiceForUpdate(service);
     setShowUpdateStatusModal(true);
@@ -87,6 +96,68 @@ export const TechnicianPage: React.FC = () => {
   const handleCloseUpdateStatusModal = () => {
     setShowUpdateStatusModal(false);
     setSelectedServiceForUpdate(null);
+  };
+
+  // Funções para edição de serviço
+  const handleEditService = (service: TechnicianService) => {
+    setSelectedServiceForEdit(service);
+    setShowEditServiceModal(true);
+  };
+
+  const handleEditServiceForDetails = (service: Service) => {
+    // Converter Service para TechnicianService
+    const technicianService: TechnicianService = {
+      id: service.id,
+      service_number: service.service_number,
+      description: service.description || '',
+      status: service.status?.name || '',
+      total_amount: parseFloat(service.financial?.total_amount || '0'),
+      created_at: service.created_at,
+      notes: service.internal_notes,
+      observations: service.observations,
+      items:
+        service.items?.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          notes: item.notes,
+          product: item.product
+            ? {
+                id: item.product.id,
+                name: item.product.name,
+                sku: item.product.sku,
+                price: 0, // Não disponível no Service
+                stock_quantity: item.product.current_stock,
+                category: { id: 0, name: item.product.category },
+              }
+            : undefined,
+        })) || [],
+    };
+    handleEditService(technicianService);
+  };
+
+  const handleEditServiceSubmit = async (
+    serviceId: number,
+    data: UpdateServiceData
+  ) => {
+    try {
+      await updateServiceMutation.mutateAsync({ id: serviceId, data });
+      setShowEditServiceModal(false);
+      setSelectedServiceForEdit(null);
+
+      // Recarregar dados se necessário
+      if (searchResult) {
+        handleSearch();
+      }
+    } catch (error) {
+      console.error('Erro ao editar serviço:', error);
+    }
+  };
+
+  const handleCloseEditServiceModal = () => {
+    setShowEditServiceModal(false);
+    setSelectedServiceForEdit(null);
   };
 
   return (
@@ -123,6 +194,7 @@ export const TechnicianPage: React.FC = () => {
                 onCreateNewService={handleCreateNewService}
                 onServiceClick={handleServiceClick}
                 onUpdateStatus={handleUpdateStatus}
+                onEditService={handleEditService}
               />
             </div>
           )}
@@ -241,6 +313,23 @@ export const TechnicianPage: React.FC = () => {
           }
           serviceDetails={serviceDetails}
           isLoadingDetails={isLoadingServiceDetails}
+          onEditService={handleEditServiceForDetails}
+        />
+
+        {/* Edit Service Modal */}
+        <EditServiceModal
+          isOpen={showEditServiceModal}
+          onClose={handleCloseEditServiceModal}
+          service={selectedServiceForEdit}
+          vehicles={searchResult?.vehicles || []}
+          onSubmit={handleEditServiceSubmit}
+          isLoading={updateServiceMutation.isPending}
+          // Props para produtos
+          products={products}
+          categories={categories}
+          isLoadingProducts={isLoadingProducts}
+          productSearchTerm={productSearchTerm}
+          onProductSearch={searchProducts}
         />
 
         {/* Update Status Modal */}

@@ -9,6 +9,7 @@ interface ModalFooterProps {
   activeTab: 'details' | 'products';
   serviceData: CreateTechnicianServiceData;
   calculateFinalTotal: () => number;
+  submitButtonText?: string;
 }
 
 export const ModalFooter: React.FC<ModalFooterProps> = ({
@@ -18,6 +19,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   activeTab,
   serviceData,
   calculateFinalTotal,
+  submitButtonText = 'Salvar Serviço',
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -64,7 +66,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
             ) : (
               <>
                 <PlusIcon className="h-5 w-5" />
-                <span>Salvar Serviço</span>
+                <span>{submitButtonText}</span>
               </>
             )}
           </button>

@@ -6,6 +6,7 @@ export { ClientSearchForm } from './ClientSearchForm';
 export { ClientSearchHeader } from './ClientSearchHeader';
 export { ClientSearchResults } from './ClientSearchResults';
 export { ClientStatisticsCard } from './ClientStatisticsCard';
+export { EditServiceModal } from './EditServiceModal';
 export { RecentServicesCard } from './RecentServicesCard';
 export { ServiceActionsMenu } from './ServiceActionsMenu';
 export { ServiceDetailsModal } from './ServiceDetailsModal';

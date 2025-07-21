@@ -11,12 +11,14 @@ interface ClientSearchContentProps {
   searchResult: TechnicianSearchResult;
   onServiceClick?: (service: TechnicianService) => void;
   onUpdateStatus?: (service: TechnicianService) => void;
+  onEditService?: (service: TechnicianService) => void;
 }
 
 export const ClientSearchContent: React.FC<ClientSearchContentProps> = ({
   searchResult,
   onServiceClick,
   onUpdateStatus,
+  onEditService,
 }) => {
   return (
     <>
@@ -41,6 +43,7 @@ export const ClientSearchContent: React.FC<ClientSearchContentProps> = ({
             services={searchResult.recent_services}
             onServiceClick={onServiceClick}
             onUpdateStatus={onUpdateStatus}
+            onEditService={onEditService}
           />
         </div>
       )}
