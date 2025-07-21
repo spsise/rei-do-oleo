@@ -48,4 +48,6 @@ interface ServiceRepositoryInterface
     public function getByTechnician(int $technicianId): Collection;
 
     public function findByServiceNumber(string $serviceNumber): ?Service;
+
+    public function getDashboardStats(?int $serviceCenterId = null): array;
 }

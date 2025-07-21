@@ -7,13 +7,16 @@ use App\Domain\Service\Repositories\ServiceRepositoryInterface;
 use App\Domain\Service\Services\ServiceService;
 use App\Http\Resources\ServiceResource;
 use App\Traits\ApiResponseTrait;
+use App\Traits\ServiceDataMappingTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
-    use ApiResponseTrait;
+    use ApiResponseTrait, ServiceDataMappingTrait;
 
     public function __construct(
         private ServiceRepositoryInterface $serviceRepository,
@@ -115,7 +118,13 @@ class ServiceController extends Controller
             'items.*.discount' => 'nullable|numeric|min:0'
         ]);
 
-        $service = $this->serviceService->create($validated);
+        // Map frontend field names to backend field names
+        $validated = $this->mapServiceDataForUpdate($validated);
+
+        // Add user_id to the validated data
+        $validated['user_id'] = Auth::user()->id;
+
+        $service = $this->serviceService->createService($validated);
 
         return $this->successResponse(
             new ServiceResource($service),
@@ -219,6 +228,9 @@ class ServiceController extends Controller
             'warranty_months' => 'nullable|integer|min:0',
             'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'urgent'])]
         ]);
+
+        // Map frontend field names to backend field names
+        $validated = $this->mapServiceDataForUpdate($validated);
 
         $service = $this->serviceRepository->update($id, $validated);
 

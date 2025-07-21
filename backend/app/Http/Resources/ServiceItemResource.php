@@ -24,7 +24,7 @@ class ServiceItemResource extends JsonResource
             'quantity' => $this->quantity,
             'unit_price' => $this->unit_price,
             'unit_price_formatted' => 'R$ ' . number_format($this->unit_price, 2, ',', '.'),
-            'discount' => $this->discount,
+            'discount' => $this->discount ?? 0,
             'discount_formatted' => $this->when($this->discount, fn() => number_format($this->discount, 2, ',', '.') . '%'),
             'discount_amount' => $this->getDiscountAmount(),
             'discount_amount_formatted' => 'R$ ' . number_format($this->getDiscountAmount(), 2, ',', '.'),

@@ -11,13 +11,14 @@ use App\Http\Resources\TechnicianSearchResource;
 use App\Http\Resources\ServiceResource;
 use App\Http\Requests\Api\Service\StoreServiceRequest;
 use App\Traits\ApiResponseTrait;
+use App\Traits\ServiceDataMappingTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class TechnicianController extends Controller
 {
-    use ApiResponseTrait;
+    use ApiResponseTrait, ServiceDataMappingTrait;
 
     public function __construct(
         private ClientRepositoryInterface $clientRepository,
@@ -154,15 +155,8 @@ class TechnicianController extends Controller
     {
         $data = $request->validated();
 
-        // Set technician as the current user if not provided
-        if (!$data['technician_id']) {
-            $data['technician_id'] = Auth::user()->id;
-        }
-
-        // Set attendant as the current user if not provided
-        if (!$data['attendant_id']) {
-            $data['attendant_id'] = Auth::user()->id;
-        }
+        // Use the data mapping service to handle all transformations
+        $data = $this->mapServiceDataForCreation($data);
 
         $service = $this->serviceService->create($data);
 

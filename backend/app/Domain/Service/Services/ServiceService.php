@@ -23,8 +23,19 @@ class ServiceService
     public function createService(array $data): Service
     {
         return DB::transaction(function () use ($data) {
-            $client = $this->clientRepository->find($data['client_id']);
-            $vehicle = $this->vehicleRepository->find($data['vehicle_id']);
+            $clientId = $data['client_id'] ?? null;
+            $vehicleId = $data['vehicle_id'] ?? null;
+
+            if (!$clientId) {
+                throw new \InvalidArgumentException('ID do cliente é obrigatório');
+            }
+
+            if (!$vehicleId) {
+                throw new \InvalidArgumentException('ID do veículo é obrigatório');
+            }
+
+            $client = $this->clientRepository->find($clientId);
+            $vehicle = $this->vehicleRepository->find($vehicleId);
 
             if (!$client) {
                 throw new \InvalidArgumentException('Cliente não encontrado');
@@ -172,7 +183,7 @@ class ServiceService
         return $this->serviceRepository->find($serviceId);
     }
 
-    public function getDashboardMetrics(int $serviceCenterId = null, string $period = 'today'): array
+    public function getDashboardMetrics(?int $serviceCenterId, string $period = 'today'): array
     {
         $cacheKey = "dashboard_metrics_{$serviceCenterId}_{$period}";
 

@@ -122,6 +122,37 @@ class StoreServiceRequest extends FormRequest
                 'min:15',
                 'max:480'
             ],
+            // Validação para itens do serviço
+            'items' => [
+                'nullable',
+                'array'
+            ],
+            'items.*.product_id' => [
+                'required_with:items',
+                'integer',
+                'exists:products,id'
+            ],
+            'items.*.quantity' => [
+                'required_with:items',
+                'integer',
+                'min:1'
+            ],
+            'items.*.unit_price' => [
+                'required_with:items',
+                'numeric',
+                'min:0'
+            ],
+            'items.*.discount' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:100'
+            ],
+            'items.*.notes' => [
+                'nullable',
+                'string',
+                'max:500'
+            ],
 
         ];
     }
@@ -154,6 +185,16 @@ class StoreServiceRequest extends FormRequest
             'description.max' => 'A descrição não pode ter mais de 500 caracteres',
             'estimated_duration.min' => 'A duração mínima é de 15 minutos',
             'estimated_duration.max' => 'A duração máxima é de 8 horas',
+            // Mensagens para itens
+            'items.*.product_id.required_with' => 'O produto é obrigatório',
+            'items.*.product_id.exists' => 'Produto não encontrado',
+            'items.*.quantity.required_with' => 'A quantidade é obrigatória',
+            'items.*.quantity.min' => 'A quantidade deve ser pelo menos 1',
+            'items.*.unit_price.required_with' => 'O preço unitário é obrigatório',
+            'items.*.unit_price.min' => 'O preço unitário não pode ser negativo',
+            'items.*.discount.min' => 'O desconto não pode ser negativo',
+            'items.*.discount.max' => 'O desconto não pode ser maior que 100%',
+            'items.*.notes.max' => 'As observações do item não podem ter mais de 500 caracteres',
 
         ];
     }
@@ -183,6 +224,13 @@ class StoreServiceRequest extends FormRequest
             'notes' => 'observações',
             'description' => 'descrição',
             'estimated_duration' => 'duração estimada',
+            // Atributos para itens
+            'items' => 'itens do serviço',
+            'items.*.product_id' => 'produto',
+            'items.*.quantity' => 'quantidade',
+            'items.*.unit_price' => 'preço unitário',
+            'items.*.discount' => 'desconto',
+            'items.*.notes' => 'observações do item',
 
         ];
     }

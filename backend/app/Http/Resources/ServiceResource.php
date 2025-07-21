@@ -17,33 +17,33 @@ class ServiceResource extends JsonResource
             'complaint' => $this->complaint,
             'diagnosis' => $this->diagnosis,
             'solution' => $this->solution,
-            'scheduled_date' => $this->scheduled_date?->format('d/m/Y H:i'),
-            'started_at' => $this->started_at?->format('d/m/Y H:i'),
-            'finished_at' => $this->finished_at?->format('d/m/Y H:i'),
+            'scheduled_date' => $this->scheduled_at?->format('Y-m-d\TH:i'),
+            'started_at' => $this->started_at?->format('Y-m-d\TH:i'),
+            'finished_at' => $this->completed_at?->format('Y-m-d\TH:i'),
             'duration' => $this->getDuration(),
             'duration_formatted' => $this->getDurationFormatted(),
             'status' => [
-                'id' => $this->status->id ?? null,
-                'name' => $this->status->name ?? null,
-                'label' => $this->status->label ?? null,
-                'color' => $this->status->color ?? null,
+                'id' => $this->serviceStatus->id ?? null,
+                'name' => $this->serviceStatus->name ?? null,
+                'label' => $this->serviceStatus->name ?? null,
+                'color' => $this->serviceStatus->color ?? null,
             ],
             'priority' => $this->priority,
             'priority_label' => $this->getPriorityLabel(),
             'payment_method' => [
                 'id' => $this->paymentMethod->id ?? null,
                 'name' => $this->paymentMethod->name ?? null,
-                'label' => $this->paymentMethod->label ?? null,
+                'label' => $this->paymentMethod->name ?? null,
             ],
             'financial' => [
-                'labor_cost' => $this->labor_cost,
-                'labor_cost_formatted' => $this->when($this->labor_cost, fn() => 'R$ ' . number_format($this->labor_cost, 2, ',', '.')),
+                'labor_cost' => $this->total_amount,
+                'labor_cost_formatted' => $this->when($this->total_amount, fn() => 'R$ ' . number_format($this->total_amount, 2, ',', '.')),
                 'items_total' => $this->getItemsTotal(),
                 'items_total_formatted' => 'R$ ' . number_format($this->getItemsTotal(), 2, ',', '.'),
-                'discount' => $this->discount,
-                'discount_formatted' => $this->when($this->discount, fn() => 'R$ ' . number_format($this->discount, 2, ',', '.')),
-                'total_amount' => $this->total_amount,
-                'total_amount_formatted' => $this->when($this->total_amount, fn() => 'R$ ' . number_format($this->total_amount, 2, ',', '.')),
+                'discount' => $this->discount_amount,
+                'discount_formatted' => $this->when($this->discount_amount, fn() => 'R$ ' . number_format($this->discount_amount, 2, ',', '.')),
+                'total_amount' => $this->final_amount ?? $this->getItemsTotal(),
+                'total_amount_formatted' => 'R$ ' . number_format($this->final_amount ?? $this->getItemsTotal(), 2, ',', '.'),
             ],
             'vehicle' => [
                 'id' => $this->vehicle->id ?? null,
@@ -51,8 +51,8 @@ class ServiceResource extends JsonResource
                 'brand' => $this->vehicle->brand ?? null,
                 'model' => $this->vehicle->model ?? null,
                 'year' => $this->vehicle->year ?? null,
-                'mileage_at_service' => $this->mileage,
-                'mileage_formatted' => $this->when($this->mileage, fn() => number_format($this->mileage, 0, ',', '.') . ' km'),
+                'mileage_at_service' => $this->mileage_at_service,
+                'mileage_formatted' => $this->when($this->mileage_at_service, fn() => number_format($this->mileage_at_service, 0, ',', '.') . ' km'),
                 'fuel_level' => $this->fuel_level,
                 'fuel_level_label' => $this->getFuelLevelLabel(),
             ],
@@ -81,13 +81,13 @@ class ServiceResource extends JsonResource
                 ];
             }),
             'warranty_months' => $this->warranty_months,
-            'warranty_expires_at' => $this->when($this->finished_at && $this->warranty_months, function () {
-                return $this->finished_at->addMonths($this->warranty_months)->format('d/m/Y');
+            'warranty_expires_at' => $this->when($this->completed_at && $this->warranty_months, function () {
+                return $this->completed_at->addMonths($this->warranty_months)->format('d/m/Y');
             }),
             'observations' => $this->observations,
-            'internal_notes' => $this->internal_notes,
-            'items' => ServiceItemResource::collection($this->whenLoaded('items')),
-            'items_count' => $this->whenCounted('items'),
+            'internal_notes' => $this->notes,
+            'items' => ServiceItemResource::collection($this->whenLoaded('serviceItems')),
+            'items_count' => $this->whenCounted('serviceItems'),
             'created_at' => $this->created_at->format('d/m/Y H:i'),
             'updated_at' => $this->updated_at->format('d/m/Y H:i')
         ];
@@ -95,11 +95,11 @@ class ServiceResource extends JsonResource
 
     private function getDuration(): ?int
     {
-        if (!$this->started_at || !$this->finished_at) {
+        if (!$this->started_at || !$this->completed_at) {
             return null;
         }
 
-        return $this->started_at->diffInMinutes($this->finished_at);
+        return $this->started_at->diffInMinutes($this->completed_at);
     }
 
     private function getDurationFormatted(): ?string
@@ -145,10 +145,10 @@ class ServiceResource extends JsonResource
 
     private function getItemsTotal(): float
     {
-        if (!$this->relationLoaded('items')) {
+        if (!$this->relationLoaded('serviceItems')) {
             return 0;
         }
 
-        return $this->items->sum('total_price');
+        return $this->serviceItems->sum('total_price');
     }
 }

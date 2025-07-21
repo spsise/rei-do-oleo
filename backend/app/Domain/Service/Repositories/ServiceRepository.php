@@ -43,7 +43,8 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'total_price' => $item['quantity'] * $item['unit_price'],
+                'discount' => $item['discount'] ?? 0,
+                'total_price' => $item['quantity'] * $item['unit_price'] * (1 - ($item['discount'] ?? 0) / 100),
                 'notes' => $item['notes'] ?? null,
             ]);
         }
@@ -314,7 +315,37 @@ class ServiceRepository implements ServiceRepositoryInterface
     public function findByServiceNumber(string $serviceNumber): ?Service
     {
         return Service::where('service_number', $serviceNumber)
-            ->with(['client', 'vehicle', 'serviceStatus', 'technician', 'attendant'])
+            ->with([
+                'client',
+                'vehicle',
+                'serviceCenter',
+                'serviceStatus',
+                'technician',
+                'attendant',
+                'serviceItems.product'
+            ])
             ->first();
+    }
+
+    public function getDashboardStats(?int $serviceCenterId = null): array
+    {
+        $query = Service::query();
+
+        if ($serviceCenterId) {
+            $query->where('service_center_id', $serviceCenterId);
+        }
+
+        $services = $query->with(['serviceStatus'])->get();
+
+        return [
+            'total_services' => $services->count(),
+            'services_in_progress' => $services->where('serviceStatus.name', 'in_progress')->count(),
+            'services_completed' => $services->where('serviceStatus.name', 'completed')->count(),
+            'services_cancelled' => $services->where('serviceStatus.name', 'cancelled')->count(),
+            'total_revenue' => $services->where('serviceStatus.name', 'completed')->sum('final_amount'),
+            'average_service_duration' => $services->whereNotNull('started_at')->whereNotNull('completed_at')->avg(function ($service) {
+                return $service->started_at->diffInMinutes($service->completed_at);
+            }) ?? 0,
+        ];
     }
 }
