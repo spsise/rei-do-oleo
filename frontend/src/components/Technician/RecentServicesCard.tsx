@@ -11,10 +11,12 @@ import { type TechnicianService } from '../../types/technician';
 
 interface RecentServicesCardProps {
   services: TechnicianService[];
+  onServiceClick?: (service: TechnicianService) => void;
 }
 
 export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
   services,
+  onServiceClick,
 }) => {
   const [showAllValues, setShowAllValues] = useState(false);
   const [visibleValues, setVisibleValues] = useState<Set<number>>(new Set());
@@ -27,6 +29,8 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
         return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'pending':
         return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'scheduled':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'cancelled':
         return 'bg-red-100 text-red-700 border-red-200';
       default:
@@ -42,6 +46,8 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
         return 'Em Andamento';
       case 'pending':
         return 'Pendente';
+      case 'scheduled':
+        return 'Agendado';
       case 'cancelled':
         return 'Cancelado';
       default:
@@ -57,6 +63,8 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
         return '🔄';
       case 'pending':
         return '⏳';
+      case 'scheduled':
+        return '📅';
       case 'cancelled':
         return '❌';
       default:
@@ -96,6 +104,10 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
 
   const isValueVisible = (serviceId: number) => {
     return showAllValues || visibleValues.has(serviceId);
+  };
+
+  const handleServiceClick = (service: TechnicianService) => {
+    onServiceClick?.(service);
   };
 
   return (
@@ -145,7 +157,8 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
           services.map((service, index) => (
             <div
               key={service.id || index}
-              className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-yellow-100 hover:border-yellow-200 transition-all duration-200"
+              className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-yellow-100 hover:border-yellow-200 transition-all duration-200 cursor-pointer hover:shadow-md"
+              onClick={() => handleServiceClick(service)}
             >
               {/* Header do serviço */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3">
@@ -234,7 +247,7 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
       {/* Resumo compacto */}
       {services?.length > 0 && (
         <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
             <div>
               <div className="text-base sm:text-lg font-bold text-yellow-600">
                 {
@@ -254,6 +267,16 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
                 }
               </div>
               <div className="text-xs text-gray-600">Em Andamento</div>
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-bold text-purple-600">
+                {
+                  services.filter(
+                    (s) => s.status?.toLowerCase() === 'scheduled'
+                  ).length
+                }
+              </div>
+              <div className="text-xs text-gray-600">Agendados</div>
             </div>
             <div>
               <div className="text-base sm:text-lg font-bold text-green-600">

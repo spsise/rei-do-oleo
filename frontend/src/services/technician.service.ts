@@ -137,6 +137,12 @@ class TechnicianService {
     );
   }
 
+  async getServiceDetails(serviceId: number): Promise<ApiResponse<Service>> {
+    return apiCall(() =>
+      httpClient.instance.get<ApiResponse<Service>>(`/services/${serviceId}`)
+    );
+  }
+
   async updateServiceStatus(
     serviceId: number,
     data: UpdateServiceStatusData

@@ -26,6 +26,9 @@ export interface TechnicianService {
   status: string;
   total_amount: number;
   created_at: string;
+  notes?: string;
+  observations?: string;
+  items?: TechnicianServiceItem[];
 }
 
 export interface TechnicianSearchResult {

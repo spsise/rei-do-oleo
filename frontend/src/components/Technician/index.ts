@@ -7,6 +7,7 @@ export { ClientSearchHeader } from './ClientSearchHeader';
 export { ClientSearchResults } from './ClientSearchResults';
 export { ClientStatisticsCard } from './ClientStatisticsCard';
 export { RecentServicesCard } from './RecentServicesCard';
+export { ServiceDetailsModal } from './ServiceDetailsModal';
 export { StatisticItem } from './StatisticItem';
 export { StatisticsIcon } from './StatisticsIcon';
 export { TechnicianHeader } from './TechnicianHeader';

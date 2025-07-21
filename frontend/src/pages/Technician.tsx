@@ -3,6 +3,7 @@ import {
   ClientSearchForm,
   ClientSearchResults,
   NewServiceModal,
+  ServiceDetailsModal,
   TechnicianHeader,
 } from '../components/Technician';
 import { useTechnician } from '../hooks/useTechnician';
@@ -22,6 +23,10 @@ export const TechnicianPage: React.FC = () => {
     categories,
     isLoadingProducts,
     productSearchTerm,
+    selectedService,
+    showServiceDetails,
+    serviceDetails,
+    isLoadingServiceDetails,
 
     // Ações
     setSearchType,
@@ -33,6 +38,8 @@ export const TechnicianPage: React.FC = () => {
     handleCreateNewService,
     handleSubmitService,
     resetSearch,
+    handleServiceClick,
+    handleCloseServiceDetails,
 
     // Métodos para produtos
     searchProducts,
@@ -77,6 +84,7 @@ export const TechnicianPage: React.FC = () => {
               <ClientSearchResults
                 searchResult={searchResult}
                 onCreateNewService={handleCreateNewService}
+                onServiceClick={handleServiceClick}
               />
             </div>
           )}
@@ -180,6 +188,21 @@ export const TechnicianPage: React.FC = () => {
           onUpdateProductNotes={updateServiceItemNotes}
           calculateItemsTotal={calculateItemsTotal}
           calculateFinalTotal={calculateFinalTotal}
+        />
+
+        {/* Service Details Modal */}
+        <ServiceDetailsModal
+          isOpen={showServiceDetails}
+          onClose={handleCloseServiceDetails}
+          service={selectedService}
+          clientName={searchResult?.client?.name}
+          vehicleInfo={
+            searchResult?.vehicles?.[0]
+              ? `${searchResult.vehicles[0].brand} ${searchResult.vehicles[0].model} - ${searchResult.vehicles[0].license_plate}`
+              : undefined
+          }
+          serviceDetails={serviceDetails}
+          isLoadingDetails={isLoadingServiceDetails}
         />
       </div>
     </div>

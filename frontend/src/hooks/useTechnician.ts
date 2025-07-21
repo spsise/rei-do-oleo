@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { technicianService } from '../services';
+import { technicianService } from '../services/technician.service';
+import { type Service } from '../types/service';
 import {
   type CreateTechnicianServiceData,
   type TechnicianProduct,
   type TechnicianSearchResult,
+  type TechnicianService,
   type TechnicianServiceItem,
 } from '../types/technician';
 
@@ -50,6 +52,12 @@ export const useTechnician = () => {
   >([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState('');
+
+  const [selectedService, setSelectedService] =
+    useState<TechnicianService | null>(null);
+  const [showServiceDetails, setShowServiceDetails] = useState(false);
+  const [serviceDetails, setServiceDetails] = useState<Service | null>(null);
+  const [isLoadingServiceDetails, setIsLoadingServiceDetails] = useState(false);
 
   const handleSearch = async () => {
     if (!searchValue.trim()) {
@@ -170,6 +178,29 @@ export const useTechnician = () => {
     setSearchValue('');
     setSearchResult(null);
     setShowNewServiceForm(false);
+  };
+
+  const handleServiceClick = async (service: TechnicianService) => {
+    setSelectedService(service);
+    setShowServiceDetails(true);
+    setIsLoadingServiceDetails(true);
+
+    try {
+      const response = await technicianService.getServiceDetails(service.id);
+      if (response.status === 'success' && response.data) {
+        setServiceDetails(response.data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do serviço:', error);
+    } finally {
+      setIsLoadingServiceDetails(false);
+    }
+  };
+
+  const handleCloseServiceDetails = () => {
+    setShowServiceDetails(false);
+    setSelectedService(null);
+    setServiceDetails(null);
   };
 
   // Métodos para produtos
@@ -345,6 +376,10 @@ export const useTechnician = () => {
     categories,
     isLoadingProducts,
     productSearchTerm,
+    selectedService,
+    showServiceDetails,
+    serviceDetails,
+    isLoadingServiceDetails,
 
     // Ações
     setSearchType,
@@ -357,6 +392,8 @@ export const useTechnician = () => {
     handleCreateNewService,
     handleSubmitService,
     resetSearch,
+    handleServiceClick,
+    handleCloseServiceDetails,
 
     // Métodos para produtos
     loadActiveProducts,

@@ -1,15 +1,20 @@
 import React from 'react';
-import { type TechnicianSearchResult } from '../../types/technician';
+import {
+  type TechnicianSearchResult,
+  type TechnicianService,
+} from '../../types/technician';
 import { ClientInfoCard } from './ClientInfoCard';
 import { RecentServicesCard } from './RecentServicesCard';
 import { VehicleListCard } from './VehicleListCard';
 
 interface ClientSearchContentProps {
   searchResult: TechnicianSearchResult;
+  onServiceClick?: (service: TechnicianService) => void;
 }
 
 export const ClientSearchContent: React.FC<ClientSearchContentProps> = ({
   searchResult,
+  onServiceClick,
 }) => {
   return (
     <>
@@ -30,7 +35,10 @@ export const ClientSearchContent: React.FC<ClientSearchContentProps> = ({
       {/* Serviços recentes */}
       {searchResult.recent_services && (
         <div className="transform transition-all duration-300 hover:scale-[1.01] mb-6">
-          <RecentServicesCard services={searchResult.recent_services} />
+          <RecentServicesCard
+            services={searchResult.recent_services}
+            onServiceClick={onServiceClick}
+          />
         </div>
       )}
     </>

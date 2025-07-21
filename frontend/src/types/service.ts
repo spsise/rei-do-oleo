@@ -66,6 +66,7 @@ export interface Service {
   warranty_months?: number;
   observations?: string;
   internal_notes?: string;
+  items?: ServiceItem[];
   created_at: string;
   updated_at: string;
 }
@@ -83,7 +84,15 @@ export interface ServiceItem {
   updated_at: string;
 
   // Relacionamentos
-  product?: Product;
+  product?: {
+    id: number;
+    name: string;
+    sku: string;
+    brand?: string;
+    category: string;
+    unit: string;
+    current_stock: number;
+  };
 }
 
 export interface ServiceStatus {
