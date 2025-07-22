@@ -9,7 +9,7 @@ import { type TechnicianServiceItem } from '../../types/technician';
 
 interface ServiceItemsListProps {
   items: TechnicianServiceItem[];
-  onRemoveItem: (productId: number) => void;
+  onRemoveItem: (itemId: string) => void;
   onUpdateQuantity: (productId: number, quantity: number) => void;
   onUpdatePrice: (productId: number, price: number) => void;
   onUpdateNotes: (productId: number, notes: string) => void;
@@ -118,7 +118,9 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                 </div>
               </div>
               <button
-                onClick={() => onRemoveItem(item.product_id)}
+                onClick={() =>
+                  onRemoveItem(item.id || `item-${item.product_id}`)
+                }
                 className="ml-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Remover produto"
               >

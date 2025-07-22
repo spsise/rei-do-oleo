@@ -54,6 +54,7 @@ export interface TechnicianProduct {
 
 // Tipos para itens de serviço
 export interface TechnicianServiceItem {
+  id?: string; // ID único para identificação no frontend
   product_id: number;
   quantity: number;
   unit_price: number;

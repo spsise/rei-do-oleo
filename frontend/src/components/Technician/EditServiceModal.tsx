@@ -85,7 +85,8 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         notes: service.notes || '',
         active: true,
         items:
-          service.items?.map((item) => ({
+          service.items?.map((item, index) => ({
+            id: `item-${service.id}-${item.product_id}-${index}`, // ID único para cada item
             product_id: item.product_id,
             product: item.product,
             quantity: item.quantity,
@@ -142,6 +143,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
 
       // Adicionar novo produto
       const newItem: TechnicianServiceItem = {
+        id: `item-${service?.id || 'new'}-${product.id}-${Date.now()}`, // ID único para novo item
         product_id: product.id,
         product: product,
         quantity,
@@ -157,21 +159,30 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
     });
   };
 
-  const handleRemoveProduct = (productId: number) => {
+  const handleRemoveProduct = (itemId: string) => {
     setEditData((prev) => {
       if (!prev) return null;
 
+      // Verificar se o item existe antes de remover
+      const itemToRemove = prev.items?.find((item) => item.id === itemId);
+      if (!itemToRemove) {
+        console.warn(`Item com ID ${itemId} não encontrado para remoção`);
+        return prev;
+      }
+
+      const filteredItems =
+        prev.items?.filter((item) => item.id !== itemId) || [];
+
       return {
         ...prev,
-        items:
-          prev.items?.filter((item) => item.product_id !== productId) || [],
+        items: filteredItems,
       };
     });
   };
 
   const handleUpdateProductQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) {
-      handleRemoveProduct(productId);
+      handleRemoveProduct(`item-${service?.id}-${productId}-0`); // Assuming a default index for removal
       return;
     }
 

@@ -278,6 +278,7 @@ export const useTechnician = () => {
     } else {
       // Adicionar novo item
       const newItem: TechnicianServiceItem = {
+        id: `item-new-${product.id}-${Date.now()}`, // ID único para novo item
         product_id: product.id,
         quantity,
         unit_price: product.price,
@@ -295,17 +296,22 @@ export const useTechnician = () => {
     toast.success(`${product.name} adicionado ao serviço`);
   };
 
-  const removeProductFromService = (productId: number) => {
+  const removeProductFromService = (itemId: string) => {
     setNewServiceData((prev) => ({
       ...prev,
-      items: prev.items?.filter((item) => item.product_id !== productId) || [],
+      items: prev.items?.filter((item) => item.id !== itemId) || [],
     }));
     toast.success('Produto removido do serviço');
   };
 
   const updateServiceItemQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) {
-      removeProductFromService(productId);
+      // Remover o item com o productId específico
+      setNewServiceData((prev) => ({
+        ...prev,
+        items:
+          prev.items?.filter((item) => item.product_id !== productId) || [],
+      }));
       return;
     }
 

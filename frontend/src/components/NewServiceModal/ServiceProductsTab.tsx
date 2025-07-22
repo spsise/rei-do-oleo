@@ -19,7 +19,7 @@ interface ServiceProductsTabProps {
     quantity: number,
     notes?: string
   ) => void;
-  onRemoveProduct: (productId: number) => void;
+  onRemoveProduct: (itemId: string) => void;
   onUpdateProductQuantity: (productId: number, quantity: number) => void;
   onUpdateProductPrice: (productId: number, price: number) => void;
   onUpdateProductNotes: (productId: number, notes: string) => void;

@@ -13,7 +13,10 @@ import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useTechnician } from '../hooks/useTechnician';
 import '../styles/Technician.css';
 import { type Service, type UpdateServiceData } from '../types/service';
-import { type TechnicianService } from '../types/technician';
+import {
+  type CreateTechnicianServiceData,
+  type TechnicianService,
+} from '../types/technician';
 
 export const TechnicianPage: React.FC = () => {
   const {
@@ -134,6 +137,7 @@ export const TechnicianPage: React.FC = () => {
             : undefined,
         })) || [],
     };
+
     handleEditService(technicianService);
   };
 
@@ -158,6 +162,12 @@ export const TechnicianPage: React.FC = () => {
   const handleCloseEditServiceModal = () => {
     setShowEditServiceModal(false);
     setSelectedServiceForEdit(null);
+  };
+
+  const handleServiceDataChange = (
+    data: Partial<CreateTechnicianServiceData>
+  ) => {
+    setNewServiceData((prev) => ({ ...prev, ...data }));
   };
 
   return (
@@ -281,7 +291,7 @@ export const TechnicianPage: React.FC = () => {
           isOpen={showNewServiceForm}
           onClose={() => setShowNewServiceForm(false)}
           serviceData={newServiceData}
-          onServiceDataChange={setNewServiceData}
+          onServiceDataChange={handleServiceDataChange}
           vehicles={searchResult?.vehicles || []}
           onSubmit={handleSubmitService}
           isLoading={isCreatingService}
