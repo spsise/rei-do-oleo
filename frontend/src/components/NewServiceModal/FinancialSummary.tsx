@@ -12,6 +12,12 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
   finalTotal,
 }) => {
   const formatPrice = (price: number) => {
+    if (isNaN(price) || !isFinite(price)) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(0);
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',

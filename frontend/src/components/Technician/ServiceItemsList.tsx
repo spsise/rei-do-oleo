@@ -27,6 +27,12 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
   isLoading = false,
 }) => {
   const formatPrice = (price: number) => {
+    if (isNaN(price) || !isFinite(price)) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(0);
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -34,11 +40,16 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
   };
 
   const calculateItemTotal = (item: TechnicianServiceItem) => {
-    return (item.unit_price || 0) * (item.quantity || 0);
+    const total = (item.unit_price || 0) * (item.quantity || 0);
+    return isNaN(total) ? 0 : total;
   };
 
   const calculateTotal = () => {
-    return items.reduce((total, item) => total + calculateItemTotal(item), 0);
+    const total = items.reduce(
+      (total, item) => total + calculateItemTotal(item),
+      0
+    );
+    return isNaN(total) ? 0 : total;
   };
 
   if (items.length === 0) {

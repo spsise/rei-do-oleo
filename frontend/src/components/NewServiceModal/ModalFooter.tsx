@@ -22,6 +22,12 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   submitButtonText = 'Salvar Serviço',
 }) => {
   const formatPrice = (price: number) => {
+    if (isNaN(price) || !isFinite(price)) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(0);
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',

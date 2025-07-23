@@ -89,10 +89,10 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
             id: `item-${service.id}-${item.product_id}-${index}`, // ID único para cada item
             product_id: item.product_id,
             product: item.product,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            notes: item.notes,
+            quantity: item.quantity || 1,
+            unit_price: item.unit_price || 0,
+            total_price: (item.unit_price || 0) * (item.quantity || 1),
+            notes: item.notes || '',
           })) || [],
       };
 
@@ -133,8 +133,10 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
               item.product_id === product.id
                 ? {
                     ...item,
-                    quantity: item.quantity + quantity,
-                    total_price: item.unit_price * (item.quantity + quantity),
+                    quantity: (item.quantity || 0) + quantity,
+                    total_price:
+                      (item.unit_price || 0) *
+                      ((item.quantity || 0) + quantity),
                   }
                 : item
             ) || [],
@@ -147,8 +149,8 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         product_id: product.id,
         product: product,
         quantity,
-        unit_price: product.price,
-        total_price: product.price * quantity,
+        unit_price: product.price || 0,
+        total_price: (product.price || 0) * quantity,
         notes: notes || '',
       };
 
@@ -182,7 +184,13 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
 
   const handleUpdateProductQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) {
-      handleRemoveProduct(`item-${service?.id}-${productId}-0`); // Assuming a default index for removal
+      // Encontrar o item correto para remoção
+      const itemToRemove = editData?.items?.find(
+        (item) => item.product_id === productId
+      );
+      if (itemToRemove?.id) {
+        handleRemoveProduct(itemToRemove.id);
+      }
       return;
     }
 
@@ -194,7 +202,11 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         items:
           prev.items?.map((item) =>
             item.product_id === productId
-              ? { ...item, quantity, total_price: item.unit_price * quantity }
+              ? {
+                  ...item,
+                  quantity,
+                  total_price: (item.unit_price || 0) * quantity,
+                }
               : item
           ) || [],
       };
@@ -213,7 +225,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
               ? {
                   ...item,
                   unit_price: unitPrice,
-                  total_price: item.quantity * unitPrice,
+                  total_price: (item.quantity || 0) * unitPrice,
                 }
               : item
           ) || [],
@@ -236,15 +248,19 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   };
 
   const handleCalculateItemsTotal = () => {
-    return (
-      editData?.items?.reduce((total, item) => total + item.total_price, 0) || 0
-    );
+    const total =
+      editData?.items?.reduce((total, item) => {
+        const itemTotal = (item.unit_price || 0) * (item.quantity || 0);
+        return total + itemTotal;
+      }, 0) || 0;
+    return isNaN(total) ? 0 : total;
   };
 
   const handleCalculateFinalTotal = () => {
     const itemsTotal = handleCalculateItemsTotal();
     const discount = editData?.discount_amount || 0;
-    return Math.max(0, itemsTotal - discount);
+    const finalTotal = Math.max(0, itemsTotal - discount);
+    return isNaN(finalTotal) ? 0 : finalTotal;
   };
 
   const handleSubmit = async () => {
