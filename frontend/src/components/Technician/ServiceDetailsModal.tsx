@@ -203,7 +203,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-modalFadeIn">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-modalSlideInUp">
         {/* Header */}
-        <div className="sticky top-0 bg-white rounded-t-2xl p-6 border-b border-gray-100 z-10">
+        <div className="sticky top-0 bg-white rounded-t-2xl px-4 pt-3 pb-2 border-b border-gray-100 z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl shadow-lg">
@@ -229,7 +229,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4">
           {/* Informações Principais */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Card do Serviço */}
@@ -474,11 +474,11 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white rounded-b-2xl p-6 border-t border-gray-100">
+        <div className="sticky bottom-0 bg-white rounded-b-2xl px-4 py-2 border-t border-gray-100">
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
             >
               Fechar
             </button>
@@ -538,7 +538,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                   console.log('Editar serviço:', displayService.id);
                 }
               }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Editar Serviço
             </button>

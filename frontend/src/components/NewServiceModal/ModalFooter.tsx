@@ -29,7 +29,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   };
 
   return (
-    <div className="sticky bottom-0 bg-white rounded-b-2xl p-6 border-t border-gray-100">
+    <div className="sticky bottom-0 bg-white rounded-b-2xl p-2 border-t border-gray-100">
       <div className="flex justify-between items-center">
         <div className="text-sm text-gray-600">
           {activeTab === 'products' && (
@@ -45,7 +45,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 font-medium disabled:opacity-50"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 font-medium disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -56,7 +56,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
               !serviceData.vehicle_id ||
               !serviceData.description.trim()
             }
-            className="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+            className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
           >
             {isLoading ? (
               <>
