@@ -182,7 +182,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
     });
   };
 
-  const handleUpdateProductQuantity = (productId: number, quantity: number) => {
+  const handleUpdateProductQuantity = (itemId: string, quantity: number) => {
     // Garantir que a quantidade seja sempre um número válido
     const validQuantity = Math.max(1, Math.min(quantity, 999));
 
@@ -193,7 +193,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         ...prev,
         items:
           prev.items?.map((item) =>
-            item.product_id === productId
+            item.id === itemId
               ? {
                   ...item,
                   quantity: validQuantity,
@@ -205,7 +205,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
     });
   };
 
-  const handleUpdateProductPrice = (productId: number, unitPrice: number) => {
+  const handleUpdateProductPrice = (itemId: string, unitPrice: number) => {
     setEditData((prev) => {
       if (!prev) return null;
 
@@ -213,7 +213,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         ...prev,
         items:
           prev.items?.map((item) =>
-            item.product_id === productId
+            item.id === itemId
               ? {
                   ...item,
                   unit_price: unitPrice,
@@ -225,7 +225,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
     });
   };
 
-  const handleUpdateProductNotes = (productId: number, notes: string) => {
+  const handleUpdateProductNotes = (itemId: string, notes: string) => {
     setEditData((prev) => {
       if (!prev) return null;
 
@@ -233,7 +233,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         ...prev,
         items:
           prev.items?.map((item) =>
-            item.product_id === productId ? { ...item, notes } : item
+            item.id === itemId ? { ...item, notes } : item
           ) || [],
       };
     });
@@ -267,6 +267,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        discount: 0, // Adicionar campo discount obrigatório
         notes: item.notes,
       })),
       discount: editData.discount_amount,

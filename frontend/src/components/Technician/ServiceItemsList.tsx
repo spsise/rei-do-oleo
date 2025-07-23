@@ -5,15 +5,15 @@ import {
   ShoppingCartIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { type TechnicianServiceItem } from '../../types/technician';
 
 interface ServiceItemsListProps {
   items: TechnicianServiceItem[];
   onRemoveItem: (itemId: string) => void;
-  onUpdateQuantity: (productId: number, quantity: number) => void;
-  onUpdatePrice: (productId: number, price: number) => void;
-  onUpdateNotes: (productId: number, notes: string) => void;
+  onUpdateQuantity: (itemId: string, quantity: number) => void;
+  onUpdatePrice: (itemId: string, price: number) => void;
+  onUpdateNotes: (itemId: string, notes: string) => void;
   onAddProduct: () => void;
   isLoading?: boolean;
 }
@@ -34,6 +34,11 @@ const QuantityControl: React.FC<QuantityControlProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState(value.toString());
   const [isEditing, setIsEditing] = useState(false);
+
+  // Sincronizar o estado interno com a prop externa
+  useEffect(() => {
+    setInputValue(value.toString());
+  }, [value]);
 
   const handleIncrement = () => {
     const newValue = Math.min(value + 1, max);
@@ -217,9 +222,9 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
 
       {/* Lista de Itens - Mais Concisos */}
       <div className="space-y-3">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div
-            key={item.product_id}
+            key={item.id || `item-${item.product_id}-${index}`}
             className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
           >
             {/* Header do Item */}
@@ -258,10 +263,14 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                   Quantidade
                 </label>
                 <QuantityControl
+                  key={`quantity-${item.id || `item-${item.product_id}-${index}`}`}
                   value={item.quantity || 1}
-                  onChange={(quantity) =>
-                    onUpdateQuantity(item.product_id, quantity)
-                  }
+                  onChange={(quantity) => {
+                    onUpdateQuantity(
+                      item.id || `item-${item.product_id}-${index}`,
+                      quantity
+                    );
+                  }}
                   min={1}
                   max={999}
                 />
@@ -284,7 +293,10 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                     step="0.01"
                     value={item.unit_price || 0}
                     onChange={(e) =>
-                      onUpdatePrice(item.product_id, Number(e.target.value))
+                      onUpdatePrice(
+                        item.id || `item-${item.product_id}-${index}`,
+                        Number(e.target.value)
+                      )
                     }
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md transition-shadow group-hover:border-gray-300"
                     inputMode="decimal"
@@ -316,7 +328,12 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
               </label>
               <textarea
                 value={item.notes || ''}
-                onChange={(e) => onUpdateNotes(item.product_id, e.target.value)}
+                onChange={(e) =>
+                  onUpdateNotes(
+                    item.id || `item-${item.product_id}-${index}`,
+                    e.target.value
+                  )
+                }
                 placeholder="Observações sobre este produto..."
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                 rows={1}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ClientSearchForm,
   ClientSearchResults,
@@ -8,6 +8,7 @@ import {
   TechnicianHeader,
   UpdateStatusModal,
 } from '../components/Technician';
+import { useUpdateServiceItems } from '../hooks/useServiceItems';
 import { useUpdateService } from '../hooks/useServices';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useTechnician } from '../hooks/useTechnician';
@@ -17,6 +18,16 @@ import {
   type CreateTechnicianServiceData,
   type TechnicianService,
 } from '../types/technician';
+
+// Tipo específico para edição de serviço que inclui itens
+interface EditServiceData extends UpdateServiceData {
+  items?: Array<{
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+    notes?: string;
+  }>;
+}
 
 export const TechnicianPage: React.FC = () => {
   const {
@@ -51,6 +62,8 @@ export const TechnicianPage: React.FC = () => {
     handleCloseServiceDetails,
 
     // Métodos para produtos
+    loadActiveProducts,
+    loadCategories,
     searchProducts,
     addProductToService,
     removeProductFromService,
@@ -61,6 +74,12 @@ export const TechnicianPage: React.FC = () => {
     calculateFinalTotal,
   } = useTechnician();
 
+  // Carregar produtos e categorias quando a página for montada
+  useEffect(() => {
+    loadActiveProducts();
+    loadCategories();
+  }, [loadActiveProducts, loadCategories]);
+
   // Estados para modal de atualização de status
   const { updateServiceStatus, isUpdatingStatus } = useServiceStatus();
   const [selectedServiceForUpdate, setSelectedServiceForUpdate] =
@@ -69,6 +88,7 @@ export const TechnicianPage: React.FC = () => {
 
   // Estados para modal de edição de serviço
   const updateServiceMutation = useUpdateService();
+  const updateServiceItemsMutation = useUpdateServiceItems();
   const [selectedServiceForEdit, setSelectedServiceForEdit] =
     useState<TechnicianService | null>(null);
   const [showEditServiceModal, setShowEditServiceModal] = useState(false);
@@ -114,28 +134,33 @@ export const TechnicianPage: React.FC = () => {
       service_number: service.service_number,
       description: service.description || '',
       status: service.status?.name || '',
-      total_amount: parseFloat(service.financial?.total_amount || '0'),
+      total_amount: service.financial?.items_total || 0,
       created_at: service.created_at,
       notes: service.internal_notes,
       observations: service.observations,
-      items:
-        service.items?.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          notes: item.notes,
-          product: item.product
-            ? {
-                id: item.product.id,
-                name: item.product.name,
-                sku: item.product.sku,
-                price: 0, // Não disponível no Service
-                stock_quantity: item.product.current_stock,
-                category: { id: 0, name: item.product.category },
-              }
-            : undefined,
-        })) || [],
+      items: service.items?.map((item) => ({
+        id: `item-${service.id}-${item.product_id}`,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        notes: item.notes,
+        product: item.product
+          ? {
+              id: item.product.id,
+              name: item.product.name,
+              sku: item.product.sku,
+              price: 0, // Não disponível no ServiceItem
+              stock_quantity: item.product.current_stock,
+              category: item.product.category
+                ? {
+                    id: parseInt(item.product.category),
+                    name: item.product.category,
+                  }
+                : undefined,
+            }
+          : undefined,
+      })),
     };
 
     handleEditService(technicianService);
@@ -143,10 +168,24 @@ export const TechnicianPage: React.FC = () => {
 
   const handleEditServiceSubmit = async (
     serviceId: number,
-    data: UpdateServiceData
+    data: EditServiceData
   ) => {
     try {
-      await updateServiceMutation.mutateAsync({ id: serviceId, data });
+      // Separar dados do serviço dos itens
+      const { items, ...serviceData } = data;
+
+      // Atualizar o serviço
+      await updateServiceMutation.mutateAsync({
+        id: serviceId,
+        data: serviceData,
+      });
+
+      // Atualizar os itens do serviço (sempre, mesmo que seja array vazio)
+      await updateServiceItemsMutation.mutateAsync({
+        serviceId,
+        items: items || [],
+      });
+
       setShowEditServiceModal(false);
       setSelectedServiceForEdit(null);
 
@@ -333,7 +372,10 @@ export const TechnicianPage: React.FC = () => {
           service={selectedServiceForEdit}
           vehicles={searchResult?.vehicles || []}
           onSubmit={handleEditServiceSubmit}
-          isLoading={updateServiceMutation.isPending}
+          isLoading={
+            updateServiceMutation.isPending ||
+            updateServiceItemsMutation.isPending
+          }
           // Props para produtos
           products={products}
           categories={categories}

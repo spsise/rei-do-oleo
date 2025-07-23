@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { technicianService } from '../services/technician.service';
 import { type Service } from '../types/service';
@@ -204,7 +204,7 @@ export const useTechnician = () => {
   };
 
   // Métodos para produtos
-  const loadActiveProducts = async () => {
+  const loadActiveProducts = useCallback(async () => {
     setIsLoadingProducts(true);
     try {
       const response = await technicianService.getActiveProducts();
@@ -217,9 +217,9 @@ export const useTechnician = () => {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, []);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const response = await technicianService.getCategories();
       if (response.status === 'success' && response.data) {
@@ -229,7 +229,7 @@ export const useTechnician = () => {
       console.error('Erro ao carregar categorias:', error);
       toast.error('Erro ao carregar categorias');
     }
-  };
+  }, []);
 
   const searchProducts = async (search: string) => {
     // Atualizar o termo de busca no estado
@@ -278,7 +278,7 @@ export const useTechnician = () => {
     } else {
       // Adicionar novo item
       const newItem: TechnicianServiceItem = {
-        id: `item-new-${product.id}-${Date.now()}`, // ID único para novo item
+        id: `item-new-${product.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // ID único para novo item
         product_id: product.id,
         quantity,
         unit_price: product.price,
@@ -304,53 +304,65 @@ export const useTechnician = () => {
     toast.success('Produto removido do serviço');
   };
 
-  const updateServiceItemQuantity = (productId: number, quantity: number) => {
-    if (quantity <= 0) {
-      // Remover o item com o productId específico
+  const updateServiceItemQuantity = useCallback(
+    (itemId: string, quantity: number) => {
+      if (quantity <= 0) {
+        // Remover o item com o itemId específico
+        setNewServiceData((prev) => ({
+          ...prev,
+          items: prev.items?.filter((item) => item.id !== itemId) || [],
+        }));
+        return;
+      }
+
       setNewServiceData((prev) => ({
         ...prev,
         items:
-          prev.items?.filter((item) => item.product_id !== productId) || [],
+          prev.items?.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  quantity,
+                  total_price: item.unit_price * quantity,
+                }
+              : item
+          ) || [],
       }));
-      return;
-    }
+    },
+    [newServiceData.items]
+  );
 
-    setNewServiceData((prev) => ({
-      ...prev,
-      items:
-        prev.items?.map((item) =>
-          item.product_id === productId
-            ? { ...item, quantity, total_price: item.unit_price * quantity }
-            : item
-        ) || [],
-    }));
-  };
+  const updateServiceItemPrice = useCallback(
+    (itemId: string, unitPrice: number) => {
+      setNewServiceData((prev) => ({
+        ...prev,
+        items:
+          prev.items?.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  unit_price: unitPrice,
+                  total_price: item.quantity * unitPrice,
+                }
+              : item
+          ) || [],
+      }));
+    },
+    []
+  );
 
-  const updateServiceItemPrice = (productId: number, unitPrice: number) => {
-    setNewServiceData((prev) => ({
-      ...prev,
-      items:
-        prev.items?.map((item) =>
-          item.product_id === productId
-            ? {
-                ...item,
-                unit_price: unitPrice,
-                total_price: item.quantity * unitPrice,
-              }
-            : item
-        ) || [],
-    }));
-  };
-
-  const updateServiceItemNotes = (productId: number, notes: string) => {
-    setNewServiceData((prev) => ({
-      ...prev,
-      items:
-        prev.items?.map((item) =>
-          item.product_id === productId ? { ...item, notes } : item
-        ) || [],
-    }));
-  };
+  const updateServiceItemNotes = useCallback(
+    (itemId: string, notes: string) => {
+      setNewServiceData((prev) => ({
+        ...prev,
+        items:
+          prev.items?.map((item) =>
+            item.id === itemId ? { ...item, notes } : item
+          ) || [],
+      }));
+    },
+    []
+  );
 
   // Calcular total dos itens
   const calculateItemsTotal = () => {
@@ -403,6 +415,7 @@ export const useTechnician = () => {
 
     // Métodos para produtos
     loadActiveProducts,
+    loadCategories,
     searchProducts,
     addProductToService,
     removeProductFromService,

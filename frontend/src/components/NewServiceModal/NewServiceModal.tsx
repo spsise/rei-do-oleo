@@ -29,9 +29,9 @@ interface NewServiceModalProps {
     notes?: string
   ) => void;
   onRemoveProduct: (itemId: string) => void;
-  onUpdateProductQuantity: (productId: number, quantity: number) => void;
-  onUpdateProductPrice: (productId: number, price: number) => void;
-  onUpdateProductNotes: (productId: number, notes: string) => void;
+  onUpdateProductQuantity: (itemId: string, quantity: number) => void;
+  onUpdateProductPrice: (itemId: string, price: number) => void;
+  onUpdateProductNotes: (itemId: string, notes: string) => void;
   calculateItemsTotal: () => number;
   calculateFinalTotal: () => number;
 }

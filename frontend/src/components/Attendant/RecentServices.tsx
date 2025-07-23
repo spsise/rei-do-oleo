@@ -87,9 +87,9 @@ export const RecentServices: React.FC = () => {
   };
 
   // Handlers para ações do menu
-  const handleViewDetails = (service: AttendantService) => {
+  const handleViewDetails = (_service: AttendantService) => {
     // TODO: Implementar modal de detalhes
-    console.log('Ver detalhes do serviço:', service.id);
+    console.log(_service);
   };
 
   const handleUpdateStatus = (service: AttendantService) => {

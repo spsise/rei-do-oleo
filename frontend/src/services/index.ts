@@ -6,6 +6,7 @@ export { dashboardService } from './dashboard.service';
 export { healthService } from './health.service';
 export { productService } from './product.service';
 export { serviceService } from './service.service';
+export { serviceItemService } from './serviceItem.service';
 export { technicianService } from './technician.service';
 export { vehicleService } from './vehicle.service';
 
