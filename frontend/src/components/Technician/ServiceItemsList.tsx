@@ -1,10 +1,11 @@
 import {
   CurrencyDollarIcon,
+  MinusIcon,
   PlusIcon,
   ShoppingCartIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import React from 'react';
+import React, { useState } from 'react';
 import { type TechnicianServiceItem } from '../../types/technician';
 
 interface ServiceItemsListProps {
@@ -16,6 +17,116 @@ interface ServiceItemsListProps {
   onAddProduct: () => void;
   isLoading?: boolean;
 }
+
+// Componente de controle de quantidade otimizado para mobile
+interface QuantityControlProps {
+  value: number;
+  onChange: (quantity: number) => void;
+  min?: number;
+  max?: number;
+}
+
+const QuantityControl: React.FC<QuantityControlProps> = ({
+  value,
+  onChange,
+  min = 1,
+  max = 999,
+}) => {
+  const [inputValue, setInputValue] = useState(value.toString());
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleIncrement = () => {
+    const newValue = Math.min(value + 1, max);
+    onChange(newValue);
+    setInputValue(newValue.toString());
+  };
+
+  const handleDecrement = () => {
+    const newValue = Math.max(value - 1, min);
+    onChange(newValue);
+    setInputValue(newValue.toString());
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+
+    // Se o campo estiver vazio, não atualizar ainda (evita remoção do produto)
+    if (newValue === '') {
+      return;
+    }
+
+    const numValue = parseInt(newValue, 10);
+    if (!isNaN(numValue) && numValue >= min && numValue <= max) {
+      onChange(numValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    setIsEditing(false);
+    const numValue = parseInt(inputValue, 10);
+
+    // Se o valor for inválido ou vazio, restaurar o valor anterior
+    if (isNaN(numValue) || numValue < min || inputValue === '') {
+      setInputValue(value.toString());
+      return;
+    }
+
+    // Aplicar limites
+    const clampedValue = Math.max(min, Math.min(numValue, max));
+    if (clampedValue !== value) {
+      onChange(clampedValue);
+      setInputValue(clampedValue.toString());
+    }
+  };
+
+  const handleInputFocus = () => {
+    setIsEditing(true);
+  };
+
+  return (
+    <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Botão de decremento - Design moderno */}
+      <button
+        onClick={handleDecrement}
+        disabled={value <= min}
+        className="flex items-center justify-center w-10 h-10 bg-gradient-to-b from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 active:from-gray-200 active:to-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 border-r border-gray-200 touch-manipulation group"
+        type="button"
+        aria-label="Diminuir quantidade"
+      >
+        <MinusIcon className="h-4 w-4 text-gray-600 group-hover:text-gray-800 transition-colors" />
+      </button>
+
+      {/* Campo de input - Design centralizado */}
+      <div className="flex-1 min-w-0">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          value={isEditing ? inputValue : value}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onFocus={handleInputFocus}
+          className="w-full text-center py-2.5 border-none focus:outline-none focus:ring-0 text-sm font-semibold bg-white text-gray-900 placeholder-gray-400"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          aria-label="Quantidade"
+        />
+      </div>
+
+      {/* Botão de incremento - Design moderno */}
+      <button
+        onClick={handleIncrement}
+        disabled={value >= max}
+        className="flex items-center justify-center w-10 h-10 bg-gradient-to-b from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 active:from-gray-200 active:to-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 border-l border-gray-200 touch-manipulation group"
+        type="button"
+        aria-label="Aumentar quantidade"
+      >
+        <PlusIcon className="h-4 w-4 text-gray-600 group-hover:text-gray-800 transition-colors" />
+      </button>
+    </div>
+  );
+};
 
 export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
   items,
@@ -139,33 +250,34 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
               </button>
             </div>
 
-            {/* Controles de Quantidade e Preço - Layout Compacto */}
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              {/* Quantidade */}
+            {/* Controles de Quantidade e Preço - Layout Responsivo */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              {/* Quantidade - Versão Mobile Otimizada */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Qtd
+                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                  Quantidade
                 </label>
-                <input
-                  type="number"
-                  min="1"
+                <QuantityControl
                   value={item.quantity || 1}
-                  onChange={(e) =>
-                    onUpdateQuantity(item.product_id, Number(e.target.value))
+                  onChange={(quantity) =>
+                    onUpdateQuantity(item.product_id, quantity)
                   }
-                  className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  min={1}
+                  max={999}
                 />
               </div>
 
               {/* Preço Unitário */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Preço Unit.
+                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                  Preço Unitário
                 </label>
-                <div className="relative">
-                  <span className="absolute left-2 top-1.5 text-gray-400 text-xs">
-                    R$
-                  </span>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 text-sm font-medium">
+                      R$
+                    </span>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -174,19 +286,23 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                     onChange={(e) =>
                       onUpdatePrice(item.product_id, Number(e.target.value))
                     }
-                    className="w-full pl-6 pr-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md transition-shadow group-hover:border-gray-300"
+                    inputMode="decimal"
+                    placeholder="0,00"
                   />
                 </div>
               </div>
 
               {/* Total do Item */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Total
+                <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                  Total do Item
                 </label>
-                <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 rounded-lg">
-                  <CurrencyDollarIcon className="h-3 w-3 text-green-600" />
-                  <span className="font-semibold text-green-600 text-sm">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 shadow-sm">
+                  <div className="p-1 bg-green-100 rounded-full">
+                    <CurrencyDollarIcon className="h-3 w-3 text-green-600" />
+                  </div>
+                  <span className="font-bold text-green-700 text-sm">
                     {formatPrice(calculateItemTotal(item))}
                   </span>
                 </div>

@@ -183,16 +183,8 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   };
 
   const handleUpdateProductQuantity = (productId: number, quantity: number) => {
-    if (quantity <= 0) {
-      // Encontrar o item correto para remoção
-      const itemToRemove = editData?.items?.find(
-        (item) => item.product_id === productId
-      );
-      if (itemToRemove?.id) {
-        handleRemoveProduct(itemToRemove.id);
-      }
-      return;
-    }
+    // Garantir que a quantidade seja sempre um número válido
+    const validQuantity = Math.max(1, Math.min(quantity, 999));
 
     setEditData((prev) => {
       if (!prev) return null;
@@ -204,8 +196,8 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
             item.product_id === productId
               ? {
                   ...item,
-                  quantity,
-                  total_price: (item.unit_price || 0) * quantity,
+                  quantity: validQuantity,
+                  total_price: (item.unit_price || 0) * validQuantity,
                 }
               : item
           ) || [],
