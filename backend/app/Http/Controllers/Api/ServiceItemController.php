@@ -4,7 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Service\Models\ServiceItem;
+use App\Domain\Service\Services\ServiceItemService;
 use App\Http\Resources\ServiceItemResource;
+use App\Http\Requests\BulkUpdateServiceItemsRequest;
+use App\Http\Requests\BulkStoreServiceItemsRequest;
+use App\Http\Requests\StoreServiceItemRequest;
+use App\Http\Requests\UpdateServiceItemRequest;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +17,10 @@ use Illuminate\Http\JsonResponse;
 class ServiceItemController extends Controller
 {
     use ApiResponseTrait;
+
+    public function __construct(
+        private ServiceItemService $serviceItemService
+    ) {}
 
     /**
      * @OA\Get(
@@ -70,14 +79,18 @@ class ServiceItemController extends Controller
      */
     public function index(int $serviceId): JsonResponse
     {
-        $items = ServiceItem::where('service_id', $serviceId)
-                           ->with(['product', 'product.category'])
-                           ->get();
+        try {
+            $items = $this->serviceItemService->getServiceItems($serviceId);
 
-        return $this->successResponse(
-            ServiceItemResource::collection($items),
-            'Itens do serviço listados com sucesso'
-        );
+            return $this->successResponse(
+                ServiceItemResource::collection($items),
+                'Itens do serviço listados com sucesso'
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao listar itens do serviço', 500);
+        }
     }
 
     /**
@@ -135,30 +148,22 @@ class ServiceItemController extends Controller
      *     )
      * )
      */
-    public function store(Request $request, int $serviceId): JsonResponse
+    public function store(StoreServiceItemRequest $request, int $serviceId): JsonResponse
     {
-        $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0|max:100',
-            'notes' => 'nullable|string'
-        ]);
+        try {
+            $validated = $request->validated();
+            $item = $this->serviceItemService->createServiceItem($serviceId, $validated);
 
-        $validated['service_id'] = $serviceId;
-
-        // Calculate total
-        $subtotal = $validated['quantity'] * $validated['unit_price'];
-        $discountAmount = $subtotal * (($validated['discount'] ?? 0) / 100);
-        $validated['total_price'] = $subtotal - $discountAmount;
-
-        $item = ServiceItem::create($validated);
-
-        return $this->successResponse(
-            new ServiceItemResource($item->load(['product', 'product.category'])),
-            'Item adicionado ao serviço com sucesso',
-            201
-        );
+            return $this->successResponse(
+                new ServiceItemResource($item->load(['product', 'product.category'])),
+                'Item adicionado ao serviço com sucesso',
+                201
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao adicionar item ao serviço', 500);
+        }
     }
 
     /**
@@ -208,8 +213,10 @@ class ServiceItemController extends Controller
      *     )
      * )
      */
-    public function show(int $serviceId, int $itemId): JsonResponse
+    public function show(int $serviceId, string $itemId): JsonResponse
     {
+        $itemId = (int) $itemId;
+
         $item = ServiceItem::where('service_id', $serviceId)
                           ->where('id', $itemId)
                           ->with(['product', 'product.category'])
@@ -286,41 +293,22 @@ class ServiceItemController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, int $serviceId, int $itemId): JsonResponse
+    public function update(UpdateServiceItemRequest $request, int $serviceId, string $itemId): JsonResponse
     {
-        $validated = $request->validate([
-            'product_id' => 'sometimes|exists:products,id',
-            'quantity' => 'sometimes|integer|min:1',
-            'unit_price' => 'sometimes|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0|max:100',
-            'notes' => 'nullable|string'
-        ]);
+        try {
+            $validated = $request->validated();
+            $itemId = (int) $itemId;
+            $item = $this->serviceItemService->updateServiceItem($serviceId, $itemId, $validated);
 
-        $item = ServiceItem::where('service_id', $serviceId)
-                          ->where('id', $itemId)
-                          ->first();
-
-        if (!$item) {
-            return $this->errorResponse('Item não encontrado', 404);
+            return $this->successResponse(
+                new ServiceItemResource($item->load(['product', 'product.category'])),
+                'Item atualizado com sucesso'
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao atualizar item do serviço', 500);
         }
-
-        // Recalculate total if relevant fields changed
-        if (isset($validated['quantity']) || isset($validated['unit_price']) || isset($validated['discount'])) {
-            $quantity = $validated['quantity'] ?? $item->quantity;
-            $unitPrice = $validated['unit_price'] ?? $item->unit_price;
-            $discount = $validated['discount'] ?? $item->discount ?? 0;
-
-            $subtotal = $quantity * $unitPrice;
-            $discountAmount = $subtotal * ($discount / 100);
-            $validated['total_price'] = $subtotal - $discountAmount;
-        }
-
-        $item->update($validated);
-
-        return $this->successResponse(
-            new ServiceItemResource($item->load(['product', 'product.category'])),
-            'Item atualizado com sucesso'
-        );
     }
 
     /**
@@ -358,19 +346,18 @@ class ServiceItemController extends Controller
      *     )
      * )
      */
-    public function destroy(int $serviceId, int $itemId): JsonResponse
+    public function destroy(int $serviceId, string $itemId): JsonResponse
     {
-        $item = ServiceItem::where('service_id', $serviceId)
-                          ->where('id', $itemId)
-                          ->first();
+        try {
+            $itemId = (int) $itemId;
+            $this->serviceItemService->deleteServiceItem($serviceId, $itemId);
 
-        if (!$item) {
-            return $this->errorResponse('Item não encontrado', 404);
+            return $this->successResponse(null, 'Item removido do serviço');
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao remover item do serviço', 500);
         }
-
-        $item->delete();
-
-        return $this->successResponse(null, 'Item removido do serviço');
     }
 
     /**
@@ -452,45 +439,132 @@ class ServiceItemController extends Controller
      *     )
      * )
      */
-    public function bulkStore(Request $request, int $serviceId): JsonResponse
+    public function bulkStore(BulkStoreServiceItemsRequest $request, int $serviceId): JsonResponse
     {
-        $validated = $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.discount' => 'nullable|numeric|min:0|max:100',
-            'items.*.notes' => 'nullable|string'
-        ]);
+        try {
+            $validated = $request->validated();
+            $items = $this->serviceItemService->bulkCreateServiceItems($serviceId, $validated['items']);
 
-        $createdItems = [];
-
-        foreach ($validated['items'] as $itemData) {
-            $itemData['service_id'] = $serviceId;
-
-            // Calculate total
-            $subtotal = $itemData['quantity'] * $itemData['unit_price'];
-            $discountAmount = $subtotal * (($itemData['discount'] ?? 0) / 100);
-            $itemData['total_price'] = $subtotal - $discountAmount;
-
-            $createdItems[] = ServiceItem::create($itemData);
+            return $this->successResponse(
+                ServiceItemResource::collection($items),
+                'Itens adicionados ao serviço em lote',
+                201
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao adicionar itens ao serviço', 500);
         }
+    }
 
-        // Load relationships
-        $items = ServiceItem::whereIn('id', collect($createdItems)->pluck('id'))
-                           ->with(['product', 'product.category'])
-                           ->get();
+    /**
+     * @OA\Put(
+     *     path="/api/v1/services/{serviceId}/items/bulk",
+     *     tags={"Itens de Serviço"},
+     *     summary="Atualizar todos os itens do serviço",
+     *     description="Substitui todos os itens existentes de um serviço pelos novos itens fornecidos",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="serviceId",
+     *         in="path",
+     *         required=true,
+     *         description="ID do serviço",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"items"},
+     *             @OA\Property(
+     *                 property="items",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="product_id", type="integer", example=5),
+     *                     @OA\Property(property="quantity", type="integer", example=2),
+     *                     @OA\Property(property="unit_price", type="number", format="float", example=89.90),
+     *                     @OA\Property(property="discount", type="number", format="float", example=10.0),
+     *                     @OA\Property(property="notes", type="string", example="Óleo sintético premium")
+     *                 ),
+     *                 example={
+     *                     {
+     *                         "product_id": 5,
+     *                         "quantity": 2,
+     *                         "unit_price": 89.90,
+     *                         "discount": 10.0,
+     *                         "notes": "Óleo sintético premium"
+     *                     },
+     *                     {
+     *                         "product_id": 8,
+     *                         "quantity": 1,
+     *                         "unit_price": 45.00,
+     *                         "discount": 5.0,
+     *                         "notes": "Filtro de óleo"
+     *                     }
+     *                 }
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Itens do serviço atualizados com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Itens do serviço atualizados com sucesso"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="service_id", type="integer", example=1),
+     *                     @OA\Property(property="product_id", type="integer", example=5),
+     *                     @OA\Property(property="quantity", type="integer", example=2),
+     *                     @OA\Property(property="unit_price", type="number", format="float", example=89.90),
+     *                     @OA\Property(property="discount", type="number", format="float", example=10.0),
+     *                     @OA\Property(property="total_price", type="number", format="float", example=161.82),
+     *                     @OA\Property(property="notes", type="string", example="Óleo sintético premium"),
+     *                     @OA\Property(
+     *                         property="product",
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=5),
+     *                         @OA\Property(property="name", type="string", example="Óleo Shell Helix Ultra"),
+     *                         @OA\Property(property="category", type="object")
+     *                     ),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erro de validação"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Serviço não encontrado"
+     *     )
+     * )
+     */
+    public function bulkUpdate(BulkUpdateServiceItemsRequest $request, int $serviceId): JsonResponse
+    {
+        try {
+            $validated = $request->validated();
+            $items = $this->serviceItemService->bulkUpdateServiceItems($serviceId, $validated['items']);
 
-        return $this->successResponse(
-            ServiceItemResource::collection($items),
-            'Itens adicionados ao serviço em lote',
-            201
-        );
+            return $this->successResponse(
+                ServiceItemResource::collection($items),
+                'Itens do serviço atualizados com sucesso'
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao atualizar itens do serviço', 500);
+        }
     }
 
     /**
      * @OA\Get(
-     *     path="/api/v1/services/{serviceId}/items/total",
+     *     path="/api/v1/services/{serviceId}/items/total/calculate",
      *     tags={"Itens de Serviço"},
      *     summary="Calcular total dos itens do serviço",
      *     description="Calcula o total de todos os itens de um serviço específico",

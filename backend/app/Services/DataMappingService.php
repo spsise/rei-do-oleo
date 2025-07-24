@@ -16,6 +16,7 @@ class DataMappingService
             'mileage' => 'mileage_at_service',
             'discount' => 'discount_amount',
             'total_amount' => 'final_amount',
+            'internal_notes' => 'notes',
         ];
 
         foreach ($mappings as $frontendField => $backendField) {
@@ -40,6 +41,7 @@ class DataMappingService
             'mileage_at_service' => 'mileage',
             'discount_amount' => 'discount',
             'final_amount' => 'total_amount',
+            'notes' => 'internal_notes',
         ];
 
         foreach ($mappings as $backendField => $frontendField) {

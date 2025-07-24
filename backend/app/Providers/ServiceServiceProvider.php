@@ -12,6 +12,7 @@ use App\Domain\Product\Services\ProductService;
 
 // Service Domain Services
 use App\Domain\Service\Services\ServiceService;
+use App\Domain\Service\Services\ServiceItemService;
 
 // Vehicle Domain Services
 use App\Domain\Vehicle\Services\VehicleService;
@@ -47,6 +48,14 @@ class ServiceServiceProvider extends ServiceProvider
             );
         });
 
+        // Service Item Domain Services
+        $this->app->singleton(ServiceItemService::class, function ($app) {
+            return new ServiceItemService(
+                $app->make(\App\Domain\Service\Repositories\ServiceItemRepositoryInterface::class),
+                $app->make(\App\Domain\Service\Repositories\ServiceRepositoryInterface::class)
+            );
+        });
+
         // Vehicle Domain Services
         $this->app->singleton(VehicleService::class, function ($app) {
             return new VehicleService(
@@ -62,4 +71,4 @@ class ServiceServiceProvider extends ServiceProvider
     {
         //
     }
-} 
+}
