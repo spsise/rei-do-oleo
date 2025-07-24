@@ -274,7 +274,7 @@ class ServiceRepository implements ServiceRepositoryInterface
     public function getRecentByClient(int $clientId, int $limit = 5): Collection
     {
         return Service::where('client_id', $clientId)
-            ->with(['client', 'vehicle', 'serviceStatus'])
+            ->with(['client', 'vehicle', 'serviceStatus', 'serviceItems.product.category'])
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
