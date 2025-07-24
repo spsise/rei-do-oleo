@@ -37,9 +37,9 @@ export const AppRoutes = () => {
       />
 
       <Route
-        path="/technician"
+        path="/servicos"
         element={
-          <ProtectedRoute path="/technician">
+          <ProtectedRoute path="/servicos">
             <VoiceRecognitionProvider>
               <VoiceModalProvider>
                 <TechnicianPage />
