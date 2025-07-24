@@ -3,189 +3,98 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TelegramWebhookRequest;
+use App\Http\Requests\TelegramWebhookSetupRequest;
+use App\Http\Resources\TelegramWebhookResource;
 use App\Services\TelegramBotService;
-use Illuminate\Http\Request;
+use App\Services\TelegramWebhookService;
+use App\Services\TelegramMessageProcessorService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
-    private TelegramBotService $telegramBotService;
-
-    public function __construct(TelegramBotService $telegramBotService)
-    {
-        $this->telegramBotService = $telegramBotService;
-    }
+    public function __construct(
+        private TelegramBotService $telegramBotService,
+        private TelegramWebhookService $webhookService,
+        private TelegramMessageProcessorService $messageProcessor
+    ) {}
 
     /**
      * Handle Telegram webhook
      */
-    public function handle(Request $request): JsonResponse
+    public function handle(TelegramWebhookRequest $request): JsonResponse
     {
         try {
-            $payload = $request->all();
+            $payload = $request->validated();
 
-            Log::info('Telegram webhook received', [
-                'payload' => $payload
-            ]);
-
-            // Check if it's a callback query (button click)
-            if (isset($payload['callback_query'])) {
-                return $this->handleCallbackQuery($payload['callback_query']);
+            // Validate payload structure
+            $validation = $this->webhookService->validatePayload($payload);
+            if (!$validation['valid']) {
+                return TelegramWebhookResource::ignored($validation['message'])
+                    ->response()
+                    ->setStatusCode(200);
             }
 
-            // Verify if it's a message
-            if (!isset($payload['message'])) {
-                return response()->json(['status' => 'ignored', 'message' => 'No message in payload']);
+            // Process the webhook payload
+            $result = $this->messageProcessor->processWebhookPayload($payload);
+
+            if ($result['status'] === 'ignored') {
+                return TelegramWebhookResource::ignored($result['message'])
+                    ->response()
+                    ->setStatusCode(200);
             }
 
-            $message = $payload['message'];
-
-            // Check if it's a text message
-            if (!isset($message['text'])) {
-                return response()->json(['status' => 'ignored', 'message' => 'No text in message']);
+            if (!$result['success']) {
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(500);
             }
 
-            // Process the message
-            $result = $this->telegramBotService->processMessage($message);
-
-            if ($result['success']) {
-                Log::info('Telegram message processed successfully', [
-                    'chat_id' => $message['chat']['id'] ?? 'unknown',
-                    'text' => $message['text'] ?? 'unknown'
-                ]);
-            } else {
-                Log::error('Failed to process Telegram message', [
-                    'error' => $result['error'] ?? 'Unknown error',
-                    'chat_id' => $message['chat']['id'] ?? 'unknown'
-                ]);
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Message processed',
-                'result' => $result
-            ]);
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
 
         } catch (\Exception $e) {
-            Log::error('Telegram webhook error', [
+            Log::error('Telegram webhook controller error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Internal server error'
-            ], 500);
-        }
-    }
-
-    /**
-     * Handle callback query from inline keyboard buttons
-     */
-    private function handleCallbackQuery(array $callbackQuery): JsonResponse
-    {
-        try {
-            $callbackQueryId = $callbackQuery['id'] ?? '';
-            $chatId = $callbackQuery['message']['chat']['id'] ?? '';
-            $callbackData = $callbackQuery['data'] ?? '';
-
-            Log::info('Telegram callback query received', [
-                'callback_query_id' => $callbackQueryId,
-                'chat_id' => $chatId,
-                'callback_data' => $callbackData
-            ]);
-
-            // Answer the callback query to remove loading state
-            $this->telegramBotService->getTelegramChannel()->answerCallbackQuery($callbackQueryId);
-
-            // Process the callback query
-            $result = $this->telegramBotService->processCallbackQuery($callbackQuery);
-
-            if ($result['success']) {
-                Log::info('Telegram callback query processed successfully', [
-                    'chat_id' => $chatId,
-                    'callback_data' => $callbackData
-                ]);
-            } else {
-                Log::error('Failed to process Telegram callback query', [
-                    'error' => $result['error'] ?? 'Unknown error',
-                    'chat_id' => $chatId,
-                    'callback_data' => $callbackData
-                ]);
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Callback query processed',
-                'result' => $result
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Telegram callback query error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Internal server error'
-            ], 500);
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
         }
     }
 
     /**
      * Set webhook URL for Telegram bot
      */
-    public function setWebhook(Request $request): JsonResponse
+    public function setWebhook(TelegramWebhookSetupRequest $request): JsonResponse
     {
         try {
-            $botToken = config('services.telegram.bot_token');
-            $webhookUrl = $request->input('webhook_url');
+            $webhookUrl = $request->validated()['webhook_url'];
+            $result = $this->webhookService->setWebhook($webhookUrl);
 
-            if (!$webhookUrl) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Webhook URL is required'
-                ], 400);
+            if (!$result['success']) {
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
             }
 
-            $apiUrl = "https://api.telegram.org/bot{$botToken}/setWebhook";
-
-            $response = \Illuminate\Support\Facades\Http::post($apiUrl, [
-                'url' => $webhookUrl
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                Log::info('Telegram webhook set successfully', [
-                    'webhook_url' => $webhookUrl,
-                    'response' => $data
-                ]);
-
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Webhook set successfully',
-                    'data' => $data
-                ]);
-            }
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to set webhook',
-                'error' => $response->json()
-            ], 400);
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
 
         } catch (\Exception $e) {
             Log::error('Error setting Telegram webhook', [
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Internal server error'
-            ], 500);
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
         }
     }
 
@@ -195,35 +104,26 @@ class TelegramWebhookController extends Controller
     public function getWebhookInfo(): JsonResponse
     {
         try {
-            $botToken = config('services.telegram.bot_token');
-            $apiUrl = "https://api.telegram.org/bot{$botToken}/getWebhookInfo";
+            $result = $this->webhookService->getWebhookInfo();
 
-            $response = \Illuminate\Support\Facades\Http::get($apiUrl);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                return response()->json([
-                    'status' => 'success',
-                    'data' => $data
-                ]);
+            if (!$result['success']) {
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
             }
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to get webhook info',
-                'error' => $response->json()
-            ], 400);
+            return TelegramWebhookResource::success('Webhook info retrieved', $result)
+                ->response()
+                ->setStatusCode(200);
 
         } catch (\Exception $e) {
             Log::error('Error getting Telegram webhook info', [
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Internal server error'
-            ], 500);
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
         }
     }
 
@@ -233,40 +133,26 @@ class TelegramWebhookController extends Controller
     public function deleteWebhook(): JsonResponse
     {
         try {
-            $botToken = config('services.telegram.bot_token');
-            $apiUrl = "https://api.telegram.org/bot{$botToken}/deleteWebhook";
+            $result = $this->webhookService->deleteWebhook();
 
-            $response = \Illuminate\Support\Facades\Http::post($apiUrl);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                Log::info('Telegram webhook deleted successfully', [
-                    'response' => $data
-                ]);
-
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Webhook deleted successfully',
-                    'data' => $data
-                ]);
+            if (!$result['success']) {
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
             }
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to delete webhook',
-                'error' => $response->json()
-            ], 400);
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
 
         } catch (\Exception $e) {
             Log::error('Error deleting Telegram webhook', [
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Internal server error'
-            ], 500);
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
         }
     }
 
@@ -276,52 +162,26 @@ class TelegramWebhookController extends Controller
     public function test(): JsonResponse
     {
         try {
-            $botToken = config('services.telegram.bot_token');
-            $recipients = config('services.telegram.recipients', []);
+            $result = $this->webhookService->testBot();
 
-            if (empty($recipients)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No recipients configured'
-                ], 400);
+            if (!$result['success']) {
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
             }
 
-            $testMessage = "🧪 *Teste do Bot*\n\n" .
-                          "Este é um teste do bot de relatórios do Rei do Óleo.\n" .
-                          "Se você recebeu esta mensagem, o bot está funcionando!\n\n" .
-                          "Use `/help` para ver os comandos disponíveis.\n\n" .
-                          "⏰ Teste realizado em: " . now()->format('d/m/Y H:i:s');
-
-            $results = [];
-            foreach ($recipients as $recipient) {
-                $result = $this->telegramBotService->processMessage([
-                    'chat' => ['id' => $recipient],
-                    'text' => '/help',
-                    'from' => ['id' => $recipient, 'first_name' => 'Test User']
-                ]);
-
-                $results[$recipient] = $result;
-            }
-
-            $successCount = count(array_filter($results, fn($r) => $r['success']));
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Test completed',
-                'sent_to' => $successCount,
-                'total_recipients' => count($recipients),
-                'results' => $results
-            ]);
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
 
         } catch (\Exception $e) {
             Log::error('Telegram bot test error', [
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Test failed: ' . $e->getMessage()
-            ], 500);
+            return TelegramWebhookResource::error('Test failed: ' . $e->getMessage())
+                ->response()
+                ->setStatusCode(500);
         }
     }
 }

@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UnifiedNotificationController;
 use App\Http\Controllers\Api\TelegramWebhookController;
+use App\Http\Controllers\Api\TelegramStatsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -353,11 +354,23 @@ Route::prefix('unified-notifications')->group(function () {
 // TELEGRAM BOT ROUTES
 // =============================================================================
 Route::prefix('telegram')->group(function () {
+    // Webhook handling
     Route::post('/webhook', [TelegramWebhookController::class, 'handle']);                         // POST /api/telegram/webhook
+
+    // Webhook management
     Route::post('/set-webhook', [TelegramWebhookController::class, 'setWebhook']);                  // POST /api/telegram/set-webhook
     Route::get('/webhook-info', [TelegramWebhookController::class, 'getWebhookInfo']);              // GET /api/telegram/webhook-info
     Route::delete('/webhook', [TelegramWebhookController::class, 'deleteWebhook']);                 // DELETE /api/telegram/webhook
+
+    // Testing and monitoring
     Route::post('/test', [TelegramWebhookController::class, 'test']);                               // POST /api/telegram/test
+
+    // Statistics and monitoring
+    Route::prefix('stats')->group(function () {
+        Route::get('/', [TelegramStatsController::class, 'getStats']);                              // GET /api/telegram/stats
+        Route::get('/logs', [TelegramStatsController::class, 'getRecentLogs']);                     // GET /api/telegram/stats/logs
+        Route::get('/health', [TelegramStatsController::class, 'getHealthStatus']);                 // GET /api/telegram/stats/health
+    });
 });
 
 // Fallback Route
