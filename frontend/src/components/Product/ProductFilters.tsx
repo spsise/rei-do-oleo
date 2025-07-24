@@ -1,5 +1,10 @@
-import { FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import React from 'react';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
+} from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
 
 interface Category {
   id: number;
@@ -27,10 +32,17 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   placeholder = 'Buscar produtos por nome ou SKU...',
   compact = false,
 }) => {
+  const [isCategoryFiltersExpanded, setIsCategoryFiltersExpanded] =
+    useState(false);
+
   const getCategoryProductCount = (categoryId: number | null) => {
     if (categoryId === null) return products.length;
     return products.filter((product) => product.category?.id === categoryId)
       .length;
+  };
+
+  const toggleCategoryFilters = () => {
+    setIsCategoryFiltersExpanded(!isCategoryFiltersExpanded);
   };
 
   if (compact) {
@@ -47,36 +59,49 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           />
         </div>
 
+        {/* Botão para expandir/colapsar filtros de categoria */}
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-medium text-gray-700">
+          <button
+            onClick={toggleCategoryFilters}
+            className="flex items-center gap-2 text-xs font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
             <FunnelIcon className="h-3 w-3" />
-            Filtrar por categoria:
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => onCategoryChange(null)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                selectedCategory === null
-                  ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
-              }`}
-            >
-              Todas ({getCategoryProductCount(null)})
-            </button>
-            {categories.map((category) => (
+            Filtrar por categoria
+            {isCategoryFiltersExpanded ? (
+              <ChevronUpIcon className="h-3 w-3" />
+            ) : (
+              <ChevronDownIcon className="h-3 w-3" />
+            )}
+          </button>
+
+          {/* Filtros de categoria - colapsados por padrão */}
+          {isCategoryFiltersExpanded && (
+            <div className="flex flex-wrap gap-1.5 transition-all duration-200 ease-in-out">
               <button
-                key={category.id}
-                onClick={() => onCategoryChange(category.id)}
+                onClick={() => onCategoryChange(null)}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                  selectedCategory === category.id
+                  selectedCategory === null
                     ? 'bg-blue-100 text-blue-700 border border-blue-300'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
                 }`}
               >
-                {category.name} ({getCategoryProductCount(category.id)})
+                Todas ({getCategoryProductCount(null)})
               </button>
-            ))}
-          </div>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => onCategoryChange(category.id)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                    selectedCategory === category.id
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                  }`}
+                >
+                  {category.name} ({getCategoryProductCount(category.id)})
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -96,36 +121,49 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
         />
       </div>
 
+      {/* Botão para expandir/colapsar filtros de categoria */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <button
+          onClick={toggleCategoryFilters}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+        >
           <FunnelIcon className="h-4 w-4" />
-          Filtrar por categoria:
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => onCategoryChange(null)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              selectedCategory === null
-                ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
-            }`}
-          >
-            Todas as categorias ({getCategoryProductCount(null)})
-          </button>
-          {categories.map((category) => (
+          Filtrar por categoria
+          {isCategoryFiltersExpanded ? (
+            <ChevronUpIcon className="h-4 w-4" />
+          ) : (
+            <ChevronDownIcon className="h-4 w-4" />
+          )}
+        </button>
+
+        {/* Filtros de categoria - colapsados por padrão */}
+        {isCategoryFiltersExpanded && (
+          <div className="flex flex-wrap gap-2 transition-all duration-200 ease-in-out">
             <button
-              key={category.id}
-              onClick={() => onCategoryChange(category.id)}
+              onClick={() => onCategoryChange(null)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                selectedCategory === category.id
+                selectedCategory === null
                   ? 'bg-blue-100 text-blue-700 border border-blue-300'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
               }`}
             >
-              {category.name} ({getCategoryProductCount(category.id)})
+              Todas as categorias ({getCategoryProductCount(null)})
             </button>
-          ))}
-        </div>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => onCategoryChange(category.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  selectedCategory === category.id
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                }`}
+              >
+                {category.name} ({getCategoryProductCount(category.id)})
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

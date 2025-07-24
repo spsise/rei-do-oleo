@@ -1,7 +1,7 @@
-import { 
-  ChevronDoubleDownIcon, 
-  ChevronDoubleUpIcon,
-  EyeIcon
+import {
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import React from 'react';
 import { type SectionType } from '../../hooks/useSectionCollapse';
@@ -22,6 +22,18 @@ export const SectionControls: React.FC<SectionControlsProps> = ({
   const collapsedCount = collapsedSections.size;
   const expandedCount = totalSections - collapsedCount;
 
+  // Determina se a maioria das seções está expandida ou minimizada
+  const isMostlyExpanded = expandedCount >= collapsedCount;
+
+  // Função para alternar entre expandir e minimizar todas
+  const handleToggleAll = () => {
+    if (isMostlyExpanded) {
+      collapseAllSections();
+    } else {
+      expandAllSections();
+    }
+  };
+
   return (
     <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 mb-4">
       <div className="flex items-center justify-between">
@@ -34,33 +46,42 @@ export const SectionControls: React.FC<SectionControlsProps> = ({
               Controle de Seções
             </h4>
             <p className="text-xs text-gray-600">
-              {expandedCount} expandida{expandedCount !== 1 ? 's' : ''}, {collapsedCount} minimizada{collapsedCount !== 1 ? 's' : ''}
+              {expandedCount} expandida{expandedCount !== 1 ? 's' : ''},{' '}
+              {collapsedCount} minimizada{collapsedCount !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <button
-            onClick={expandAllSections}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            title="Expandir todas as seções"
+            onClick={handleToggleAll}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+              isMostlyExpanded
+                ? 'text-orange-700 bg-orange-50 hover:bg-orange-100 border-orange-200 focus:ring-orange-500'
+                : 'text-green-700 bg-green-50 hover:bg-green-100 border-green-200 focus:ring-green-500'
+            }`}
+            title={
+              isMostlyExpanded
+                ? 'Minimizar todas as seções'
+                : 'Expandir todas as seções'
+            }
           >
-            <ChevronDoubleUpIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Expandir Todas</span>
-            <span className="sm:hidden">Todas</span>
-          </button>
-
-          <button
-            onClick={collapseAllSections}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            title="Minimizar todas as seções"
-          >
-            <ChevronDoubleDownIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Minimizar Todas</span>
-            <span className="sm:hidden">Todas</span>
+            {isMostlyExpanded ? (
+              <>
+                <ArrowsPointingInIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Minimizar Todas</span>
+                <span className="sm:hidden">Minimizar</span>
+              </>
+            ) : (
+              <>
+                <ArrowsPointingOutIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Expandir Todas</span>
+                <span className="sm:hidden">Expandir</span>
+              </>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
-}; 
+};

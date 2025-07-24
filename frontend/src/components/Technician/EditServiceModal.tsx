@@ -326,7 +326,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           itemsCount={editData.items?.length || 0}
-          title="Editar Serviço"
+          title="Editar"
           subtitle={`Serviço #${service.service_number}`}
         />
 
@@ -367,7 +367,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
           activeTab={activeTab}
           serviceData={editData}
           calculateFinalTotal={handleCalculateFinalTotal}
-          submitButtonText="Salvar Alterações"
+          submitButtonText="Atualizar"
         />
       </div>
     </div>

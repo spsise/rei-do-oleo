@@ -40,7 +40,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   onAddProduct,
   selectedProductIds,
   title = 'Selecionar Produtos',
-  subtitle = 'Escolha os produtos para adicionar ao serviço',
+  subtitle = 'Adicionar ao serviço',
   compact = false,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);

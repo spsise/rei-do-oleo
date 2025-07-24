@@ -19,7 +19,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   activeTab,
   serviceData,
   calculateFinalTotal,
-  submitButtonText = 'Salvar Serviço',
+  submitButtonText = 'Salvar',
 }) => {
   const formatPrice = (price: number) => {
     if (isNaN(price) || !isFinite(price)) {
