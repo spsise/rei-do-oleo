@@ -246,7 +246,7 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
               </div>
               <button
                 onClick={() =>
-                  onRemoveItem(item.id || `item-${item.product_id}`)
+                  onRemoveItem(String(item.id || `item-${item.product_id}`))
                 }
                 className="ml-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Remover produto"
@@ -263,11 +263,11 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                   Quantidade
                 </label>
                 <QuantityControl
-                  key={`quantity-${item.id || `item-${item.product_id}-${index}`}`}
+                  key={`quantity-${String(item.id || `item-${item.product_id}-${index}`)}`}
                   value={item.quantity || 1}
                   onChange={(quantity) => {
                     onUpdateQuantity(
-                      item.id || `item-${item.product_id}-${index}`,
+                      String(item.id || `item-${item.product_id}-${index}`),
                       quantity
                     );
                   }}
@@ -294,7 +294,7 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                     value={item.unit_price || 0}
                     onChange={(e) =>
                       onUpdatePrice(
-                        item.id || `item-${item.product_id}-${index}`,
+                        String(item.id || `item-${item.product_id}-${index}`),
                         Number(e.target.value)
                       )
                     }
@@ -330,7 +330,7 @@ export const ServiceItemsList: React.FC<ServiceItemsListProps> = ({
                 value={item.notes || ''}
                 onChange={(e) =>
                   onUpdateNotes(
-                    item.id || `item-${item.product_id}-${index}`,
+                    String(item.id || `item-${item.product_id}-${index}`),
                     e.target.value
                   )
                 }
