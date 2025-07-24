@@ -234,6 +234,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
 
         // Ações específicas
         Route::post('/bulk', [ServiceItemController::class, 'bulkStore']);      // POST /api/v1/services/{serviceId}/items/bulk
+        Route::put('/bulk', [ServiceItemController::class, 'bulkUpdate']);      // PUT /api/v1/services/{serviceId}/items/bulk
         Route::get('/total/calculate', [ServiceItemController::class, 'getServiceTotal']); // GET /api/v1/services/{serviceId}/items/total/calculate
     });
 

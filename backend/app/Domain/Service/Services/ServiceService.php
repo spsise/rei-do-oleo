@@ -119,6 +119,21 @@ class ServiceService
         );
     }
 
+    public function getServicesByVehicle(int $vehicleId): Collection
+    {
+        return $this->serviceRepository->getByVehicle($vehicleId);
+    }
+
+    public function getServicesByTechnician(int $technicianId): Collection
+    {
+        return $this->serviceRepository->getByTechnician($technicianId);
+    }
+
+    public function findByServiceNumber(string $serviceNumber): ?Service
+    {
+        return $this->serviceRepository->findByServiceNumber($serviceNumber);
+    }
+
     public function searchServices(array $filters): LengthAwarePaginator
     {
         return $this->serviceRepository->searchByFilters($filters);
@@ -156,7 +171,7 @@ class ServiceService
         return $this->createService($data);
     }
 
-    public function updateStatus(int $serviceId, string $status, ?string $notes = null): Service
+    public function updateStatus(int $serviceId, int $statusId, ?string $notes = null): Service
     {
         $service = $this->serviceRepository->find($serviceId);
 
@@ -164,19 +179,14 @@ class ServiceService
             throw new \InvalidArgumentException('Serviço não encontrado');
         }
 
-        $updateData = [];
+        $updateData = ['service_status_id' => $statusId];
 
         if ($notes) {
             $updateData['notes'] = $notes;
         }
 
-        // Atualizar status
-        $this->serviceRepository->updateServiceStatus($serviceId, $status);
-
-        // Atualizar notas se fornecidas
-        if (!empty($updateData)) {
-            $this->serviceRepository->update($serviceId, $updateData);
-        }
+        // Atualizar status e notas
+        $this->serviceRepository->update($serviceId, $updateData);
 
         $this->clearServiceCaches($service);
 

@@ -3,24 +3,32 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Domain\Service\Repositories\ServiceRepositoryInterface;
-use App\Domain\Service\Services\ServiceService;
+use App\Http\Requests\Api\Service\StoreServiceRequest;
+use App\Http\Requests\Api\Service\UpdateServiceRequest;
+use App\Http\Requests\Api\Service\UpdateServiceStatusRequest;
+use App\Http\Requests\Api\Service\SearchServiceRequest;
 use App\Http\Resources\ServiceResource;
+use App\Domain\Service\Services\ServiceService;
+use App\Domain\Service\Actions\CreateServiceAction;
+use App\Domain\Service\Actions\UpdateServiceAction;
+use App\Domain\Service\Actions\DeleteServiceAction;
+use App\Domain\Service\Actions\UpdateServiceStatusAction;
+use App\Domain\Service\Actions\GetServiceStatsAction;
 use App\Traits\ApiResponseTrait;
-use App\Traits\ServiceDataMappingTrait;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
-    use ApiResponseTrait, ServiceDataMappingTrait;
+    use ApiResponseTrait;
 
     public function __construct(
-        private ServiceRepositoryInterface $serviceRepository,
-        private ServiceService $serviceService
+        private ServiceService $serviceService,
+        private CreateServiceAction $createServiceAction,
+        private UpdateServiceAction $updateServiceAction,
+        private DeleteServiceAction $deleteServiceAction,
+        private UpdateServiceStatusAction $updateStatusAction,
+        private GetServiceStatsAction $getStatsAction
     ) {}
 
     /**
@@ -42,14 +50,9 @@ class ServiceController extends Controller
      *     @OA\Response(response=200, description="Lista de serviços obtida com sucesso")
      * )
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchServiceRequest $request): JsonResponse
     {
-        $filters = $request->only([
-            'search', 'service_center_id', 'client_id', 'vehicle_id',
-            'status', 'technician_id', 'date_from', 'date_to', 'per_page'
-        ]);
-
-        $services = $this->serviceRepository->searchByFilters($filters);
+        $services = $this->serviceService->searchServices($request->validated());
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -84,47 +87,9 @@ class ServiceController extends Controller
      *     @OA\Response(response=422, description="Erro de validação")
      * )
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreServiceRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'service_center_id' => 'required|exists:service_centers,id',
-            'client_id' => 'required|exists:clients,id',
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'service_number' => 'nullable|string|max:20|unique:services,service_number',
-            'description' => 'required|string',
-            'complaint' => 'nullable|string',
-            'diagnosis' => 'nullable|string',
-            'solution' => 'nullable|string',
-            'scheduled_date' => 'nullable|date',
-            'started_at' => 'nullable|date',
-            'finished_at' => 'nullable|date',
-            'technician_id' => 'nullable|exists:users,id',
-            'attendant_id' => 'nullable|exists:users,id',
-            'status_id' => 'required|exists:service_statuses,id',
-            'payment_method_id' => 'nullable|exists:payment_methods,id',
-            'labor_cost' => 'nullable|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0',
-            'total_amount' => 'nullable|numeric|min:0',
-            'mileage' => 'nullable|integer|min:0',
-            'fuel_level' => ['nullable', Rule::in(['empty', '1/4', '1/2', '3/4', 'full'])],
-            'observations' => 'nullable|string',
-            'internal_notes' => 'nullable|string',
-            'warranty_months' => 'nullable|integer|min:0',
-            'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'urgent'])],
-            'items' => 'nullable|array',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.discount' => 'nullable|numeric|min:0'
-        ]);
-
-        // Map frontend field names to backend field names
-        $validated = $this->mapServiceDataForUpdate($validated);
-
-        // Add user_id to the validated data
-        $validated['user_id'] = Auth::user()->id;
-
-        $service = $this->serviceService->createService($validated);
+        $service = $this->createServiceAction->execute($request->validated());
 
         return $this->successResponse(
             new ServiceResource($service),
@@ -146,7 +111,7 @@ class ServiceController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $service = $this->serviceRepository->find($id);
+        $service = $this->serviceService->findService($id);
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -200,39 +165,9 @@ class ServiceController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateServiceRequest $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'service_center_id' => 'sometimes|exists:service_centers,id',
-            'client_id' => 'sometimes|exists:clients,id',
-            'vehicle_id' => 'sometimes|exists:vehicles,id',
-            'service_number' => ['sometimes', 'string', 'max:20', Rule::unique('services')->ignore($id)],
-            'description' => 'sometimes|string',
-            'complaint' => 'nullable|string',
-            'diagnosis' => 'nullable|string',
-            'solution' => 'nullable|string',
-            'scheduled_date' => 'nullable|date',
-            'started_at' => 'nullable|date',
-            'finished_at' => 'nullable|date',
-            'technician_id' => 'nullable|exists:users,id',
-            'attendant_id' => 'nullable|exists:users,id',
-            'status_id' => 'sometimes|exists:service_statuses,id',
-            'payment_method_id' => 'nullable|exists:payment_methods,id',
-            'labor_cost' => 'nullable|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0',
-            'total_amount' => 'nullable|numeric|min:0',
-            'mileage' => 'nullable|integer|min:0',
-            'fuel_level' => ['nullable', Rule::in(['empty', '1/4', '1/2', '3/4', 'full'])],
-            'observations' => 'nullable|string',
-            'internal_notes' => 'nullable|string',
-            'warranty_months' => 'nullable|integer|min:0',
-            'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'urgent'])]
-        ]);
-
-        // Map frontend field names to backend field names
-        $validated = $this->mapServiceDataForUpdate($validated);
-
-        $service = $this->serviceRepository->update($id, $validated);
+        $service = $this->updateServiceAction->execute($id, $request->validated());
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -270,7 +205,7 @@ class ServiceController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $deleted = $this->serviceRepository->delete($id);
+        $deleted = $this->deleteServiceAction->execute($id);
 
         if (!$deleted) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -301,7 +236,7 @@ class ServiceController extends Controller
      */
     public function getByServiceCenter(int $serviceCenterId): JsonResponse
     {
-        $services = $this->serviceRepository->getServicesByCenter($serviceCenterId);
+        $services = $this->serviceService->getServicesByCenter($serviceCenterId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -331,7 +266,7 @@ class ServiceController extends Controller
      */
     public function getByClient(int $clientId): JsonResponse
     {
-        $services = $this->serviceRepository->getServicesByClient($clientId);
+        $services = $this->serviceService->getServicesByClient($clientId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -361,7 +296,7 @@ class ServiceController extends Controller
      */
     public function getByVehicle(int $vehicleId): JsonResponse
     {
-        $services = $this->serviceRepository->getByVehicle($vehicleId);
+        $services = $this->serviceService->getServicesByVehicle($vehicleId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -391,7 +326,7 @@ class ServiceController extends Controller
      */
     public function getByTechnician(int $technicianId): JsonResponse
     {
-        $services = $this->serviceRepository->getByTechnician($technicianId);
+        $services = $this->serviceService->getServicesByTechnician($technicianId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -440,7 +375,7 @@ class ServiceController extends Controller
     {
         $request->validate(['service_number' => 'required|string|max:50']);
 
-        $service = $this->serviceRepository->findByServiceNumber($request->service_number);
+        $service = $this->serviceService->findByServiceNumber($request->service_number);
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -492,14 +427,9 @@ class ServiceController extends Controller
      *     )
      * )
      */
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(UpdateServiceStatusRequest $request, int $id): JsonResponse
     {
-        $request->validate([
-            'status_id' => 'required|exists:service_statuses,id',
-            'notes' => 'nullable|string'
-        ]);
-
-        $updated = $this->serviceService->updateStatus($id, $request->status_id, $request->notes);
+        $updated = $this->updateStatusAction->execute($id, $request->validated());
 
         if (!$updated) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -549,7 +479,7 @@ class ServiceController extends Controller
     public function getDashboardStats(Request $request): JsonResponse
     {
         $serviceCenterId = $request->get('service_center_id');
-        $stats = $this->serviceRepository->getDashboardStats($serviceCenterId);
+        $stats = $this->getStatsAction->execute($serviceCenterId);
 
         return $this->successResponse($stats, 'Estatísticas do dashboard');
     }
