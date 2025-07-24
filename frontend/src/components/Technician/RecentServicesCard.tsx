@@ -171,7 +171,7 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
           services.map((service, index) => (
             <div
               key={service.id || index}
-              className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-yellow-100 hover:border-yellow-200 transition-all duration-200 cursor-pointer hover:shadow-md"
+              className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-yellow-100 hover:border-yellow-200 transition-all duration-200 cursor-pointer hover:shadow-md relative"
               onClick={() => handleServiceClick(service)}
             >
               {/* Header do serviço */}
@@ -198,13 +198,26 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
                     </span>
                     {getStatusText(service.status)}
                   </div>
-                  <ServiceActionsMenu
-                    service={service}
-                    onViewDetails={handleViewDetails}
-                    onUpdateStatus={handleUpdateStatus}
-                    onEditService={onEditService}
-                  />
+                  {/* Menu de ações - visível apenas em desktop */}
+                  <div className="hidden sm:block">
+                    <ServiceActionsMenu
+                      service={service}
+                      onViewDetails={handleViewDetails}
+                      onUpdateStatus={handleUpdateStatus}
+                      onEditService={onEditService}
+                    />
+                  </div>
                 </div>
+              </div>
+
+              {/* Menu de ações - posicionado no canto superior direito apenas em mobile */}
+              <div className="absolute top-2 right-2 sm:hidden">
+                <ServiceActionsMenu
+                  service={service}
+                  onViewDetails={handleViewDetails}
+                  onUpdateStatus={handleUpdateStatus}
+                  onEditService={onEditService}
+                />
               </div>
 
               {/* Detalhes compactos */}
@@ -237,7 +250,10 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
                       <span className="text-xs text-gray-500">••••</span>
                     )}
                     <button
-                      onClick={() => toggleValueVisibility(service.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleValueVisibility(service.id);
+                      }}
                       className="p-0.5 hover:bg-gray-100 rounded transition-colors"
                     >
                       {isValueVisible(service.id) ? (

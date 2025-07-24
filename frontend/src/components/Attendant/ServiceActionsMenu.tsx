@@ -2,13 +2,13 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentDuplicateIcon,
   EllipsisVerticalIcon,
-  ExclamationTriangleIcon,
   EyeIcon,
   PencilIcon,
   PhoneIcon,
   PrinterIcon,
 } from '@heroicons/react/24/outline';
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { type AttendantService } from '../../types/attendant';
 
 interface ServiceActionsMenuProps {
@@ -34,6 +34,7 @@ export const ServiceActionsMenu: React.FC<ServiceActionsMenuProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Fechar menu quando clicar fora
   useEffect(() => {
@@ -71,138 +72,193 @@ export const ServiceActionsMenu: React.FC<ServiceActionsMenuProps> = ({
     }
   };
 
-  return (
-    <div className="relative" ref={menuRef}>
-      {/* Botão de 3 pontos */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        aria-label="Ações do serviço"
+  const getStatusText = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'Concluído';
+      case 'in_progress':
+        return 'Em Andamento';
+      case 'pending':
+        return 'Pendente';
+      case 'scheduled':
+        return 'Agendado';
+      case 'cancelled':
+        return 'Cancelado';
+      default:
+        return 'N/A';
+    }
+  };
+
+  const renderDropdown = () => {
+    if (!isOpen || !buttonRef.current) return null;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calcular posição responsiva
+    const menuWidth = 224; // w-56 = 224px
+    const menuHeight = 320; // Altura estimada do menu
+
+    // Posição horizontal - alinhar à direita em mobile
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8; // Margem mínima da tela
+    if (left + menuWidth > viewportWidth - 8) {
+      left = viewportWidth - menuWidth - 8;
+    }
+
+    // Posição vertical - verificar se cabe abaixo ou acima
+    let top = rect.bottom + 4;
+    if (top + menuHeight > viewportHeight - 8) {
+      // Se não cabe abaixo, posicionar acima
+      top = rect.top - menuHeight - 4;
+    }
+
+    const dropdownContent = (
+      <div
+        ref={menuRef}
+        className="fixed w-56 bg-white rounded-lg shadow-2xl border border-gray-200 py-1 z-[999999] animate-in fade-in-0 zoom-in-95 duration-100"
+        style={{
+          top: `${top}px`,
+          left: `${left}px`,
+        }}
       >
-        <EllipsisVerticalIcon className="h-4 w-4" />
-      </button>
-
-      {/* Menu Dropdown */}
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 animate-in fade-in-0 zoom-in-95 duration-100">
-          {/* Header do menu */}
-          <div className="px-3 py-2 border-b border-gray-100">
-            <div className="text-xs font-medium text-gray-900">
-              #{service.service_number}
-            </div>
-            <div className={`text-xs ${getStatusColor(service.status || '')}`}>
-              {service.status || 'N/A'}
-            </div>
+        {/* Header do menu */}
+        <div className="px-3 py-2 border-b border-gray-100">
+          <div className="text-xs font-medium text-gray-900">
+            #{service.service_number}
           </div>
-
-          {/* Ações principais */}
-          <div className="py-1">
-            {/* Ver Detalhes */}
-            <button
-              onClick={() => handleAction(() => onViewDetails(service))}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-            >
-              <EyeIcon className="h-4 w-4 text-gray-500" />
-              <span>Ver Detalhes</span>
-            </button>
-
-            {/* Atualizar Status */}
-            <button
-              onClick={() => handleAction(() => onUpdateStatus(service))}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-            >
-              <PencilIcon className="h-4 w-4 text-gray-500" />
-              <span>Atualizar Status</span>
-            </button>
-
-            {/* Editar Serviço */}
-            {onEditService && (
-              <button
-                onClick={() => handleAction(() => onEditService(service))}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <svg
-                  className="h-4 w-4 text-gray-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                <span>Editar Serviço</span>
-              </button>
-            )}
-
-            {/* Duplicar Serviço */}
-            {onDuplicateService && (
-              <button
-                onClick={() => handleAction(() => onDuplicateService(service))}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <DocumentDuplicateIcon className="h-4 w-4 text-gray-500" />
-                <span>Duplicar Serviço</span>
-              </button>
-            )}
-
-            {/* Imprimir */}
-            {onPrintService && (
-              <button
-                onClick={() => handleAction(() => onPrintService(service))}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <PrinterIcon className="h-4 w-4 text-gray-500" />
-                <span>Imprimir</span>
-              </button>
-            )}
-          </div>
-
-          {/* Separador */}
-          <div className="border-t border-gray-100 my-1"></div>
-
-          {/* Ações secundárias */}
-          <div className="py-1">
-            {/* Contatar Cliente */}
-            {onContactClient && (
-              <button
-                onClick={() => handleAction(() => onContactClient(service))}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <PhoneIcon className="h-4 w-4 text-gray-500" />
-                <span>Contatar Cliente</span>
-              </button>
-            )}
-
-            {/* Notificar Técnico */}
-            {onSendNotification && (
-              <button
-                onClick={() => handleAction(() => onSendNotification(service))}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-              >
-                <ChatBubbleLeftRightIcon className="h-4 w-4 text-gray-500" />
-                <span>Notificar Técnico</span>
-              </button>
-            )}
-
-            {/* Marcar como Urgente */}
-            <button
-              onClick={() =>
-                handleAction(() => {
-                  // TODO: Implementar marcação como urgente
-                })
-              }
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-            >
-              <ExclamationTriangleIcon className="h-4 w-4 text-gray-500" />
-              <span>Marcar como Urgente</span>
-            </button>
+          <div className={`text-xs ${getStatusColor(service.status || '')}`}>
+            {getStatusText(service.status || '')}
           </div>
         </div>
-      )}
+
+        {/* Ações principais */}
+        <div className="py-1">
+          {/* Ver Detalhes */}
+          <button
+            onClick={() => handleAction(() => onViewDetails(service))}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+          >
+            <EyeIcon className="h-4 w-4 text-gray-500" />
+            <span>Ver Detalhes</span>
+          </button>
+
+          {/* Atualizar Status */}
+          <button
+            onClick={() => handleAction(() => onUpdateStatus(service))}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+          >
+            <PencilIcon className="h-4 w-4 text-gray-500" />
+            <span>Atualizar Status</span>
+          </button>
+
+          {/* Editar Serviço */}
+          {onEditService && (
+            <button
+              onClick={() => handleAction(() => onEditService(service))}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <svg
+                className="h-4 w-4 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+              <span>Editar Serviço</span>
+            </button>
+          )}
+
+          {/* Duplicar Serviço */}
+          {onDuplicateService && (
+            <button
+              onClick={() => handleAction(() => onDuplicateService(service))}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <DocumentDuplicateIcon className="h-4 w-4 text-gray-500" />
+              <span>Duplicar Serviço</span>
+            </button>
+          )}
+
+          {/* Imprimir */}
+          {onPrintService && (
+            <button
+              onClick={() => handleAction(() => onPrintService(service))}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <PrinterIcon className="h-4 w-4 text-gray-500" />
+              <span>Imprimir</span>
+            </button>
+          )}
+        </div>
+
+        {/* Separador */}
+        <div className="border-t border-gray-100 my-1"></div>
+
+        {/* Ações secundárias */}
+        <div className="py-1">
+          {/* Contatar Cliente */}
+          {onContactClient && (
+            <button
+              onClick={() => handleAction(() => onContactClient(service))}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <PhoneIcon className="h-4 w-4 text-gray-500" />
+              <span>Contatar Cliente</span>
+            </button>
+          )}
+
+          {/* Notificar Técnico */}
+          {onSendNotification && (
+            <button
+              onClick={() => handleAction(() => onSendNotification(service))}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4 text-gray-500" />
+              <span>Notificar Técnico</span>
+            </button>
+          )}
+
+          {/* Marcar como Urgente - Temporariamente oculto até implementação */}
+          {/* <button
+            onClick={() =>
+              handleAction(() => {
+                // TODO: Implementar marcação como urgente
+              })
+            }
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+          >
+            <ExclamationTriangleIcon className="h-4 w-4 text-gray-500" />
+            <span>Marcar como Urgente</span>
+          </button> */}
+        </div>
+      </div>
+    );
+
+    return createPortal(dropdownContent, document.body);
+  };
+
+  return (
+    <div className="relative">
+      {/* Botão de 3 pontos */}
+      <button
+        ref={buttonRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        aria-label="Ações do serviço"
+      >
+        <EllipsisVerticalIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      </button>
+
+      {/* Renderizar dropdown via portal */}
+      {renderDropdown()}
     </div>
   );
 };

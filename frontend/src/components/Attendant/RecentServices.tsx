@@ -156,7 +156,7 @@ export const RecentServices: React.FC = () => {
           {services.data.map((service) => (
             <div
               key={service.id}
-              className="p-4 border border-gray-100 rounded-lg hover:border-gray-200 hover:shadow-sm transition-all duration-200 cursor-pointer group"
+              className="p-4 border border-gray-100 rounded-lg hover:border-gray-200 hover:shadow-sm transition-all duration-200 cursor-pointer group relative"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
@@ -208,7 +208,18 @@ export const RecentServices: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Menu de Ações */}
+                {/* Menu de Ações - visível apenas em desktop */}
+                <div className="hidden sm:block">
+                  <ServiceActionsMenu
+                    service={service}
+                    onViewDetails={handleViewDetails}
+                    onUpdateStatus={handleUpdateStatus}
+                  />
+                </div>
+              </div>
+
+              {/* Menu de Ações - posicionado no canto superior direito apenas em mobile */}
+              <div className="absolute top-2 right-2 sm:hidden">
                 <ServiceActionsMenu
                   service={service}
                   onViewDetails={handleViewDetails}

@@ -2,7 +2,6 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentDuplicateIcon,
   EllipsisVerticalIcon,
-  ExclamationTriangleIcon,
   EyeIcon,
   PencilIcon,
   PhoneIcon,
@@ -79,18 +78,55 @@ export const ServiceActionsMenu: React.FC<ServiceActionsMenuProps> = ({
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'Concluído';
+      case 'in_progress':
+        return 'Em Andamento';
+      case 'pending':
+        return 'Pendente';
+      case 'scheduled':
+        return 'Agendado';
+      case 'cancelled':
+        return 'Cancelado';
+      default:
+        return 'N/A';
+    }
+  };
+
   const renderDropdown = () => {
     if (!isOpen || !buttonRef.current) return null;
 
     const rect = buttonRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calcular posição responsiva
+    const menuWidth = 224; // w-56 = 224px
+    const menuHeight = 320; // Altura estimada do menu
+
+    // Posição horizontal - alinhar à direita em mobile
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8; // Margem mínima da tela
+    if (left + menuWidth > viewportWidth - 8) {
+      left = viewportWidth - menuWidth - 8;
+    }
+
+    // Posição vertical - verificar se cabe abaixo ou acima
+    let top = rect.bottom + 4;
+    if (top + menuHeight > viewportHeight - 8) {
+      // Se não cabe abaixo, posicionar acima
+      top = rect.top - menuHeight - 4;
+    }
 
     const dropdownContent = (
       <div
         ref={menuRef}
-        className="fixed w-56 bg-white rounded-lg shadow-2xl border border-gray-200 py-1 z-[999999]"
+        className="fixed w-56 bg-white rounded-lg shadow-2xl border border-gray-200 py-1 z-[999999] animate-in fade-in-0 zoom-in-95 duration-100"
         style={{
-          top: `${rect.bottom + 4}px`,
-          left: `${rect.right - 224}px`,
+          top: `${top}px`,
+          left: `${left}px`,
         }}
       >
         {/* Header do menu */}
@@ -99,7 +135,7 @@ export const ServiceActionsMenu: React.FC<ServiceActionsMenuProps> = ({
             #{service.service_number}
           </div>
           <div className={`text-xs ${getStatusColor(service.status)}`}>
-            {service.status}
+            {getStatusText(service.status)}
           </div>
         </div>
 
@@ -196,8 +232,8 @@ export const ServiceActionsMenu: React.FC<ServiceActionsMenuProps> = ({
             </button>
           )}
 
-          {/* Marcar como Urgente */}
-          <button
+          {/* Marcar como Urgente - Temporariamente oculto até implementação */}
+          {/* <button
             onClick={handleAction(() => {
               // TODO: Implementar marcação como urgente
             })}
@@ -205,7 +241,7 @@ export const ServiceActionsMenu: React.FC<ServiceActionsMenuProps> = ({
           >
             <ExclamationTriangleIcon className="h-4 w-4 text-gray-500" />
             <span>Marcar como Urgente</span>
-          </button>
+          </button> */}
         </div>
       </div>
     );
