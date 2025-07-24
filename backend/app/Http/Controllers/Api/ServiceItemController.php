@@ -547,19 +547,36 @@ class ServiceItemController extends Controller
      */
     public function bulkUpdate(BulkUpdateServiceItemsRequest $request, int $serviceId): JsonResponse
     {
-        try {
-            $validated = $request->validated();
-            $items = $this->serviceItemService->bulkUpdateServiceItems($serviceId, $validated['items']);
+        $maxRetries = 3;
+        $retryCount = 0;
 
-            return $this->successResponse(
-                ServiceItemResource::collection($items),
-                'Itens do serviço atualizados com sucesso'
-            );
-        } catch (\InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 404);
-        } catch (\Exception $e) {
-            return $this->errorResponse('Erro ao atualizar itens do serviço', 500);
+        while ($retryCount < $maxRetries) {
+            try {
+                $validated = $request->validated();
+
+                $items = $this->serviceItemService->bulkUpdateServiceItems($serviceId, $validated['items']);
+
+                return $this->successResponse(
+                    ServiceItemResource::collection($items),
+                    'Itens do serviço atualizados com sucesso'
+                );
+            } catch (\InvalidArgumentException $e) {
+                $retryCount++;
+
+                // Se for "Service not found" e ainda temos tentativas, aguardar e tentar novamente
+                if (str_contains($e->getMessage(), 'Service not found') && $retryCount < $maxRetries) {
+                    // Aguardar um pouco antes de tentar novamente
+                    usleep(100000); // 100ms
+                    continue;
+                }
+
+                return $this->errorResponse($e->getMessage(), 404);
+            } catch (\Exception $e) {
+                return $this->errorResponse('Erro ao atualizar itens do serviço', 500);
+            }
         }
+
+        return $this->errorResponse('Erro ao atualizar itens do serviço após múltiplas tentativas', 500);
     }
 
     /**

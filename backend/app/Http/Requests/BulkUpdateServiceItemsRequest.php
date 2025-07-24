@@ -47,6 +47,7 @@ class BulkUpdateServiceItemsRequest extends FormRequest
 
     public function validated($key = null, $default = null): array
     {
+
         $validated = parent::validated($key, $default);
 
         // Ensure discount is set to 0 if not provided

@@ -92,13 +92,15 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [ClientController::class, 'index']);                    // GET /api/v1/clients
         Route::post('/', [ClientController::class, 'store']);                   // POST /api/v1/clients
+
+        // Busca específica (ANTES das rotas com {id})
+        Route::post('/search/document', [ClientController::class, 'searchByDocument']);  // POST /api/v1/clients/search/document
+        Route::post('/search/phone', [ClientController::class, 'searchByPhone']);        // POST /api/v1/clients/search/phone
+
+        // Rotas com {id} (DEPOIS das rotas específicas)
         Route::get('/{id}', [ClientController::class, 'show']);                 // GET /api/v1/clients/{id}
         Route::put('/{id}', [ClientController::class, 'update']);               // PUT /api/v1/clients/{id}
         Route::delete('/{id}', [ClientController::class, 'destroy']);           // DELETE /api/v1/clients/{id}
-
-        // Busca específica
-        Route::post('/search/document', [ClientController::class, 'searchByDocument']);  // POST /api/v1/clients/search/document
-        Route::post('/search/phone', [ClientController::class, 'searchByPhone']);        // POST /api/v1/clients/search/phone
     });
 
     // =============================================================================
@@ -108,21 +110,25 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [VehicleController::class, 'index']);                   // GET /api/v1/vehicles
         Route::post('/', [VehicleController::class, 'store']);                  // POST /api/v1/vehicles
-        Route::get('/{id}', [VehicleController::class, 'show']);                // GET /api/v1/vehicles/{id}
-        Route::put('/{id}', [VehicleController::class, 'update']);              // PUT /api/v1/vehicles/{id}
-        Route::delete('/{id}', [VehicleController::class, 'destroy']);          // DELETE /api/v1/vehicles/{id}
 
-        // Busca específica
+        // Busca específica (ANTES das rotas com {id})
         Route::post('/search/license-plate', [VehicleController::class, 'searchByLicensePlate']); // POST /api/v1/vehicles/search/license-plate
         Route::get('/client/{clientId}', [VehicleController::class, 'getByClient']);              // GET /api/v1/vehicles/client/{clientId}
-        Route::put('/{id}/mileage', [VehicleController::class, 'updateMileage']);                 // PUT /api/v1/vehicles/{id}/mileage
 
-        // Analytics e relatórios
+        // Analytics e relatórios (ANTES das rotas com {id})
         Route::get('/dashboard/stats', [VehicleController::class, 'getDashboardStats']);          // GET /api/v1/vehicles/dashboard/stats
         Route::get('/chart-data', [VehicleController::class, 'getChartData']);                    // GET /api/v1/vehicles/chart-data
         Route::get('/recent', [VehicleController::class, 'getRecentVehicles']);                   // GET /api/v1/vehicles/recent
         Route::get('/service-stats', [VehicleController::class, 'getVehiclesWithServiceStats']);  // GET /api/v1/vehicles/service-stats
         Route::get('/performance-metrics', [VehicleController::class, 'getPerformanceMetrics']);  // GET /api/v1/vehicles/performance-metrics
+
+        // Rotas com {id} (DEPOIS das rotas específicas)
+        Route::get('/{id}', [VehicleController::class, 'show']);                // GET /api/v1/vehicles/{id}
+        Route::put('/{id}', [VehicleController::class, 'update']);              // PUT /api/v1/vehicles/{id}
+        Route::delete('/{id}', [VehicleController::class, 'destroy']);          // DELETE /api/v1/vehicles/{id}
+
+        // Ações específicas para veículos específicos
+        Route::put('/{id}/mileage', [VehicleController::class, 'updateMileage']);                 // PUT /api/v1/vehicles/{id}/mileage
     });
 
     // =============================================================================
@@ -132,12 +138,14 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [CategoryController::class, 'index']);                  // GET /api/v1/categories
         Route::post('/', [CategoryController::class, 'store']);                 // POST /api/v1/categories
+
+        // Listagem específica (ANTES das rotas com {id})
+        Route::get('/active/list', [CategoryController::class, 'getActive']);   // GET /api/v1/categories/active/list
+
+        // Rotas com {id} (DEPOIS das rotas específicas)
         Route::get('/{id}', [CategoryController::class, 'show']);               // GET /api/v1/categories/{id}
         Route::put('/{id}', [CategoryController::class, 'update']);             // PUT /api/v1/categories/{id}
         Route::delete('/{id}', [CategoryController::class, 'destroy']);         // DELETE /api/v1/categories/{id}
-
-        // Listagem específica
-        Route::get('/active/list', [CategoryController::class, 'getActive']);   // GET /api/v1/categories/active/list
     });
 
     // =============================================================================
@@ -147,23 +155,25 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [ProductController::class, 'index']);                   // GET /api/v1/products
         Route::post('/', [ProductController::class, 'store']);                  // POST /api/v1/products
-        Route::get('/{id}', [ProductController::class, 'show']);                // GET /api/v1/products/{id}
-        Route::put('/{id}', [ProductController::class, 'update']);              // PUT /api/v1/products/{id}
-        Route::delete('/{id}', [ProductController::class, 'destroy']);          // DELETE /api/v1/products/{id}
 
-        // Listagens específicas
+        // Listagens específicas (ANTES das rotas com {id})
         Route::get('/active/list', [ProductController::class, 'getActive']);                     // GET /api/v1/products/active/list
         Route::get('/category/{categoryId}', [ProductController::class, 'getByCategory']);       // GET /api/v1/products/category/{categoryId}
         Route::get('/stock/low', [ProductController::class, 'getLowStock']);                     // GET /api/v1/products/stock/low
         Route::post('/search/name', [ProductController::class, 'searchByName']);                 // POST /api/v1/products/search/name
 
-        // Ações específicas
-        Route::put('/{id}/stock', [ProductController::class, 'updateStock']);                    // PUT /api/v1/products/{id}/stock
-
-        // Analytics e relatórios
+        // Analytics e relatórios (ANTES das rotas com {id})
         Route::get('/with-sales-data', [ProductController::class, 'withSalesData']);             // GET /api/v1/products/with-sales-data
         Route::get('/performance-metrics', [ProductController::class, 'performanceMetrics']);     // GET /api/v1/products/performance-metrics
         Route::get('/chart-data', [ProductController::class, 'chartData']);                      // GET /api/v1/products/chart-data
+
+        // Rotas com {id} (DEPOIS das rotas específicas)
+        Route::get('/{id}', [ProductController::class, 'show']);                // GET /api/v1/products/{id}
+        Route::put('/{id}', [ProductController::class, 'update']);              // PUT /api/v1/products/{id}
+        Route::delete('/{id}', [ProductController::class, 'destroy']);          // DELETE /api/v1/products/{id}
+
+        // Ações específicas para produtos específicos
+        Route::put('/{id}/stock', [ProductController::class, 'updateStock']);                    // PUT /api/v1/products/{id}/stock
     });
 
     // =============================================================================
@@ -173,18 +183,20 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [ServiceCenterController::class, 'index']);             // GET /api/v1/service-centers
         Route::post('/', [ServiceCenterController::class, 'store']);            // POST /api/v1/service-centers
-        Route::get('/{id}', [ServiceCenterController::class, 'show']);          // GET /api/v1/service-centers/{id}
-        Route::put('/{id}', [ServiceCenterController::class, 'update']);        // PUT /api/v1/service-centers/{id}
-        Route::delete('/{id}', [ServiceCenterController::class, 'destroy']);    // DELETE /api/v1/service-centers/{id}
 
-        // Listagens específicas
+        // Listagens específicas (ANTES das rotas com {id})
         Route::get('/active/list', [ServiceCenterController::class, 'getActive']);               // GET /api/v1/service-centers/active/list
         Route::get('/main-branch/get', [ServiceCenterController::class, 'getMainBranch']);       // GET /api/v1/service-centers/main-branch/get
 
-        // Busca específica
+        // Busca específica (ANTES das rotas com {id})
         Route::post('/search/code', [ServiceCenterController::class, 'findByCode']);             // POST /api/v1/service-centers/search/code
         Route::post('/search/region', [ServiceCenterController::class, 'getByRegion']);          // POST /api/v1/service-centers/search/region
         Route::post('/search/nearby', [ServiceCenterController::class, 'findNearby']);           // POST /api/v1/service-centers/search/nearby
+
+        // Rotas com {id} (DEPOIS das rotas específicas)
+        Route::get('/{id}', [ServiceCenterController::class, 'show']);          // GET /api/v1/service-centers/{id}
+        Route::put('/{id}', [ServiceCenterController::class, 'update']);        // PUT /api/v1/service-centers/{id}
+        Route::delete('/{id}', [ServiceCenterController::class, 'destroy']);    // DELETE /api/v1/service-centers/{id}
     });
 
     // =============================================================================
@@ -194,11 +206,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [ServiceController::class, 'index']);                   // GET /api/v1/services
         Route::post('/', [ServiceController::class, 'store']);                  // POST /api/v1/services
-        Route::get('/{id}', [ServiceController::class, 'show']);                // GET /api/v1/services/{id}
-        Route::put('/{id}', [ServiceController::class, 'update']);              // PUT /api/v1/services/{id}
-        Route::delete('/{id}', [ServiceController::class, 'destroy']);          // DELETE /api/v1/services/{id}
 
-        // Listagens específicas
+        // Listagens específicas (ANTES das rotas com {id})
         Route::get('/service-center/{serviceCenterId}', [ServiceController::class, 'getByServiceCenter']); // GET /api/v1/services/service-center/{serviceCenterId}
         Route::get('/client/{clientId}', [ServiceController::class, 'getByClient']);                       // GET /api/v1/services/client/{clientId}
         Route::get('/vehicle/{vehicleId}', [ServiceController::class, 'getByVehicle']);                    // GET /api/v1/services/vehicle/{vehicleId}
@@ -207,9 +216,16 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // Busca específica
         Route::post('/search/service-number', [ServiceController::class, 'searchByServiceNumber']);        // POST /api/v1/services/search/service-number
 
-        // Ações específicas
-        Route::put('/{id}/status', [ServiceController::class, 'updateStatus']);                            // PUT /api/v1/services/{id}/status
+        // Dashboard stats
         Route::get('/dashboard/stats', [ServiceController::class, 'getDashboardStats']);                   // GET /api/v1/services/dashboard/stats
+
+        // Rotas com {id} (DEPOIS das rotas específicas)
+        Route::get('/{id}', [ServiceController::class, 'show']);                // GET /api/v1/services/{id}
+        Route::put('/{id}', [ServiceController::class, 'update']);              // PUT /api/v1/services/{id}
+        Route::delete('/{id}', [ServiceController::class, 'destroy']);          // DELETE /api/v1/services/{id}
+
+        // Ações específicas para serviços específicos
+        Route::put('/{id}/status', [ServiceController::class, 'updateStatus']);                            // PUT /api/v1/services/{id}/status
     });
 
     // =============================================================================
@@ -228,14 +244,16 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico para itens do serviço
         Route::get('/', [ServiceItemController::class, 'index']);               // GET /api/v1/services/{serviceId}/items
         Route::post('/', [ServiceItemController::class, 'store']);              // POST /api/v1/services/{serviceId}/items
-        Route::get('/{itemId}', [ServiceItemController::class, 'show']);        // GET /api/v1/services/{serviceId}/items/{itemId}
-        Route::put('/{itemId}', [ServiceItemController::class, 'update']);      // PUT /api/v1/services/{serviceId}/items/{itemId}
-        Route::delete('/{itemId}', [ServiceItemController::class, 'destroy']);  // DELETE /api/v1/services/{serviceId}/items/{itemId}
 
-        // Ações específicas
+        // Ações específicas (ANTES das rotas com {itemId})
         Route::post('/bulk', [ServiceItemController::class, 'bulkStore']);      // POST /api/v1/services/{serviceId}/items/bulk
         Route::put('/bulk', [ServiceItemController::class, 'bulkUpdate']);      // PUT /api/v1/services/{serviceId}/items/bulk
         Route::get('/total/calculate', [ServiceItemController::class, 'getServiceTotal']); // GET /api/v1/services/{serviceId}/items/total/calculate
+
+        // Rotas com {itemId} (DEPOIS das rotas específicas)
+        Route::get('/{itemId}', [ServiceItemController::class, 'show']);        // GET /api/v1/services/{serviceId}/items/{itemId}
+        Route::put('/{itemId}', [ServiceItemController::class, 'update']);      // PUT /api/v1/services/{serviceId}/items/{itemId}
+        Route::delete('/{itemId}', [ServiceItemController::class, 'destroy']);  // DELETE /api/v1/services/{serviceId}/items/{itemId}
     });
 
     // =============================================================================
@@ -276,16 +294,18 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
         // CRUD básico
         Route::get('/', [UserController::class, 'index']);                      // GET /api/v1/users
         Route::post('/', [UserController::class, 'store']);                     // POST /api/v1/users
-        Route::get('/{id}', [UserController::class, 'show']);                   // GET /api/v1/users/{id}
-        Route::put('/{id}', [UserController::class, 'update']);                 // PUT /api/v1/users/{id}
-        Route::delete('/{id}', [UserController::class, 'destroy']);             // DELETE /api/v1/users/{id}
 
-        // Listagens específicas
+        // Listagens específicas (ANTES das rotas com {id})
         Route::get('/active/list', [UserController::class, 'getActive']);                       // GET /api/v1/users/active/list
         Route::get('/service-center/{serviceCenterId}', [UserController::class, 'getByServiceCenter']); // GET /api/v1/users/service-center/{serviceCenterId}
         Route::get('/role/{role}', [UserController::class, 'getByRole']);                       // GET /api/v1/users/role/{role}
 
-        // Ações específicas
+        // Rotas com {id} (DEPOIS das rotas específicas)
+        Route::get('/{id}', [UserController::class, 'show']);                   // GET /api/v1/users/{id}
+        Route::put('/{id}', [UserController::class, 'update']);                 // PUT /api/v1/users/{id}
+        Route::delete('/{id}', [UserController::class, 'destroy']);             // DELETE /api/v1/users/{id}
+
+        // Ações específicas para usuários específicos
         Route::put('/{id}/last-login', [UserController::class, 'updateLastLogin']);             // PUT /api/v1/users/{id}/last-login
         Route::put('/{id}/change-password', [UserController::class, 'changePassword']);         // PUT /api/v1/users/{id}/change-password
     });

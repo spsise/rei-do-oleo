@@ -22,7 +22,12 @@ class ServiceItemRepository implements ServiceItemRepositoryInterface
 
     public function create(array $data): ServiceItem
     {
-        return ServiceItem::create($data);
+        try {
+            $item = ServiceItem::create($data);
+            return $item;
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     public function update(ServiceItem $item, array $data): ServiceItem
@@ -45,7 +50,7 @@ class ServiceItemRepository implements ServiceItemRepositoryInterface
     {
         $createdItems = [];
 
-        foreach ($items as $itemData) {
+        foreach ($items as $index => $itemData) {
             $itemData['service_id'] = $serviceId;
             $createdItems[] = $this->create($itemData);
         }
@@ -57,10 +62,12 @@ class ServiceItemRepository implements ServiceItemRepositoryInterface
     {
         return DB::transaction(function () use ($serviceId, $items) {
             // Delete existing items
-            $this->deleteByService($serviceId);
+            $deletedCount = $this->deleteByService($serviceId);
 
             // Create new items
-            return $this->bulkCreate($serviceId, $items);
+            $newItems = $this->bulkCreate($serviceId, $items);
+
+            return $newItems;
         });
     }
 

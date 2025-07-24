@@ -193,7 +193,8 @@ class ServiceRepository implements ServiceRepositoryInterface
 
     public function find(int $id): ?Service
     {
-        return Service::with([
+        // Primeiro, tentar buscar normalmente
+        $service = Service::with([
             'client',
             'vehicle',
             'serviceCenter',
@@ -203,6 +204,24 @@ class ServiceRepository implements ServiceRepositoryInterface
             'attendant',
             'serviceItems.product.category'
         ])->find($id);
+
+        // Se não encontrar, limpar cache e tentar novamente
+        if (!$service) {
+            \Illuminate\Support\Facades\Cache::forget("service_{$id}");
+
+            $service = Service::with([
+                'client',
+                'vehicle',
+                'serviceCenter',
+                'serviceStatus',
+                'paymentMethod',
+                'technician',
+                'attendant',
+                'serviceItems.product.category'
+            ])->find($id);
+        }
+
+        return $service;
     }
 
     public function create(array $data): Service
