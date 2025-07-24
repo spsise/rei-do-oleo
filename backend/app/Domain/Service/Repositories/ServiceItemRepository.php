@@ -55,7 +55,7 @@ class ServiceItemRepository implements ServiceItemRepositoryInterface
             $createdItems[] = $this->create($itemData);
         }
 
-        return collect($createdItems);
+        return new Collection($createdItems);
     }
 
     public function bulkUpdate(int $serviceId, array $items): Collection
