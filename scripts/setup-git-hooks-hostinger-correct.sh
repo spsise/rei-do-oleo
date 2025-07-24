@@ -196,6 +196,50 @@ echo "✅ Repositório atualizado com sucesso"
 # Log do deploy
 echo "$(date): Deploy iniciado - repositório atualizado" >> "$PROJECT_ROOT/deploy.log"
 
+# FUNÇÃO PARA LIMPAR BACKUPS ANTIGOS (EXECUTAR ANTES DE CRIAR NOVOS)
+cleanup_old_backups() {
+    echo "🧹 Limpando backups antigos antes de criar novos..."
+
+    if [ -d "$BACKUP_DIR" ]; then
+        # Limpar backups de API (manter apenas os 2 mais recentes)
+        api_backups=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null || true)
+        if [ -n "$api_backups" ]; then
+            total_api=$(echo "$api_backups" | wc -l)
+            if [ "$total_api" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_api - 2)) backups antigos de API..."
+                echo "$api_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de frontend (manter apenas os 2 mais recentes)
+        frontend_backups=$(ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null || true)
+        if [ -n "$frontend_backups" ]; then
+            total_frontend=$(echo "$frontend_backups" | wc -l)
+            if [ "$total_frontend" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_frontend - 2)) backups antigos de frontend..."
+                echo "$frontend_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de rollback (manter apenas os 2 mais recentes)
+        rollback_backups=$(ls -t "$BACKUP_DIR"/*_rollback_backup_* 2>/dev/null || true)
+        if [ -n "$rollback_backups" ]; then
+            total_rollback=$(echo "$rollback_backups" | wc -l)
+            if [ "$total_rollback" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_rollback - 2)) backups antigos de rollback..."
+                echo "$rollback_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        echo "✅ Limpeza de backups antigos concluída - mantidos apenas os 2 mais recentes de cada tipo"
+    else
+        echo "ℹ️ Diretório de backup não encontrado: $BACKUP_DIR"
+    fi
+}
+
+# EXECUTAR LIMPEZA DE BACKUPS ANTIGOS ANTES DE CRIAR NOVOS
+cleanup_old_backups
+
 # Função para fazer backup de arquivos importantes
 backup_important_files() {
     local target_dir="$1"
@@ -565,43 +609,9 @@ else
     echo "✅ Arquivo de log criado com permissões corretas: $PROJECT_ROOT/deploy.log"
 fi
 
-# Limpar backups antigos (manter apenas os últimos 2)
-echo "🧹 Limpando backups antigos..."
-if [ -d "$BACKUP_DIR" ]; then
-    # Limpar backups de API (manter apenas os 2 mais recentes)
-    api_backups=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null || true)
-    if [ -n "$api_backups" ]; then
-        total_api=$(echo "$api_backups" | wc -l)
-        if [ "$total_api" -gt 2 ]; then
-            echo "🗑️ Removendo $(($total_api - 2)) backups antigos de API..."
-            echo "$api_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
-        fi
-    fi
-
-    # Limpar backups de frontend (manter apenas os 2 mais recentes)
-    frontend_backups=$(ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null || true)
-    if [ -n "$frontend_backups" ]; then
-        total_frontend=$(echo "$frontend_backups" | wc -l)
-        if [ "$total_frontend" -gt 2 ]; then
-            echo "🗑️ Removendo $(($total_frontend - 2)) backups antigos de frontend..."
-            echo "$frontend_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
-        fi
-    fi
-
-    # Limpar backups de rollback (manter apenas os 2 mais recentes)
-    rollback_backups=$(ls -t "$BACKUP_DIR"/*_rollback_backup_* 2>/dev/null || true)
-    if [ -n "$rollback_backups" ]; then
-        total_rollback=$(echo "$rollback_backups" | wc -l)
-        if [ "$total_rollback" -gt 2 ]; then
-            echo "🗑️ Removendo $(($total_rollback - 2)) backups antigos de rollback..."
-            echo "$rollback_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
-        fi
-    fi
-
-    echo "✅ Limpeza de backups concluída - mantidos apenas os 2 mais recentes de cada tipo"
-else
-    echo "ℹ️ Diretório de backup não encontrado: $BACKUP_DIR"
-fi
+# LIMPEZA FINAL DE BACKUPS (DUPLA VERIFICAÇÃO)
+echo "🧹 Verificação final de backups..."
+cleanup_old_backups
 
 echo "✅ Deploy concluído com zero downtime!"
 EOF
