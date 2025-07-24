@@ -125,28 +125,13 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
   };
 
   return (
-    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-3 sm:p-4 border border-yellow-200 shadow-lg overflow-visible">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="p-1.5 sm:p-2 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg">
-            <WrenchScrewdriverIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm sm:text-base">
-              Serviços Recentes
-            </h3>
-            <p className="text-yellow-600 text-xs sm:text-sm">
-              {services?.length || 0} serviço{services?.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
-
-        {/* Botão para mostrar/ocultar todos os valores */}
-        {services?.length > 0 && (
+    <div className="space-y-4">
+      {/* Botão para mostrar/ocultar todos os valores */}
+      {services?.length > 0 && (
+        <div className="flex justify-end">
           <button
             onClick={toggleAllValues}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/80 hover:bg-white rounded-lg border border-yellow-200 text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-all duration-200 w-full sm:w-auto"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/80 hover:bg-white rounded-lg border border-yellow-200 text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 transition-all duration-200"
           >
             {showAllValues ? (
               <>
@@ -162,8 +147,8 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
               </>
             )}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Lista de serviços */}
       <div className="space-y-2.5 sm:space-y-3 relative overflow-visible">
@@ -284,7 +269,7 @@ export const RecentServicesCard: React.FC<RecentServicesCardProps> = ({
 
       {/* Resumo compacto */}
       {services?.length > 0 && (
-        <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+        <div className="p-2.5 sm:p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
           <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
             <div>
               <div className="text-base sm:text-lg font-bold text-yellow-600">

@@ -6,7 +6,6 @@ import {
 import { ClientSearchContainer } from './ClientSearchContainer';
 import { ClientSearchContent } from './ClientSearchContent';
 import { ClientSearchHeader } from './ClientSearchHeader';
-import { ClientStatisticsCard } from './ClientStatisticsCard';
 
 interface ClientSearchResultsProps {
   searchResult: TechnicianSearchResult;
@@ -32,7 +31,6 @@ export const ClientSearchResults: React.FC<ClientSearchResultsProps> = ({
         onUpdateStatus={onUpdateStatus}
         onEditService={onEditService}
       />
-      <ClientStatisticsCard searchResult={searchResult} />
     </ClientSearchContainer>
   );
 };

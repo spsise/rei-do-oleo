@@ -37,85 +37,69 @@ export const ClientInfoCard: React.FC<ClientInfoCardProps> = ({ client }) => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200 shadow-md hover:shadow-lg transition-all duration-300">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-sm">
-          <UserIcon className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h3 className="font-bold text-gray-900 text-base">
-            Dados do Cliente
-          </h3>
-          <p className="text-blue-600 text-xs font-medium">
-            Informações pessoais
-          </p>
+    <div className="space-y-3">
+      {/* Nome */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
+        <div className="flex items-center gap-2">
+          <UserIcon className="h-4 w-4 text-blue-600" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
+              Nome
+            </div>
+            <div className="text-gray-900 font-semibold text-sm truncate">
+              {client.name || 'N/A'}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {/* Nome */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
-          <div className="flex items-center gap-2">
-            <UserIcon className="h-4 w-4 text-blue-600" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
-                Nome
-              </div>
-              <div className="text-gray-900 font-semibold text-sm truncate">
-                {client.name || 'N/A'}
-              </div>
+      {/* Email */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
+        <div className="flex items-center gap-2">
+          <EnvelopeIcon className="h-4 w-4 text-green-600" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
+              Email
+            </div>
+            <div className="text-gray-900 font-semibold text-sm truncate">
+              {client.email || 'N/A'}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Email */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
-          <div className="flex items-center gap-2">
-            <EnvelopeIcon className="h-4 w-4 text-green-600" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
-                Email
-              </div>
-              <div className="text-gray-900 font-semibold text-sm truncate">
-                {client.email || 'N/A'}
-              </div>
+      {/* Telefone */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
+        <div className="flex items-center gap-2">
+          <PhoneIcon className="h-4 w-4 text-purple-600" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
+              Telefone
+            </div>
+            <div className="text-gray-900 font-semibold text-sm">
+              {formatPhone(client.phone || '')}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Telefone */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
-          <div className="flex items-center gap-2">
-            <PhoneIcon className="h-4 w-4 text-purple-600" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
-                Telefone
-              </div>
-              <div className="text-gray-900 font-semibold text-sm">
-                {formatPhone(client.phone || '')}
-              </div>
+      {/* Documento */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
+        <div className="flex items-center gap-2">
+          <IdentificationIcon className="h-4 w-4 text-orange-600" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
+              Documento
             </div>
-          </div>
-        </div>
-
-        {/* Documento */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-100 hover:border-blue-200 transition-colors">
-          <div className="flex items-center gap-2">
-            <IdentificationIcon className="h-4 w-4 text-orange-600" />
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">
-                Documento
-              </div>
-              <div className="text-gray-900 font-semibold text-sm font-mono">
-                {formatDocument(client.document || '')}
-              </div>
+            <div className="text-gray-900 font-semibold text-sm font-mono">
+              {formatDocument(client.document || '')}
             </div>
           </div>
         </div>
       </div>
 
       {/* Status do cliente */}
-      <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+      <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
