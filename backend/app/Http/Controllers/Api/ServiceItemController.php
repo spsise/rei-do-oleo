@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Domain\Service\Models\ServiceItem;
 use App\Domain\Service\Services\ServiceItemService;
-use App\Http\Resources\ServiceItemResource;
-use App\Http\Requests\BulkUpdateServiceItemsRequest;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\BulkStoreServiceItemsRequest;
+use App\Http\Requests\BulkUpdateServiceItemsRequest;
 use App\Http\Requests\StoreServiceItemRequest;
 use App\Http\Requests\UpdateServiceItemRequest;
+use App\Http\Resources\ServiceItemResource;
 use App\Traits\ApiResponseTrait;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class ServiceItemController extends Controller

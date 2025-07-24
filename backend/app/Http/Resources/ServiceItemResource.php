@@ -12,6 +12,7 @@ class ServiceItemResource extends JsonResource
         return [
             'id' => $this->id,
             'service_id' => $this->service_id,
+            'product_id' => $this->product_id,
             'product' => [
                 'id' => $this->product->id ?? null,
                 'name' => $this->product->name ?? null,

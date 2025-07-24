@@ -15,7 +15,7 @@ class BulkUpdateServiceItemsRequest extends FormRequest
     {
         return [
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'required|integer|min:1|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount' => 'nullable|numeric|min:0|max:100',
@@ -30,6 +30,8 @@ class BulkUpdateServiceItemsRequest extends FormRequest
             'items.array' => 'A lista de itens deve ser um array',
             'items.min' => 'Pelo menos um item deve ser fornecido',
             'items.*.product_id.required' => 'O ID do produto é obrigatório',
+            'items.*.product_id.integer' => 'O ID do produto deve ser um número inteiro',
+            'items.*.product_id.min' => 'O ID do produto deve ser maior que zero',
             'items.*.product_id.exists' => 'O produto selecionado não existe',
             'items.*.quantity.required' => 'A quantidade é obrigatória',
             'items.*.quantity.integer' => 'A quantidade deve ser um número inteiro',
