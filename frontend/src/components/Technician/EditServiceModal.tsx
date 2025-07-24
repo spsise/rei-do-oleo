@@ -87,12 +87,17 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
         active: true,
         items:
           service.items?.map((item, index) => ({
-            id: `item-${service.id}-${item.product_id}-${index}`, // ID único para cada item
-            product_id: item.product_id,
+            id: `item-${service.id}-${item.product?.id || item.product_id}-${index}`, // ID único para cada item
+            product_id:
+              item.product_id > 0
+                ? parseInt(String(item.product_id || 0))
+                : item.product?.id || 0,
             product: item.product,
-            quantity: item.quantity || 1,
-            unit_price: item.unit_price || 0,
-            total_price: (item.unit_price || 0) * (item.quantity || 1),
+            quantity: parseInt(String(item.quantity || 1)),
+            unit_price: parseFloat(String(item.unit_price || 0)),
+            total_price:
+              parseFloat(String(item.unit_price || 0)) *
+              parseInt(String(item.quantity || 1)),
             notes: item.notes || '',
           })) || [],
       };
@@ -259,18 +264,44 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   const handleSubmit = async () => {
     if (!editData) return;
 
+    // Validar e converter os dados dos itens
+    const validItems = editData.items
+      ?.filter((item) => {
+        // Garantir que product_id seja um número válido
+        const productId = parseInt(String(item.product_id || 0));
+        const quantity = parseInt(String(item.quantity || 0));
+        const unitPrice = parseFloat(String(item.unit_price || 0));
+
+        const isValid = productId > 0 && quantity > 0 && unitPrice >= 0;
+
+        if (!isValid) {
+          console.error('Item inválido encontrado:', {
+            original: item,
+            converted: { productId, quantity, unitPrice },
+          });
+        }
+
+        return isValid;
+      })
+      .map((item) => ({
+        product_id: parseInt(String(item.product_id || 0)),
+        quantity: parseInt(String(item.quantity || 0)),
+        unit_price: parseFloat(String(item.unit_price || 0)),
+        discount: 0,
+        notes: item.notes || '',
+      }));
+
+    if (!validItems || validItems.length === 0) {
+      console.error('Nenhum item válido encontrado para enviar');
+      return;
+    }
+
     const submitData: EditServiceData = {
       vehicle_id: editData.vehicle_id,
       description: editData.description,
       internal_notes: editData.notes,
       observations: editData.observations,
-      items: editData.items?.map((item) => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount: 0, // Adicionar campo discount obrigatório
-        notes: item.notes,
-      })),
+      items: validItems,
       discount: editData.discount_amount,
     };
 

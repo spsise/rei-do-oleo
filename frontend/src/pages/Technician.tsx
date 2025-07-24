@@ -141,12 +141,12 @@ export const TechnicianPage: React.FC = () => {
       notes: service.internal_notes,
       observations: service.observations,
       items: service.items?.map((item) => ({
-        id: `item-${service.id}-${item.product_id}`,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.total_price,
-        notes: item.notes,
+        id: `item-${service.id}-${item.product?.id || item.product_id}`,
+        product_id: item.product?.id || parseInt(String(item.product_id || 0)),
+        quantity: parseInt(String(item.quantity || 0)),
+        unit_price: parseFloat(String(item.unit_price || 0)),
+        total_price: parseFloat(String(item.total_price || 0)),
+        notes: item.notes || '',
         product: item.product
           ? {
               id: item.product.id,
