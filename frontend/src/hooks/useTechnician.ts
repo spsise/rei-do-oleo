@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { technicianService } from '../services/technician.service';
-import { type Service } from '../types/service';
 import {
   type CreateTechnicianServiceData,
   type TechnicianProduct,
@@ -9,6 +8,7 @@ import {
   type TechnicianService,
   type TechnicianServiceItem,
 } from '../types/technician';
+import { useService } from './useServices';
 
 export const useTechnician = () => {
   const [searchType, setSearchType] = useState<'license_plate' | 'document'>(
@@ -56,8 +56,12 @@ export const useTechnician = () => {
   const [selectedService, setSelectedService] =
     useState<TechnicianService | null>(null);
   const [showServiceDetails, setShowServiceDetails] = useState(false);
-  const [serviceDetails, setServiceDetails] = useState<Service | null>(null);
-  const [isLoadingServiceDetails, setIsLoadingServiceDetails] = useState(false);
+
+  const {
+    data: serviceDetails,
+    isLoading: isLoadingServiceDetails,
+    isFetching: isFetchingServiceDetails,
+  } = useService(selectedService?.id || 0);
 
   const handleSearch = async () => {
     if (!searchValue.trim()) {
@@ -183,24 +187,11 @@ export const useTechnician = () => {
   const handleServiceClick = async (service: TechnicianService) => {
     setSelectedService(service);
     setShowServiceDetails(true);
-    setIsLoadingServiceDetails(true);
-
-    try {
-      const response = await technicianService.getServiceDetails(service.id);
-      if (response.status === 'success' && response.data) {
-        setServiceDetails(response.data);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar detalhes do serviço:', error);
-    } finally {
-      setIsLoadingServiceDetails(false);
-    }
   };
 
   const handleCloseServiceDetails = () => {
     setShowServiceDetails(false);
     setSelectedService(null);
-    setServiceDetails(null);
   };
 
   // Métodos para produtos
@@ -398,6 +389,7 @@ export const useTechnician = () => {
     showServiceDetails,
     serviceDetails,
     isLoadingServiceDetails,
+    isFetchingServiceDetails,
 
     // Ações
     setSearchType,

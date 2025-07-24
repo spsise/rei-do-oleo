@@ -19,6 +19,7 @@ interface ServiceDetailsModalProps {
   vehicleInfo?: string;
   serviceDetails?: Service | null;
   isLoadingDetails?: boolean;
+  isFetchingDetails?: boolean;
   onEditService?: (service: Service) => void;
 }
 
@@ -30,6 +31,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
   vehicleInfo,
   serviceDetails,
   isLoadingDetails = false,
+  isFetchingDetails = false,
   onEditService,
 }) => {
   if (!isOpen || !service) return null;
@@ -201,7 +203,22 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-modalFadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-modalSlideInUp">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-modalSlideInUp relative">
+        {/* Overlay de atualização */}
+        {isFetchingDetails && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl z-20 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Atualizando dados do serviço...
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Aguarde enquanto sincronizamos as informações.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="sticky top-0 bg-white rounded-t-2xl px-4 pt-3 pb-2 border-b border-gray-100 z-10">
           <div className="flex items-center justify-between">

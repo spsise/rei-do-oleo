@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import {
@@ -9,6 +10,7 @@ import {
   TechnicianHeader,
   UpdateStatusModal,
 } from '../components/Technician';
+import { QUERY_KEYS } from '../hooks/query-keys';
 import { useUpdateServiceItems } from '../hooks/useServiceItems';
 import { useUpdateService } from '../hooks/useServices';
 import { useServiceStatus } from '../hooks/useServiceStatus';
@@ -32,6 +34,7 @@ interface EditServiceData extends UpdateServiceData {
 }
 
 export const TechnicianPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const {
     // Estado
     searchType,
@@ -49,6 +52,7 @@ export const TechnicianPage: React.FC = () => {
     showServiceDetails,
     serviceDetails,
     isLoadingServiceDetails,
+    isFetchingServiceDetails,
 
     // Ações
     setSearchType,
@@ -216,10 +220,17 @@ export const TechnicianPage: React.FC = () => {
       setShowEditServiceModal(false);
       setSelectedServiceForEdit(null);
 
+      // Invalidar o cache do serviço específico para atualizar a tela de detalhes
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SERVICE, serviceId],
+      });
+
       // Recarregar dados se necessário
       if (searchResult) {
         handleSearch();
       }
+
+      toast.success('Serviço atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao editar serviço:', error);
 
@@ -401,6 +412,7 @@ export const TechnicianPage: React.FC = () => {
           }
           serviceDetails={serviceDetails}
           isLoadingDetails={isLoadingServiceDetails}
+          isFetchingDetails={isFetchingServiceDetails}
           onEditService={handleEditServiceForDetails}
         />
 
