@@ -355,7 +355,7 @@ export const TechnicianPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      <div className="absolute inset-0 bg-grid-pattern opacity-5 z-0"></div>
 
       <div className="relative max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header com design melhorado */}
