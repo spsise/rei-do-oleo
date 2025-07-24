@@ -18,6 +18,7 @@ interface EditServiceData extends UpdateServiceData {
     product_id: number;
     quantity: number;
     unit_price: number;
+    discount?: number;
     notes?: string;
   }>;
 }

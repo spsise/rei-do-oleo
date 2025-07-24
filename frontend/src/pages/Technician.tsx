@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
   ClientSearchForm,
   ClientSearchResults,
@@ -25,6 +26,7 @@ interface EditServiceData extends UpdateServiceData {
     product_id: number;
     quantity: number;
     unit_price: number;
+    discount?: number;
     notes?: string;
   }>;
 }
@@ -180,11 +182,36 @@ export const TechnicianPage: React.FC = () => {
         data: serviceData,
       });
 
+      // Aguardar um pouco para garantir que a primeira transação foi commitada
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Atualizar os itens do serviço (sempre, mesmo que seja array vazio)
-      await updateServiceItemsMutation.mutateAsync({
-        serviceId,
-        items: items || [],
-      });
+      try {
+        await updateServiceItemsMutation.mutateAsync({
+          serviceId,
+          items: items || [],
+        });
+      } catch (itemsError) {
+        // Se o erro for "Service not found", tentar novamente após um delay maior
+        const errorMessage = (
+          itemsError as { response?: { data?: { message?: string } } }
+        )?.response?.data?.message;
+
+        if (
+          errorMessage?.includes('Service not found') ||
+          errorMessage?.includes('Service item not found')
+        ) {
+          console.log('Tentando novamente após delay...');
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          await updateServiceItemsMutation.mutateAsync({
+            serviceId,
+            items: items || [],
+          });
+        } else {
+          throw itemsError; // Re-throw se não for o erro esperado
+        }
+      }
 
       setShowEditServiceModal(false);
       setSelectedServiceForEdit(null);
@@ -195,6 +222,18 @@ export const TechnicianPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Erro ao editar serviço:', error);
+
+      // Mensagem de erro mais específica
+      const errorMessage = (
+        error as { response?: { data?: { message?: string } } }
+      )?.response?.data?.message;
+      if (errorMessage?.includes('Service not found')) {
+        toast.error('Serviço não encontrado. Tente recarregar a página.');
+      } else if (errorMessage?.includes('Service item not found')) {
+        toast.error('Erro ao atualizar itens do serviço. Tente novamente.');
+      } else {
+        toast.error('Erro ao salvar alterações do serviço');
+      }
     }
   };
 

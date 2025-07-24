@@ -192,7 +192,7 @@ class TechnicianService {
   > {
     return apiCall(() =>
       httpClient.instance.get<ApiResponse<Array<{ id: number; name: string }>>>(
-        '/products/categories'
+        '/categories'
       )
     );
   }
