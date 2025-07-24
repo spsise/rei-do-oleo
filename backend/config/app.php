@@ -177,5 +177,6 @@ return [
         App\Providers\RepositoryServiceProvider::class,
         App\Providers\ServiceServiceProvider::class,
         App\Providers\WhatsAppServiceProvider::class,
+        App\Providers\TelegramServiceProvider::class,
     ],
 ];

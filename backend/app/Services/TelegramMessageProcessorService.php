@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
+use App\Services\Channels\TelegramChannel;
 
 class TelegramMessageProcessorService
 {
     public function __construct(
         private TelegramBotService $telegramBotService,
-        private TelegramLoggingService $loggingService
+        private TelegramLoggingService $loggingService,
+        private TelegramChannel $telegramChannel
     ) {}
 
     /**
@@ -89,7 +91,7 @@ class TelegramMessageProcessorService
             $callbackData = $callbackQuery['data'] ?? '';
 
             // Answer the callback query to remove loading state
-            $this->telegramBotService->getTelegramChannel()->answerCallbackQuery($callbackQueryId);
+            $this->telegramChannel->answerCallbackQuery($callbackQueryId);
 
             // Process the callback query
             $result = $this->telegramBotService->processCallbackQuery($callbackQuery);
