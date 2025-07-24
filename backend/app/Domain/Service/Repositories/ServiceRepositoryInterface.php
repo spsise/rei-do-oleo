@@ -12,7 +12,7 @@ interface ServiceRepositoryInterface
 
     public function addServiceItems(Service $service, array $items): void;
 
-    public function updateServiceStatus(int $serviceId, string $status): bool;
+    public function updateServiceStatus(int $serviceId, string $status, ?string $notes = null): bool;
 
     public function getServicesByDateRange(string $startDate, string $endDate): Collection;
 

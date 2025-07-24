@@ -280,7 +280,13 @@ class TechnicianController extends Controller
             return $this->errorResponse('Você não tem permissão para atualizar este serviço', 403);
         }
 
-        $updatedService = $this->serviceService->updateStatus($id, $request->status, $request->notes);
+        $result = $this->serviceService->updateServiceStatus($id, $request->status, $request->notes);
+
+        if (!$result) {
+            return $this->errorResponse('Erro ao atualizar status do serviço', 400);
+        }
+
+        $updatedService = $this->serviceService->findService($id);
 
         return $this->successResponse(
             new ServiceResource($updatedService),

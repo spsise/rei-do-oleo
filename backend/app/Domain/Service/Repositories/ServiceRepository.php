@@ -53,7 +53,7 @@ class ServiceRepository implements ServiceRepositoryInterface
         $service->calculateTotals();
     }
 
-    public function updateServiceStatus(int $serviceId, string $status): bool
+    public function updateServiceStatus(int $serviceId, string $status, ?string $notes = null): bool
     {
         $service = Service::find($serviceId);
         $serviceStatus = ServiceStatus::findByName($status);
@@ -63,6 +63,11 @@ class ServiceRepository implements ServiceRepositoryInterface
         }
 
         $updateData = ['service_status_id' => $serviceStatus->id];
+
+        // Add notes if provided
+        if ($notes) {
+            $updateData['notes'] = $notes;
+        }
 
         // Update timestamps based on status
         switch ($status) {

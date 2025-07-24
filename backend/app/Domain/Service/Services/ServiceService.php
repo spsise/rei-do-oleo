@@ -57,9 +57,9 @@ class ServiceService
         });
     }
 
-    public function updateServiceStatus(int $serviceId, string $status): bool
+    public function updateServiceStatus(int $serviceId, string $status, ?string $notes = null): bool
     {
-        $result = $this->serviceRepository->updateServiceStatus($serviceId, $status);
+        $result = $this->serviceRepository->updateServiceStatus($serviceId, $status, $notes);
 
         if ($result) {
             $service = $this->serviceRepository->find($serviceId);
