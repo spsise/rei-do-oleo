@@ -128,8 +128,101 @@ export const TechnicianPage: React.FC = () => {
   };
 
   // Funções para edição de serviço
-  const handleEditService = (service: TechnicianService) => {
-    setSelectedServiceForEdit(service);
+  const handleEditService = async (service: TechnicianService) => {
+    // Se o serviço não tem itens, carregar os dados completos do serviço
+    let normalizedService: TechnicianService = service;
+
+    if (!service.items || service.items.length === 0) {
+      try {
+        // Importar o serviço de serviços
+        const { serviceService } = await import('../services/service.service');
+
+        // Carregar dados completos do serviço
+        const response = await serviceService.getService(service.id);
+        const completeService = response.data;
+
+        // Verificar se o serviço foi carregado corretamente
+        if (!completeService) {
+          throw new Error('Service not found');
+        }
+
+        // Converter para TechnicianService
+        normalizedService = {
+          id: completeService.id,
+          service_number: completeService.service_number,
+          description: completeService.description || '',
+          status: completeService.status?.name || '',
+          total_amount: completeService.financial?.items_total || 0,
+          created_at: completeService.created_at,
+          notes: completeService.internal_notes,
+          observations: completeService.observations,
+          items:
+            completeService.items?.map((item, index) => ({
+              id: `item-${completeService.id}-${item.product?.id || item.product_id}-${index}`,
+              product_id:
+                item.product?.id || parseInt(String(item.product_id || 0)),
+              quantity: parseInt(String(item.quantity || 0)),
+              unit_price: parseFloat(String(item.unit_price || 0)),
+              total_price: parseFloat(String(item.total_price || 0)),
+              notes: item.notes || '',
+              product: item.product
+                ? {
+                    id: item.product.id,
+                    name: item.product.name,
+                    sku: item.product.sku,
+                    price: 0, // Não disponível no ServiceItem
+                    stock_quantity: item.product.current_stock,
+                    category: item.product.category
+                      ? {
+                          id: parseInt(item.product.category),
+                          name: item.product.category,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+            })) || [],
+        };
+      } catch (error) {
+        console.error(
+          'handleEditService - Error loading complete service:',
+          error
+        );
+        // Se não conseguir carregar, usar o serviço original
+      }
+    } else {
+      // Garantir que os dados estejam no formato correto
+      normalizedService = {
+        ...service,
+        items:
+          service.items?.map((item, index) => ({
+            id:
+              item.id ||
+              `item-${service.id}-${item.product?.id || item.product_id}-${index}`,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            notes: item.notes || '',
+            product: item.product
+              ? {
+                  id: item.product.id,
+                  name: item.product.name,
+                  sku: item.product.sku,
+                  price: item.product.price || 0,
+                  stock_quantity: item.product.stock_quantity || 0,
+                  category: item.product.category
+                    ? {
+                        id: item.product.category.id,
+                        name: item.product.category.name,
+                      }
+                    : undefined,
+                }
+              : undefined,
+          })) || [],
+      };
+    }
+
+    setSelectedServiceForEdit(normalizedService);
     setShowEditServiceModal(true);
   };
 

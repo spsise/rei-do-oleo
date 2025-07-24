@@ -32,6 +32,27 @@ export interface TechnicianSearchResult {
     status: string;
     total_amount: number;
     created_at: string;
+    observations?: string;
+    notes?: string;
+    items?: Array<{
+      id: number;
+      product_id: number;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+      notes?: string;
+      product?: {
+        id: number;
+        name: string;
+        sku: string;
+        price: number;
+        stock_quantity: number;
+        category?: {
+          id: number;
+          name: string;
+        };
+      };
+    }>;
   }>;
   found_by: string;
 }
