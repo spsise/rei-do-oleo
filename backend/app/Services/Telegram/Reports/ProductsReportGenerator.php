@@ -29,7 +29,7 @@ class ProductsReportGenerator implements TelegramReportGeneratorInterface
             return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
 
         } catch (\Exception $e) {
-            return $this->sendErrorMessage($chatId);
+            return $this->sendErrorMessage($chatId, $e->getMessage());
         }
     }
 
@@ -53,6 +53,13 @@ class ProductsReportGenerator implements TelegramReportGeneratorInterface
      */
     private function formatReport(array $data): string
     {
+        // Ensure all required keys exist with default values
+        $data = array_merge([
+            'total_products' => 0,
+            'low_stock_count' => 0,
+            'top_products' => []
+        ], $data);
+
         $message = "📦 *Relatório de Produtos*\n\n" .
                    "📊 *Resumo:*\n" .
                    "• Total de produtos: {$data['total_products']}\n" .
@@ -75,11 +82,15 @@ class ProductsReportGenerator implements TelegramReportGeneratorInterface
     /**
      * Send error message
      */
-    private function sendErrorMessage(int $chatId): array
+    private function sendErrorMessage(int $chatId, string $errorMessage = ''): array
     {
         $message = "⚠️ *Erro no Sistema*\n\n" .
                    "Ocorreu um erro ao gerar o relatório.\n" .
                    "Tente novamente em alguns instantes.";
+
+        if ($errorMessage) {
+            $message .= "\n\n*Detalhes:* " . $errorMessage;
+        }
 
         $keyboard = [
             [

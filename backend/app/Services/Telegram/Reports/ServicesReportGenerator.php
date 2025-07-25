@@ -31,7 +31,7 @@ class ServicesReportGenerator implements TelegramReportGeneratorInterface
             return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
 
         } catch (\Exception $e) {
-            return $this->sendErrorMessage($chatId);
+            return $this->sendErrorMessage($chatId, $e->getMessage());
         }
     }
 
@@ -62,6 +62,17 @@ class ServicesReportGenerator implements TelegramReportGeneratorInterface
             default => 'Hoje'
         };
 
+        // Ensure all required keys exist with default values
+        $data = array_merge([
+            'total_services' => 0,
+            'completed' => 0,
+            'in_progress' => 0,
+            'pending_services' => 0,
+            'total_revenue' => 0,
+            'average_service_time' => 0,
+            'completed_today' => 0
+        ], $data);
+
         $message = "🔧 *Relatório de Serviços - {$periodLabel}*\n\n" .
                    "📋 *Resumo:*\n" .
                    "• Total: {$data['total_services']}\n" .
@@ -70,10 +81,10 @@ class ServicesReportGenerator implements TelegramReportGeneratorInterface
                    "• Pendentes: {$data['pending_services']}\n\n" .
                    "💰 *Receita:*\n" .
                    "• Total: R$ " . number_format($data['total_revenue'], 2, ',', '.') . "\n" .
-                   "• Média: R$ " . number_format($data['average_service_time'] ?? 0, 2, ',', '.') . "\n\n" .
+                   "• Média: R$ " . number_format($data['average_service_time'], 2, ',', '.') . "\n\n" .
                    "📈 *Performance:*\n" .
                    "• Concluídos hoje: {$data['completed_today']}\n" .
-                   "• Tempo médio: " . ($data['average_service_time'] ?? 0) . " min\n\n" .
+                   "• Tempo médio: " . $data['average_service_time'] . " min\n\n" .
                    "📅 Gerado em: " . now()->format('d/m/Y H:i:s');
 
         return $message;
@@ -82,11 +93,15 @@ class ServicesReportGenerator implements TelegramReportGeneratorInterface
     /**
      * Send error message
      */
-    private function sendErrorMessage(int $chatId): array
+    private function sendErrorMessage(int $chatId, string $errorMessage = ''): array
     {
         $message = "⚠️ *Erro no Sistema*\n\n" .
                    "Ocorreu um erro ao gerar o relatório.\n" .
                    "Tente novamente em alguns instantes.";
+
+        if ($errorMessage) {
+            $message .= "\n\n*Detalhes:* " . $errorMessage;
+        }
 
         $keyboard = [
             [

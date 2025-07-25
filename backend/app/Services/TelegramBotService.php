@@ -61,7 +61,7 @@ class TelegramBotService
     {
         try {
             $chatId = $callbackQuery['message']['chat']['id'];
-            $messageId = $callbackQuery['message']['message_id'];
+            $messageId = $callbackQuery['message']['message_id'] ?? null;
             $callbackData = $callbackQuery['data'] ?? '';
             $from = $callbackQuery['from'] ?? [];
 
