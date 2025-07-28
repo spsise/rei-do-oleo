@@ -20,6 +20,7 @@ class ServiceResource extends JsonResource
             'scheduled_date' => $this->scheduled_at?->format('Y-m-d\TH:i'),
             'started_at' => $this->started_at?->format('Y-m-d\TH:i'),
             'finished_at' => $this->completed_at?->format('Y-m-d\TH:i'),
+            'estimated_duration' => $this->estimated_duration,
             'duration' => $this->getDuration(),
             'duration_formatted' => $this->getDurationFormatted(),
             'status' => [

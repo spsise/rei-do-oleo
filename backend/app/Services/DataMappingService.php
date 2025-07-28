@@ -17,6 +17,9 @@ class DataMappingService
             'discount' => 'discount_amount',
             'total_amount' => 'final_amount',
             'internal_notes' => 'notes',
+            'estimated_duration' => 'estimated_duration',
+            'observations' => 'observations',
+            'notes' => 'notes',
         ];
 
         foreach ($mappings as $frontendField => $backendField) {
@@ -42,6 +45,8 @@ class DataMappingService
             'discount_amount' => 'discount',
             'final_amount' => 'total_amount',
             'notes' => 'internal_notes',
+            'estimated_duration' => 'estimated_duration',
+            'observations' => 'observations',
         ];
 
         foreach ($mappings as $backendField => $frontendField) {

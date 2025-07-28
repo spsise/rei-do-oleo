@@ -15,7 +15,6 @@ class UpdateServiceAction
 
     public function execute(int $id, array $data): ?Service
     {
-        // Map frontend field names to backend field names
         $mappedData = $this->dataMappingService->mapServiceFields($data);
 
         return $this->serviceService->updateService($id, $mappedData);

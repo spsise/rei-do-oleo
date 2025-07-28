@@ -44,6 +44,7 @@ class Service extends Model
         'service_status_id',
         'payment_method_id',
         'mileage_at_service',
+        'estimated_duration',
         'total_amount',
         'discount_amount',
         'final_amount',
