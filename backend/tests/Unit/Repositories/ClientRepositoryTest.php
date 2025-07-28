@@ -185,8 +185,8 @@ class ClientRepositoryTest extends TestCase
     #[Test]
     public function search_by_filters_applies_search_filter(): void
     {
-        Client::factory()->create(['name' => 'João Silva', 'phone' => '11999887766']);
-        Client::factory()->create(['name' => 'Maria Santos', 'phone' => '11888776655']);
+        Client::factory()->create(['name' => 'João Silva', 'phone01' => '11999887766']);
+        Client::factory()->create(['name' => 'Maria Santos', 'phone01' => '11888776655']);
 
         $filters = ['search' => 'João'];
         $result = $this->clientRepository->searchByFilters($filters);
@@ -200,7 +200,7 @@ class ClientRepositoryTest extends TestCase
         $cpf = $this->generateValidCPF();
         Client::factory()->create([
             'name' => 'João Silva',
-            'phone' => '11999887766',
+            'phone01' => '11999887766',
             'document' => $cpf
         ]);
         Client::factory()->create(['name' => 'Maria Santos']);
@@ -376,7 +376,7 @@ class ClientRepositoryTest extends TestCase
     #[Test]
     public function find_by_phone_finds_by_phone(): void
     {
-        $client = Client::factory()->create(['phone' => '11999887766']);
+        $client = Client::factory()->create(['phone01' => '11999887766']);
 
         $result = $this->clientRepository->findByPhone('11999887766');
 
@@ -519,9 +519,9 @@ class ClientRepositoryTest extends TestCase
     #[Test]
     public function it_searches_clients_by_multiple_criteria()
     {
-        Client::factory()->create(['name' => 'João Silva', 'phone' => '11987654321']);
-        Client::factory()->create(['name' => 'Maria Santos', 'phone' => '11999888777']);
-        Client::factory()->create(['name' => 'Pedro Silva', 'phone' => '21987654321']);
+        Client::factory()->create(['name' => 'João Silva', 'phone01' => '11987654321']);
+        Client::factory()->create(['name' => 'Maria Santos', 'phone01' => '11999888777']);
+        Client::factory()->create(['name' => 'Pedro Silva', 'phone01' => '21987654321']);
 
         $searchTerm = 'Silva';
         $result = $this->clientRepository->search($searchTerm);

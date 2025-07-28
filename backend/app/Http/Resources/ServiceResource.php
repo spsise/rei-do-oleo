@@ -60,7 +60,7 @@ class ServiceResource extends JsonResource
             'client' => $this->when($this->client, [
                 'id' => $this->client->id ?? null,
                 'name' => $this->client->name ?? null,
-                'phone' => $this->client->phone ?? null,
+                'phone' => $this->client->phone01 ?? null,
                 'document' => $this->client->document ?? null,
             ]),
             'service_center' => $this->when($this->serviceCenter, [

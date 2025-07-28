@@ -205,7 +205,7 @@ class ServiceRepository implements ServiceRepositoryInterface
         return Cache::remember($cacheKey, 300, function () use ($id) {
             // Otimizar eager loading - carregar apenas o necessário
             $service = Service::with([
-                'client:id,name,phone,document',
+                'client:id,name,phone01,document',
                 'vehicle:id,license_plate,brand,model,year',
                 'serviceCenter:id,name,code',
                 'serviceStatus:id,name,color',
