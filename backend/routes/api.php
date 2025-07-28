@@ -203,7 +203,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:60,1'])->group(functi
     // =============================================================================
     // SERVICE ROUTES
     // =============================================================================
-    Route::prefix('services')->group(function () {
+    Route::prefix('services')->middleware('performance.monitor')->group(function () {
         // CRUD básico
         Route::get('/', [ServiceController::class, 'index']);                   // GET /api/v1/services
         Route::post('/', [ServiceController::class, 'store']);                  // POST /api/v1/services

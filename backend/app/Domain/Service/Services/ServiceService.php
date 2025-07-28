@@ -288,25 +288,23 @@ class ServiceService
         return $stats;
     }
 
-    private function clearServiceCaches(?Service $service): void
+    private function clearServiceCaches(Service $service): void
     {
-        if (!$service) {
-            return;
-        }
+        // Clear specific service cache
+        Cache::forget("service_details_{$service->id}");
 
-        // Clear general caches
-        Cache::forget("services_center_{$service->service_center_id}");
+        // Clear related caches
         Cache::forget("client_services_{$service->client_id}");
+        Cache::forget("vehicle_services_{$service->vehicle_id}");
 
-        // Clear dashboard metrics
-        Cache::forget("dashboard_metrics_{$service->service_center_id}_today");
-        Cache::forget("dashboard_metrics_{$service->service_center_id}_week");
-        Cache::forget("dashboard_metrics_{$service->service_center_id}_month");
+        // Clear dashboard stats cache
+        Cache::forget("dashboard_stats_{$service->service_center_id}");
+        Cache::forget("dashboard_stats");
 
-        // Clear date range caches (could be optimized)
-        $today = now()->toDateString();
-        $yesterday = now()->subDay()->toDateString();
-        Cache::forget("services_range_{$yesterday}_{$today}");
+        // Clear technician stats cache
+        if ($service->technician_id) {
+            Cache::forget("technician_stats_{$service->technician_id}");
+        }
     }
 
     /**

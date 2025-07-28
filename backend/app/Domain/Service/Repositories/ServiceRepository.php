@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
+use Illuminate\Support\Facades\Cache;
 
 class ServiceRepository implements ServiceRepositoryInterface
 {
@@ -198,35 +199,34 @@ class ServiceRepository implements ServiceRepositoryInterface
 
     public function find(int $id): ?Service
     {
-        // Primeiro, tentar buscar normalmente
-        $service = Service::with([
-            'client',
-            'vehicle',
-            'serviceCenter',
-            'serviceStatus',
-            'paymentMethod',
-            'technician',
-            'attendant',
-            'serviceItems.product.category'
-        ])->find($id);
+        // Usar cache para detalhes de serviço
+        $cacheKey = "service_details_{$id}";
 
-        // Se não encontrar, limpar cache e tentar novamente
-        if (!$service) {
-            \Illuminate\Support\Facades\Cache::forget("service_{$id}");
-
+        return Cache::remember($cacheKey, 300, function () use ($id) {
+            // Otimizar eager loading - carregar apenas o necessário
             $service = Service::with([
-                'client',
-                'vehicle',
-                'serviceCenter',
-                'serviceStatus',
-                'paymentMethod',
-                'technician',
-                'attendant',
-                'serviceItems.product.category'
+                'client:id,name,phone,document',
+                'vehicle:id,license_plate,brand,model,year',
+                'serviceCenter:id,name,code',
+                'serviceStatus:id,name,color',
+                'paymentMethod:id,name',
+                'technician:id,name',
+                'attendant:id,name',
+                'serviceItems' => function ($query) {
+                    $query->with([
+                        'product:id,name,sku,category_id',
+                        'product.category:id,name'
+                    ]);
+                }
             ])->find($id);
-        }
 
-        return $service;
+            // Se não encontrar, retornar null
+            if (!$service) {
+                return null;
+            }
+
+            return $service;
+        });
     }
 
     public function create(array $data): Service
