@@ -243,7 +243,13 @@ class ServiceRepository implements ServiceRepositoryInterface
         }
 
         return DB::transaction(function () use ($service, $data) {
-            $service->update($data);
+            // Filtrar apenas campos que realmente mudaram
+            $changedData = $this->filterChangedFields($service, $data);
+
+            // Só atualizar se há mudanças
+            if (!empty($changedData)) {
+                $service->update($changedData);
+            }
 
             // Update service items if provided
             if (isset($data['items']) && is_array($data['items'])) {
@@ -262,6 +268,28 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'serviceItems.product'
             ]);
         });
+    }
+
+    /**
+     * Filtra apenas os campos que realmente mudaram
+     */
+    private function filterChangedFields(Service $service, array $data): array
+    {
+        $changedFields = [];
+
+        foreach ($data as $field => $value) {
+            // Pular campos especiais como 'items'
+            if ($field === 'items') {
+                continue;
+            }
+
+            // Comparar valores
+            if ($service->getAttribute($field) != $value) {
+                $changedFields[$field] = $value;
+            }
+        }
+
+        return $changedFields;
     }
 
     public function delete(int $id): bool

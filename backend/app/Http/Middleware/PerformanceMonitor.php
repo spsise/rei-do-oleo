@@ -11,6 +11,8 @@ class PerformanceMonitor
 {
     /**
      * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -34,6 +36,7 @@ class PerformanceMonitor
                 'memory_usage_kb' => round($memoryUsage / 1024, 2),
                 'user_id' => $request->user()?->id,
                 'ip' => $request->ip(),
+                'timestamp' => now(),
             ]);
         }
 

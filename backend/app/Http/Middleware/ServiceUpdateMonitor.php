@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
+
+class ServiceUpdateMonitor
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $response = $next($request);
+
+        // Monitor only service update requests
+        if (in_array($request->method(), ['PUT', 'PATCH']) &&
+            str_contains($request->path(), 'services') &&
+            $request->route('id')) {
+
+            Log::info('Service update request', [
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'service_id' => $request->route('id'),
+                'user_id' => $request->user()?->id,
+                'data_size' => count($request->all()),
+                'timestamp' => now(),
+                'response_status' => $response->getStatusCode(),
+            ]);
+        }
+
+        return $response;
+    }
+}
