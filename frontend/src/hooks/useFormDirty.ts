@@ -155,7 +155,7 @@ export function useFormDirty<T extends Record<string, unknown>>({
   // Detectar mudanças iniciais quando initialData muda
   useEffect(() => {
     detectChanges(currentData);
-  }, [initialData, detectChanges]);
+  }, [initialData, detectChanges, currentData]);
 
   return {
     isDirty,
