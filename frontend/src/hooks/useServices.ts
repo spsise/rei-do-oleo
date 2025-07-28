@@ -39,7 +39,10 @@ export const useService = (id: number) => {
       return response.data!;
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutos - aumentar cache time
+    gcTime: 30 * 60 * 1000, // 30 minutos - garbage collection
+    refetchOnWindowFocus: false, // Evitar refetch desnecessário
+    refetchOnMount: false, // Usar cache se disponível
   });
 };
 
