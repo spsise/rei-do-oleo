@@ -1,8 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  useServiceFormChanges,
-  useServiceItemsChanges,
-} from '../../hooks/useFormChanges';
+
 import { type Service, type UpdateServiceData } from '../../types/service';
 import {
   type CreateTechnicianServiceData,
@@ -69,129 +66,180 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   const originalServiceData = useMemo(() => {
     if (!service) return {};
 
-    return {
+    // Usar dados completos se disponíveis, senão usar dados básicos
+    const completeService = serviceDetails || service;
+
+    // Type guard para verificar se é Service completo
+    const isCompleteService = (
+      obj: TechnicianService | Service
+    ): obj is Service => {
+      return obj && typeof obj === 'object' && 'technician' in obj;
+    };
+
+    const data = {
       client_id: 0,
       vehicle_id: vehicles.length > 0 ? vehicles[0].id : 0,
-      service_center_id: 1,
-      technician_id: 1,
-      attendant_id: 1,
+      service_center_id: isCompleteService(completeService)
+        ? completeService.service_center?.id || 1
+        : 1,
+      technician_id: isCompleteService(completeService)
+        ? completeService.technician?.id || 1
+        : 1,
+      attendant_id: isCompleteService(completeService)
+        ? completeService.attendant?.id || 1
+        : 1,
       service_number: service.service_number,
       description: service.description || '',
       estimated_duration: 60,
-      scheduled_at: undefined,
-      started_at: undefined,
-      completed_at: undefined,
-      service_status_id: 1,
-      payment_method_id: 1,
-      mileage_at_service: service.mileage_at_service || 0,
-      total_amount: service.total_amount || 0,
-      discount_amount: 0,
-      final_amount: service.total_amount || 0,
-      observations: service.observations || '',
-      notes: service.notes || '',
+      scheduled_at: isCompleteService(completeService)
+        ? completeService.scheduled_date
+        : undefined,
+      started_at: isCompleteService(completeService)
+        ? completeService.started_at
+        : undefined,
+      completed_at: isCompleteService(completeService)
+        ? completeService.finished_at
+        : undefined,
+      service_status_id:
+        isCompleteService(completeService) &&
+        typeof completeService.status === 'object'
+          ? completeService.status?.id || 1
+          : 1,
+      payment_method_id: isCompleteService(completeService)
+        ? completeService.payment_method?.id || 1
+        : 1,
+      mileage_at_service: isCompleteService(completeService)
+        ? completeService.vehicle?.mileage_at_service
+        : service.mileage_at_service || 0,
+      total_amount:
+        isCompleteService(completeService) &&
+        completeService.financial?.total_amount
+          ? parseFloat(completeService.financial.total_amount)
+          : service.total_amount || 0,
+      discount_amount: isCompleteService(completeService)
+        ? completeService.financial?.discount || 0
+        : 0,
+      final_amount:
+        isCompleteService(completeService) &&
+        completeService.financial?.total_amount
+          ? parseFloat(completeService.financial.total_amount)
+          : service.total_amount || 0,
+      observations: isCompleteService(completeService)
+        ? completeService.observations
+        : service.observations || '',
+      notes: isCompleteService(completeService)
+        ? completeService.internal_notes
+        : service.notes || '',
       active: true,
       items: service.items || [],
     };
-  }, [service, vehicles]);
 
-  const originalItemsData = useMemo(() => {
-    return service?.items || [];
-  }, [service?.items]);
+    return data;
+  }, [service, serviceDetails, vehicles]);
 
-  // Memoizar os dados dos itens atuais para evitar recriação
-  const currentItemsData = useMemo(() => {
-    return editData?.items || [];
-  }, [editData?.items]);
+  // Verificação simples e direta de mudanças
+  const hasAnyChanges = React.useMemo(() => {
+    if (!editData || Object.keys(originalServiceData).length === 0) {
+      return false;
+    }
 
-  // Hook para detectar mudanças no formulário
-  const { hasChanges: hasFormChanges, getChangedData } = useServiceFormChanges(
-    originalServiceData as Record<string, unknown>,
-    (editData || {}) as Record<string, unknown>
-  );
+    // Comparar apenas os campos principais que podem ser editados
+    const fieldsToCompare = [
+      'description',
+      'estimated_duration',
+      'scheduled_at',
+      'started_at',
+      'completed_at',
+      'mileage_at_service',
+      'observations',
+      'notes',
+      'total_amount',
+      'discount_amount',
+      'final_amount',
+    ];
 
-  // Hook para detectar mudanças nos itens
-  const { hasChanges: hasItemsChanges } = useServiceItemsChanges(
-    originalItemsData as unknown as Record<string, unknown>[],
-    currentItemsData as unknown as Record<string, unknown>[]
-  );
+    for (const field of fieldsToCompare) {
+      const originalValue = (
+        originalServiceData as unknown as Record<string, unknown>
+      )[field];
+      const currentValue = (editData as unknown as Record<string, unknown>)[
+        field
+      ];
 
-  const hasAnyChanges = hasFormChanges || hasItemsChanges;
+      // Normalizar valores para comparação
+      const normalizeValue = (value: unknown) => {
+        if (typeof value === 'string') return value.trim();
+        if (typeof value === 'number') return Number(value);
+        return value;
+      };
+
+      if (normalizeValue(originalValue) !== normalizeValue(currentValue)) {
+        return true;
+      }
+    }
+
+    // Comparar itens se existirem
+    const originalItems =
+      ((originalServiceData as unknown as Record<string, unknown>)
+        .items as unknown[]) || [];
+    const currentItems =
+      ((editData as unknown as Record<string, unknown>).items as unknown[]) ||
+      [];
+
+    if (originalItems.length !== currentItems.length) {
+      return true;
+    }
+
+    // Comparar cada item
+    for (let i = 0; i < originalItems.length; i++) {
+      const originalItem = originalItems[i] as Record<string, unknown>;
+      const currentItem = currentItems[i] as Record<string, unknown>;
+
+      if (
+        originalItem.product_id !== currentItem.product_id ||
+        originalItem.quantity !== currentItem.quantity ||
+        originalItem.unit_price !== currentItem.unit_price ||
+        originalItem.notes !== currentItem.notes
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [originalServiceData, editData]);
 
   // Estado para toast de mudanças
   const [showNoChangesToast, setShowNoChangesToast] = useState(false);
 
   // Inicializar dados de edição quando o serviço for carregado
   useEffect(() => {
-    if (service) {
-      // Encontrar o veículo correto baseado no serviço
-      // Por enquanto, vamos usar o primeiro veículo disponível
-      const vehicleId = vehicles.length > 0 ? vehicles[0].id : 0;
-
-      // Usar dados completos se disponíveis, senão usar dados básicos
-      const completeService = serviceDetails || service;
-
-      // Type guard para verificar se é Service completo
-      const isCompleteService = (
-        obj: TechnicianService | Service
-      ): obj is Service => {
-        return obj && typeof obj === 'object' && 'technician' in obj;
-      };
-
-      const initialData = {
-        client_id: 0, // Será preenchido pelo contexto
-        vehicle_id: vehicleId,
-        service_center_id: isCompleteService(completeService)
-          ? completeService.service_center?.id || 1
-          : 1,
-        technician_id: isCompleteService(completeService)
-          ? completeService.technician?.id || 1
-          : 1,
-        attendant_id: isCompleteService(completeService)
-          ? completeService.attendant?.id || 1
-          : 1,
-        service_number: service.service_number,
-        description: service.description || '',
-        estimated_duration: 60, // Valor padrão
-        scheduled_at: isCompleteService(completeService)
-          ? completeService.scheduled_date
-          : undefined,
-        started_at: isCompleteService(completeService)
-          ? completeService.started_at
-          : undefined,
-        completed_at: isCompleteService(completeService)
-          ? completeService.finished_at
-          : undefined,
-        service_status_id:
-          isCompleteService(completeService) &&
-          typeof completeService.status === 'object'
-            ? completeService.status?.id || 1
-            : 1,
-        payment_method_id: isCompleteService(completeService)
-          ? completeService.payment_method?.id || 1
-          : 1,
-        mileage_at_service: isCompleteService(completeService)
-          ? completeService.vehicle?.mileage_at_service
-          : service.mileage_at_service || 0,
-        total_amount:
-          isCompleteService(completeService) &&
-          completeService.financial?.total_amount
-            ? parseFloat(completeService.financial.total_amount)
-            : service.total_amount || 0,
-        discount_amount: isCompleteService(completeService)
-          ? completeService.financial?.discount || 0
-          : 0,
-        final_amount:
-          isCompleteService(completeService) &&
-          completeService.financial?.total_amount
-            ? parseFloat(completeService.financial.total_amount)
-            : service.total_amount || 0,
-        observations: isCompleteService(completeService)
-          ? completeService.observations
-          : service.observations || '',
-        notes: isCompleteService(completeService)
-          ? completeService.internal_notes
-          : service.notes || '',
-        active: true,
+    if (service && Object.keys(originalServiceData).length > 0) {
+      // Garantir que todos os campos obrigatórios estejam presentes
+      const originalData = originalServiceData as Record<string, unknown>;
+      const initialData: CreateTechnicianServiceData = {
+        client_id: (originalData.client_id as number) || 0,
+        vehicle_id: (originalData.vehicle_id as number) || 0,
+        description: (originalData.description as string) || '',
+        estimated_duration: (originalData.estimated_duration as number) || 60,
+        // Campos opcionais
+        service_center_id: originalData.service_center_id as number | undefined,
+        technician_id: originalData.technician_id as number | undefined,
+        attendant_id: originalData.attendant_id as number | undefined,
+        service_number: originalData.service_number as string | undefined,
+        scheduled_at: originalData.scheduled_at as string | undefined,
+        started_at: originalData.started_at as string | undefined,
+        completed_at: originalData.completed_at as string | undefined,
+        service_status_id: originalData.service_status_id as number | undefined,
+        payment_method_id: originalData.payment_method_id as number | undefined,
+        mileage_at_service: originalData.mileage_at_service as
+          | number
+          | undefined,
+        total_amount: originalData.total_amount as number | undefined,
+        discount_amount: originalData.discount_amount as number | undefined,
+        final_amount: originalData.final_amount as number | undefined,
+        observations: originalData.observations as string | undefined,
+        notes: originalData.notes as string | undefined,
+        active: originalData.active as boolean | undefined,
         items:
           service.items?.map((item, index) => ({
             id: `item-${service.id}-${item.product?.id || item.product_id}-${index}`, // ID único para cada item
@@ -211,7 +259,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
 
       setEditData(initialData);
     }
-  }, [service, serviceDetails, vehicles]);
+  }, [service, originalServiceData]);
 
   if (!isOpen || !service || !editData) {
     return null;
@@ -410,23 +458,18 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
       return;
     }
 
-    // Se há mudanças no formulário, usar apenas os dados que mudaram
-    const submitData: EditServiceData = hasFormChanges
-      ? {
-          ...getChangedData(),
-          items: validItems,
-        }
-      : {
-          vehicle_id: editData.vehicle_id,
-          description: editData.description,
-          estimated_duration: editData.estimated_duration,
-          scheduled_at: editData.scheduled_at,
-          mileage_at_service: editData.mileage_at_service,
-          internal_notes: editData.notes,
-          observations: editData.observations,
-          items: validItems,
-          discount: editData.discount_amount,
-        };
+    // Sempre enviar os dados completos, mas apenas se há mudanças
+    const submitData: EditServiceData = {
+      vehicle_id: editData.vehicle_id,
+      description: editData.description,
+      estimated_duration: editData.estimated_duration,
+      scheduled_at: editData.scheduled_at,
+      mileage_at_service: editData.mileage_at_service,
+      internal_notes: editData.notes,
+      observations: editData.observations,
+      items: validItems,
+      discount: editData.discount_amount,
+    };
 
     await onSubmit(service.id, submitData);
   };

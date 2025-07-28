@@ -1,13 +1,16 @@
 import { TrashIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useState } from 'react';
-import { useServiceFormChanges } from '../../hooks/useFormChanges';
+import { useServiceFormDirty } from '../../hooks/useFormDirty';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import type {
   CreateServiceData,
   CreateServiceItemData,
   Service,
   UpdateServiceData,
 } from '../../types/service';
+import { ChangesIndicator } from '../ui/ChangesIndicator';
 import { NoChangesToast } from '../ui/NoChangesToast';
+import { SmartButtonGroup } from '../ui/SmartButton';
 
 interface Product {
   id: number;
@@ -65,11 +68,36 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Hook para detectar mudanças no formulário
-  const { hasChanges, getChangedData } = useServiceFormChanges(
+  // Hook otimizado para detectar mudanças no formulário
+  const {
+    isDirty,
+    changedFields,
+    currentData,
+    updateField,
+    reset,
+    getChangedData,
+  } = useServiceFormDirty(
     (service || {}) as Record<string, unknown>,
-    formData as unknown as Record<string, unknown>
+    (isDirty, changedFields) => {
+      // Callback opcional para quando o estado de mudanças muda
+      console.log('Mudanças detectadas:', isDirty, changedFields);
+    }
   );
+
+  // Hook para gerenciar navegação com mudanças não salvas
+  useUnsavedChanges({
+    isDirty,
+    onSave: async () => {
+      if (validateForm()) {
+        const finalData = {
+          ...currentData,
+          total_amount: calculateFinalTotal(),
+        };
+        onSubmit(finalData as UpdateServiceData);
+      }
+    },
+    enabled: !!service, // Só habilitar para edição
+  });
 
   // Estado para toast de mudanças
   const [showNoChangesToast, setShowNoChangesToast] = useState(false);
@@ -160,6 +188,10 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
     field: keyof CreateServiceData,
     value: string | number | undefined
   ) => {
+    // Usar o hook otimizado para atualizar dados
+    updateField(field, value);
+
+    // Manter compatibilidade com o estado local
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Clear error when user starts typing
@@ -308,7 +340,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
     }
 
     // Se for edição e não há mudanças, mostrar toast
-    if (service && !hasChanges) {
+    if (service && !isDirty) {
       setShowNoChangesToast(true);
       setTimeout(() => setShowNoChangesToast(false), 3000);
       return;
@@ -345,6 +377,19 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
 
   return (
     <>
+      {/* Indicador de Mudanças */}
+      {service && (
+        <div className="mb-6">
+          <ChangesIndicator
+            isDirty={isDirty}
+            changedFields={changedFields}
+            changedFieldsCount={changedFields.length}
+            variant="detailed"
+            showDetails={true}
+          />
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Informações Básicas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -997,23 +1042,23 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           >
             Cancelar
           </button>
-          <button
-            type="submit"
-            disabled={loading || (service && !hasChanges)}
-            className={`px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-              service && !hasChanges
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {loading
-              ? 'Salvando...'
-              : service
-                ? hasChanges
-                  ? 'Atualizar Serviço'
-                  : 'Nenhuma Alteração'
-                : 'Criar Serviço'}
-          </button>
+          <SmartButtonGroup
+            isDirty={isDirty}
+            isSubmitting={loading}
+            onSave={() => {
+              const finalData = {
+                ...currentData,
+                total_amount: calculateFinalTotal(),
+              };
+              onSubmit(finalData as UpdateServiceData);
+            }}
+            onCancel={onCancel}
+            onReset={reset}
+            saveText={service ? 'Atualizar Serviço' : 'Criar Serviço'}
+            cancelText="Cancelar"
+            resetText="Descartar Alterações"
+            showReset={!!service && isDirty}
+          />
         </div>
       </form>
 
