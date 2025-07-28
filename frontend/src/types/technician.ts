@@ -26,6 +26,9 @@ export interface TechnicianService {
   status: string;
   total_amount: number;
   created_at: string;
+  scheduled_at?: string;
+  mileage_at_service?: number;
+  estimated_duration?: number;
   notes?: string;
   observations?: string;
   items?: TechnicianServiceItem[];

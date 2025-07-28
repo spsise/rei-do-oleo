@@ -17,6 +17,7 @@ interface NewServiceModalProps {
   vehicles: TechnicianVehicle[];
   onSubmit: () => void;
   isLoading?: boolean;
+  isReadOnly?: boolean;
   // Props para produtos
   products: TechnicianProduct[];
   categories: Array<{ id: number; name: string }>;
@@ -44,6 +45,7 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
   vehicles,
   onSubmit,
   isLoading = false,
+  isReadOnly = false,
   products,
   categories,
   isLoadingProducts,
@@ -91,6 +93,7 @@ export const NewServiceModal: React.FC<NewServiceModalProps> = ({
               serviceData={serviceData}
               onServiceDataChange={onServiceDataChange}
               vehicles={vehicles}
+              isReadOnly={isReadOnly}
             />
           ) : (
             <ServiceProductsTab

@@ -262,10 +262,20 @@ export const useTechnician = () => {
         updatedItems[existingItemIndex].quantity *
         updatedItems[existingItemIndex].unit_price;
 
-      setNewServiceData((prev) => ({
-        ...prev,
-        items: updatedItems,
-      }));
+      setNewServiceData((prev) => {
+        // Calcular total dos itens
+        const itemsTotal = updatedItems.reduce(
+          (total, item) => total + item.total_price,
+          0
+        );
+
+        return {
+          ...prev,
+          items: updatedItems,
+          total_amount: itemsTotal,
+          final_amount: Math.max(0, itemsTotal - (prev.discount_amount || 0)),
+        };
+      });
     } else {
       // Adicionar novo item
       const newItem: TechnicianServiceItem = {
@@ -278,20 +288,45 @@ export const useTechnician = () => {
         product,
       };
 
-      setNewServiceData((prev) => ({
-        ...prev,
-        items: [...(prev.items || []), newItem],
-      }));
+      setNewServiceData((prev) => {
+        const updatedItems = [...(prev.items || []), newItem];
+
+        // Calcular total dos itens
+        const itemsTotal = updatedItems.reduce(
+          (total, item) => total + item.total_price,
+          0
+        );
+
+        return {
+          ...prev,
+          items: updatedItems,
+          total_amount: itemsTotal,
+          final_amount: Math.max(0, itemsTotal - (prev.discount_amount || 0)),
+        };
+      });
     }
 
     toast.success(`${product.name} adicionado ao serviço`);
   };
 
   const removeProductFromService = (itemId: string) => {
-    setNewServiceData((prev) => ({
-      ...prev,
-      items: prev.items?.filter((item) => item.id !== itemId) || [],
-    }));
+    setNewServiceData((prev) => {
+      const updatedItems =
+        prev.items?.filter((item) => item.id !== itemId) || [];
+
+      // Calcular total dos itens
+      const itemsTotal = updatedItems.reduce(
+        (total, item) => total + item.total_price,
+        0
+      );
+
+      return {
+        ...prev,
+        items: updatedItems,
+        total_amount: itemsTotal,
+        final_amount: Math.max(0, itemsTotal - (prev.discount_amount || 0)),
+      };
+    });
     toast.success('Produto removido do serviço');
   };
 
@@ -306,9 +341,8 @@ export const useTechnician = () => {
         return;
       }
 
-      setNewServiceData((prev) => ({
-        ...prev,
-        items:
+      setNewServiceData((prev) => {
+        const updatedItems =
           prev.items?.map((item) =>
             item.id === itemId
               ? {
@@ -317,17 +351,29 @@ export const useTechnician = () => {
                   total_price: item.unit_price * quantity,
                 }
               : item
-          ) || [],
-      }));
+          ) || [];
+
+        // Calcular total dos itens
+        const itemsTotal = updatedItems.reduce(
+          (total, item) => total + item.total_price,
+          0
+        );
+
+        return {
+          ...prev,
+          items: updatedItems,
+          total_amount: itemsTotal,
+          final_amount: Math.max(0, itemsTotal - (prev.discount_amount || 0)),
+        };
+      });
     },
-    [newServiceData.items]
+    []
   );
 
   const updateServiceItemPrice = useCallback(
     (itemId: string, unitPrice: number) => {
-      setNewServiceData((prev) => ({
-        ...prev,
-        items:
+      setNewServiceData((prev) => {
+        const updatedItems =
           prev.items?.map((item) =>
             item.id === itemId
               ? {
@@ -336,8 +382,21 @@ export const useTechnician = () => {
                   total_price: item.quantity * unitPrice,
                 }
               : item
-          ) || [],
-      }));
+          ) || [];
+
+        // Calcular total dos itens
+        const itemsTotal = updatedItems.reduce(
+          (total, item) => total + item.total_price,
+          0
+        );
+
+        return {
+          ...prev,
+          items: updatedItems,
+          total_amount: itemsTotal,
+          final_amount: Math.max(0, itemsTotal - (prev.discount_amount || 0)),
+        };
+      });
     },
     []
   );

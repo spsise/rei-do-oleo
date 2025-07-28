@@ -10,6 +10,7 @@ export interface Service {
   scheduled_date?: string;
   started_at?: string;
   finished_at?: string;
+  estimated_duration?: number;
   duration?: number;
   duration_formatted?: string;
   status?: {
@@ -216,6 +217,7 @@ export interface CreateServiceData {
   discount?: number;
   total_amount?: number;
   mileage?: number;
+  estimated_duration?: number;
   fuel_level?: 'empty' | '1/4' | '1/2' | '3/4' | 'full';
   observations?: string;
   internal_notes?: string;
@@ -244,6 +246,9 @@ export interface UpdateServiceData {
   discount?: number;
   total_amount?: number;
   mileage?: number;
+  estimated_duration?: number;
+  scheduled_at?: string;
+  mileage_at_service?: number;
   fuel_level?: 'empty' | '1/4' | '1/2' | '3/4' | 'full';
   observations?: string;
   internal_notes?: string;

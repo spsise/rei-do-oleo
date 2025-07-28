@@ -477,6 +477,7 @@ export const TechnicianPage: React.FC = () => {
           vehicles={searchResult?.vehicles || []}
           onSubmit={handleSubmitService}
           isLoading={isCreatingService}
+          isReadOnly={false}
           // Props para produtos
           products={products}
           categories={categories}
@@ -526,6 +527,8 @@ export const TechnicianPage: React.FC = () => {
           isLoadingProducts={isLoadingProducts}
           productSearchTerm={productSearchTerm}
           onProductSearch={searchProducts}
+          // Dados completos do serviço
+          serviceDetails={serviceDetails}
         />
 
         {/* Update Status Modal */}

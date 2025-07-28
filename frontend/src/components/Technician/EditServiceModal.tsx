@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { type UpdateServiceData } from '../../types/service';
+import { type Service, type UpdateServiceData } from '../../types/service';
 import {
   type CreateTechnicianServiceData,
   type TechnicianProduct,
@@ -36,6 +36,8 @@ interface EditServiceModalProps {
   isLoadingProducts: boolean;
   productSearchTerm: string;
   onProductSearch: (search: string) => void;
+  // Dados completos do serviço (opcional)
+  serviceDetails?: Service | null;
 }
 
 export const EditServiceModal: React.FC<EditServiceModalProps> = ({
@@ -50,6 +52,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   isLoadingProducts,
   productSearchTerm,
   onProductSearch,
+  serviceDetails,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'products'>('details');
   const [isMaximized, setIsMaximized] = useState(false);
@@ -64,26 +67,70 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
       // Por enquanto, vamos usar o primeiro veículo disponível
       const vehicleId = vehicles.length > 0 ? vehicles[0].id : 0;
 
+      // Usar dados completos se disponíveis, senão usar dados básicos
+      const completeService = serviceDetails || service;
+
+      // Type guard para verificar se é Service completo
+      const isCompleteService = (
+        obj: TechnicianService | Service
+      ): obj is Service => {
+        return obj && typeof obj === 'object' && 'technician' in obj;
+      };
+
       const initialData = {
         client_id: 0, // Será preenchido pelo contexto
         vehicle_id: vehicleId,
-        service_center_id: 1, // Valor padrão
-        technician_id: 1, // Valor padrão
-        attendant_id: 1, // Valor padrão
+        service_center_id: isCompleteService(completeService)
+          ? completeService.service_center?.id || 1
+          : 1,
+        technician_id: isCompleteService(completeService)
+          ? completeService.technician?.id || 1
+          : 1,
+        attendant_id: isCompleteService(completeService)
+          ? completeService.attendant?.id || 1
+          : 1,
         service_number: service.service_number,
         description: service.description || '',
         estimated_duration: 60, // Valor padrão
-        scheduled_at: undefined,
-        started_at: undefined,
-        completed_at: undefined,
-        service_status_id: 1, // Valor padrão
-        payment_method_id: 1, // Valor padrão
-        mileage_at_service: 0,
-        total_amount: service.total_amount || 0,
-        discount_amount: 0,
-        final_amount: service.total_amount || 0,
-        observations: service.observations || '',
-        notes: service.notes || '',
+        scheduled_at: isCompleteService(completeService)
+          ? completeService.scheduled_date
+          : undefined,
+        started_at: isCompleteService(completeService)
+          ? completeService.started_at
+          : undefined,
+        completed_at: isCompleteService(completeService)
+          ? completeService.finished_at
+          : undefined,
+        service_status_id:
+          isCompleteService(completeService) &&
+          typeof completeService.status === 'object'
+            ? completeService.status?.id || 1
+            : 1,
+        payment_method_id: isCompleteService(completeService)
+          ? completeService.payment_method?.id || 1
+          : 1,
+        mileage_at_service: isCompleteService(completeService)
+          ? completeService.vehicle?.mileage_at_service
+          : service.mileage_at_service || 0,
+        total_amount:
+          isCompleteService(completeService) &&
+          completeService.financial?.total_amount
+            ? parseFloat(completeService.financial.total_amount)
+            : service.total_amount || 0,
+        discount_amount: isCompleteService(completeService)
+          ? completeService.financial?.discount || 0
+          : 0,
+        final_amount:
+          isCompleteService(completeService) &&
+          completeService.financial?.total_amount
+            ? parseFloat(completeService.financial.total_amount)
+            : service.total_amount || 0,
+        observations: isCompleteService(completeService)
+          ? completeService.observations
+          : service.observations || '',
+        notes: isCompleteService(completeService)
+          ? completeService.internal_notes
+          : service.notes || '',
         active: true,
         items:
           service.items?.map((item, index) => ({
@@ -104,7 +151,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
 
       setEditData(initialData);
     }
-  }, [service, vehicles]);
+  }, [service, vehicles, serviceDetails]);
 
   if (!isOpen || !service || !editData) {
     return null;
@@ -299,6 +346,9 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
     const submitData: EditServiceData = {
       vehicle_id: editData.vehicle_id,
       description: editData.description,
+      estimated_duration: editData.estimated_duration,
+      scheduled_at: editData.scheduled_at,
+      mileage_at_service: editData.mileage_at_service,
       internal_notes: editData.notes,
       observations: editData.observations,
       items: validItems,

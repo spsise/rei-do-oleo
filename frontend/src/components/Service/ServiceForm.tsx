@@ -47,6 +47,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
     discount: service?.financial?.discount ?? 0,
     total_amount: Number(service?.financial?.total_amount ?? 0),
     mileage: service?.vehicle?.mileage_at_service ?? 0,
+    estimated_duration: service?.estimated_duration ?? 60,
     fuel_level:
       (service?.vehicle?.fuel_level as
         | 'empty'
@@ -90,6 +91,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
         discount: service.financial?.discount ?? 0,
         total_amount: Number(service.financial?.total_amount ?? 0),
         mileage: service.vehicle?.mileage_at_service ?? 0,
+        estimated_duration: service.estimated_duration || 60,
         fuel_level:
           (service?.vehicle?.fuel_level as
             | 'empty'
@@ -692,7 +694,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
         </div>
 
         {/* Informações do Veículo */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <label
               htmlFor="mileage"
@@ -716,6 +718,27 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
             {errors.mileage && (
               <p className="mt-1 text-sm text-red-600">{errors.mileage}</p>
             )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="estimated_duration"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Duração Estimada (min)
+            </label>
+            <input
+              type="number"
+              id="estimated_duration"
+              value={formData.estimated_duration}
+              onChange={(e) =>
+                handleInputChange('estimated_duration', Number(e.target.value))
+              }
+              min="15"
+              max="480"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="60"
+            />
           </div>
 
           <div>

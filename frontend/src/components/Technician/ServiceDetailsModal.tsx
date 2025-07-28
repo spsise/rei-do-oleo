@@ -3,6 +3,7 @@ import {
   CurrencyDollarIcon,
   DocumentTextIcon,
   MapPinIcon,
+  TruckIcon,
   UserIcon,
   WrenchScrewdriverIcon,
   XMarkIcon,
@@ -38,6 +39,39 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
 
   // Usar dados completos se disponíveis, senão usar dados básicos
   const displayService = serviceDetails || service;
+
+  // Type guards para verificar o tipo de serviço
+  const isService = (obj: Service | TechnicianService): obj is Service => {
+    return 'scheduled_date' in obj;
+  };
+
+  const isTechnicianService = (
+    obj: Service | TechnicianService
+  ): obj is TechnicianService => {
+    return 'scheduled_at' in obj;
+  };
+
+  // Função para obter a data agendada
+  const getScheduledDate = (): string => {
+    if (isService(displayService)) {
+      return displayService.scheduled_date || '';
+    }
+    if (isTechnicianService(displayService)) {
+      return displayService.scheduled_at || '';
+    }
+    return '';
+  };
+
+  // Função para obter a quilometragem
+  const getMileage = (): number => {
+    if (isService(displayService)) {
+      return displayService.vehicle?.mileage_at_service || 0;
+    }
+    if (isTechnicianService(displayService)) {
+      return displayService.mileage_at_service || 0;
+    }
+    return 0;
+  };
 
   // Função para obter o status do serviço
   const getServiceStatus = (): string => {
@@ -307,6 +341,19 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                     {formatDate(displayService.created_at)}
                   </p>
                 </div>
+
+                {/* Data de Agendamento */}
+                {getScheduledDate() && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Data de Agendamento
+                    </label>
+                    <p className="text-gray-900 flex items-center gap-2">
+                      <CalendarDaysIcon className="h-4 w-4 text-green-500" />
+                      {formatDate(getScheduledDate())}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -335,6 +382,19 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                     <p className="text-gray-900 font-medium flex items-center gap-2">
                       <MapPinIcon className="h-4 w-4 text-gray-500" />
                       {vehicleInfo}
+                    </p>
+                  </div>
+                )}
+
+                {/* Quilometragem */}
+                {getMileage() > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Quilometragem no Serviço
+                    </label>
+                    <p className="text-gray-900 font-medium flex items-center gap-2">
+                      <TruckIcon className="h-4 w-4 text-gray-500" />
+                      {getMileage().toLocaleString('pt-BR')} km
                     </p>
                   </div>
                 )}

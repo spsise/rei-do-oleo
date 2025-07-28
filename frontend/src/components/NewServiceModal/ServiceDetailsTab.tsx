@@ -13,12 +13,14 @@ interface ServiceDetailsTabProps {
   serviceData: CreateTechnicianServiceData;
   onServiceDataChange: (data: Partial<CreateTechnicianServiceData>) => void;
   vehicles: TechnicianVehicle[];
+  isReadOnly?: boolean;
 }
 
 export const ServiceDetailsTab: React.FC<ServiceDetailsTabProps> = ({
   serviceData,
   onServiceDataChange,
   vehicles,
+  isReadOnly = false,
 }) => {
   return (
     <div className="space-y-6">
@@ -47,6 +49,7 @@ export const ServiceDetailsTab: React.FC<ServiceDetailsTabProps> = ({
       <ServiceFieldsGrid
         serviceData={serviceData}
         onServiceDataChange={onServiceDataChange}
+        isReadOnly={isReadOnly}
       />
 
       {/* Observações */}
