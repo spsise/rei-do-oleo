@@ -1,11 +1,13 @@
 import { TrashIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useState } from 'react';
+import { useServiceFormChanges } from '../../hooks/useFormChanges';
 import type {
   CreateServiceData,
   CreateServiceItemData,
   Service,
   UpdateServiceData,
 } from '../../types/service';
+import { NoChangesToast } from '../ui/NoChangesToast';
 
 interface Product {
   id: number;
@@ -62,6 +64,15 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Hook para detectar mudanças no formulário
+  const { hasChanges, getChangedData } = useServiceFormChanges(
+    (service || {}) as Record<string, unknown>,
+    formData as unknown as Record<string, unknown>
+  );
+
+  // Estado para toast de mudanças
+  const [showNoChangesToast, setShowNoChangesToast] = useState(false);
 
   // Estados para produtos
   const [showProductModal, setShowProductModal] = useState(false);
@@ -292,13 +303,30 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      // Atualizar total_amount com o cálculo final
-      const finalData = {
-        ...formData,
-        total_amount: calculateFinalTotal(),
-      };
+    if (!validateForm()) {
+      return;
+    }
 
+    // Se for edição e não há mudanças, mostrar toast
+    if (service && !hasChanges) {
+      setShowNoChangesToast(true);
+      setTimeout(() => setShowNoChangesToast(false), 3000);
+      return;
+    }
+
+    // Atualizar total_amount com o cálculo final
+    const finalData = {
+      ...formData,
+      total_amount: calculateFinalTotal(),
+    };
+
+    // Se for edição, enviar apenas os dados que mudaram
+    if (service) {
+      const changedData = getChangedData();
+      if (Object.keys(changedData).length > 0) {
+        onSubmit(changedData as UpdateServiceData);
+      }
+    } else {
       onSubmit(finalData);
     }
   };
@@ -971,13 +999,19 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           </button>
           <button
             type="submit"
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading || (service && !hasChanges)}
+            className={`px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${
+              service && !hasChanges
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
             {loading
               ? 'Salvando...'
               : service
-                ? 'Atualizar Serviço'
+                ? hasChanges
+                  ? 'Atualizar Serviço'
+                  : 'Nenhuma Alteração'
                 : 'Criar Serviço'}
           </button>
         </div>
@@ -1062,6 +1096,12 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           </div>
         </div>
       )}
+
+      {/* Toast para quando não há mudanças */}
+      <NoChangesToast
+        isVisible={showNoChangesToast}
+        onClose={() => setShowNoChangesToast(false)}
+      />
     </>
   );
 };

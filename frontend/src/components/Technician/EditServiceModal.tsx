@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  useServiceFormChanges,
+  useServiceItemsChanges,
+} from '../../hooks/useFormChanges';
 import { type Service, type UpdateServiceData } from '../../types/service';
 import {
   type CreateTechnicianServiceData,
@@ -11,6 +15,7 @@ import { ModalFooter } from '../NewServiceModal/ModalFooter';
 import { ModalHeader } from '../NewServiceModal/ModalHeader';
 import { ServiceDetailsTab } from '../NewServiceModal/ServiceDetailsTab';
 import { ServiceProductsTab } from '../NewServiceModal/ServiceProductsTab';
+import { NoChangesToast } from '../ui/NoChangesToast';
 
 // Tipo específico para edição de serviço que inclui itens
 interface EditServiceData extends UpdateServiceData {
@@ -59,6 +64,61 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   const [editData, setEditData] = useState<CreateTechnicianServiceData | null>(
     null
   );
+
+  // Memoizar os dados originais para evitar recriação desnecessária
+  const originalServiceData = useMemo(() => {
+    if (!service) return {};
+
+    return {
+      client_id: 0,
+      vehicle_id: vehicles.length > 0 ? vehicles[0].id : 0,
+      service_center_id: 1,
+      technician_id: 1,
+      attendant_id: 1,
+      service_number: service.service_number,
+      description: service.description || '',
+      estimated_duration: 60,
+      scheduled_at: undefined,
+      started_at: undefined,
+      completed_at: undefined,
+      service_status_id: 1,
+      payment_method_id: 1,
+      mileage_at_service: service.mileage_at_service || 0,
+      total_amount: service.total_amount || 0,
+      discount_amount: 0,
+      final_amount: service.total_amount || 0,
+      observations: service.observations || '',
+      notes: service.notes || '',
+      active: true,
+      items: service.items || [],
+    };
+  }, [service, vehicles]);
+
+  const originalItemsData = useMemo(() => {
+    return service?.items || [];
+  }, [service?.items]);
+
+  // Memoizar os dados dos itens atuais para evitar recriação
+  const currentItemsData = useMemo(() => {
+    return editData?.items || [];
+  }, [editData?.items]);
+
+  // Hook para detectar mudanças no formulário
+  const { hasChanges: hasFormChanges, getChangedData } = useServiceFormChanges(
+    originalServiceData as Record<string, unknown>,
+    (editData || {}) as Record<string, unknown>
+  );
+
+  // Hook para detectar mudanças nos itens
+  const { hasChanges: hasItemsChanges } = useServiceItemsChanges(
+    originalItemsData as unknown as Record<string, unknown>[],
+    currentItemsData as unknown as Record<string, unknown>[]
+  );
+
+  const hasAnyChanges = hasFormChanges || hasItemsChanges;
+
+  // Estado para toast de mudanças
+  const [showNoChangesToast, setShowNoChangesToast] = useState(false);
 
   // Inicializar dados de edição quando o serviço for carregado
   useEffect(() => {
@@ -151,7 +211,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
 
       setEditData(initialData);
     }
-  }, [service, vehicles, serviceDetails]);
+  }, [service, serviceDetails, vehicles]);
 
   if (!isOpen || !service || !editData) {
     return null;
@@ -311,6 +371,13 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   const handleSubmit = async () => {
     if (!editData) return;
 
+    // Verificar se há mudanças
+    if (!hasAnyChanges) {
+      setShowNoChangesToast(true);
+      setTimeout(() => setShowNoChangesToast(false), 3000);
+      return;
+    }
+
     // Validar e converter os dados dos itens
     const validItems = editData.items
       ?.filter((item) => {
@@ -343,17 +410,23 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
       return;
     }
 
-    const submitData: EditServiceData = {
-      vehicle_id: editData.vehicle_id,
-      description: editData.description,
-      estimated_duration: editData.estimated_duration,
-      scheduled_at: editData.scheduled_at,
-      mileage_at_service: editData.mileage_at_service,
-      internal_notes: editData.notes,
-      observations: editData.observations,
-      items: validItems,
-      discount: editData.discount_amount,
-    };
+    // Se há mudanças no formulário, usar apenas os dados que mudaram
+    const submitData: EditServiceData = hasFormChanges
+      ? {
+          ...getChangedData(),
+          items: validItems,
+        }
+      : {
+          vehicle_id: editData.vehicle_id,
+          description: editData.description,
+          estimated_duration: editData.estimated_duration,
+          scheduled_at: editData.scheduled_at,
+          mileage_at_service: editData.mileage_at_service,
+          internal_notes: editData.notes,
+          observations: editData.observations,
+          items: validItems,
+          discount: editData.discount_amount,
+        };
 
     await onSubmit(service.id, submitData);
   };
@@ -418,6 +491,13 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
           serviceData={editData}
           calculateFinalTotal={handleCalculateFinalTotal}
           submitButtonText="Atualizar"
+          hasChanges={hasAnyChanges}
+        />
+
+        {/* Toast para quando não há mudanças */}
+        <NoChangesToast
+          isVisible={showNoChangesToast}
+          onClose={() => setShowNoChangesToast(false)}
         />
       </div>
     </div>
