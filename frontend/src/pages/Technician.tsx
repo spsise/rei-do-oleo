@@ -273,6 +273,7 @@ export const TechnicianPage: React.FC = () => {
         service: serviceData,
         items: {
           operation: 'update' as const,
+          remove_unsent: true, // Remove itens não enviados
           data: items || [],
         },
       };
