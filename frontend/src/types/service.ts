@@ -255,6 +255,16 @@ export interface UpdateServiceData {
   warranty_months?: number;
 }
 
+// New unified structure for updating service with items
+export interface UpdateServiceWithItemsData {
+  service: UpdateServiceData;
+  items: {
+    operation: 'replace' | 'update' | 'merge';
+    remove_unsent?: boolean;
+    data: CreateServiceItemData[];
+  };
+}
+
 // Dados para criação de item
 export interface CreateServiceItemData {
   product_id: number;

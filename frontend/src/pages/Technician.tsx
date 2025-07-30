@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import {
@@ -10,9 +9,8 @@ import {
   TechnicianHeader,
   UpdateStatusModal,
 } from '../components/Technician';
-import { QUERY_KEYS } from '../hooks/query-keys';
-import { useUpdateServiceItems } from '../hooks/useServiceItems';
-import { useUpdateService } from '../hooks/useServices';
+
+import { useUpdateServiceWithItems } from '../hooks/useServices';
 import { useServiceStatus } from '../hooks/useServiceStatus';
 import { useTechnician } from '../hooks/useTechnician';
 import '../styles/Technician.css';
@@ -34,7 +32,6 @@ interface EditServiceData extends UpdateServiceData {
 }
 
 export const TechnicianPage: React.FC = () => {
-  const queryClient = useQueryClient();
   const {
     // Estado
     searchType,
@@ -93,8 +90,7 @@ export const TechnicianPage: React.FC = () => {
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
 
   // Estados para modal de edição de serviço
-  const updateServiceMutation = useUpdateService();
-  const updateServiceItemsMutation = useUpdateServiceItems();
+  const updateServiceWithItemsMutation = useUpdateServiceWithItems();
   const [selectedServiceForEdit, setSelectedServiceForEdit] =
     useState<TechnicianService | null>(null);
   const [showEditServiceModal, setShowEditServiceModal] = useState(false);
@@ -270,58 +266,25 @@ export const TechnicianPage: React.FC = () => {
     data: EditServiceData
   ) => {
     try {
-      // Separar dados do serviço dos itens
+      // Preparar dados para a nova estrutura unificada
       const { items, ...serviceData } = data;
 
-      // Atualizar o serviço
-      await updateServiceMutation.mutateAsync({
+      const unifiedData = {
+        service: serviceData,
+        items: {
+          operation: 'update' as const,
+          data: items || [],
+        },
+      };
+
+      // Atualizar serviço e itens em uma única requisição
+      await updateServiceWithItemsMutation.mutateAsync({
         id: serviceId,
-        data: serviceData,
+        data: unifiedData,
       });
-
-      // Aguardar um pouco para garantir que a primeira transação foi commitada
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Atualizar os itens do serviço (sempre, mesmo que seja array vazio)
-      try {
-        await updateServiceItemsMutation.mutateAsync({
-          serviceId,
-          items: items || [],
-        });
-      } catch (itemsError) {
-        // Se o erro for "Service not found", tentar novamente após um delay maior
-        const errorMessage = (
-          itemsError as { response?: { data?: { message?: string } } }
-        )?.response?.data?.message;
-
-        if (
-          errorMessage?.includes('Service not found') ||
-          errorMessage?.includes('Service item not found')
-        ) {
-          console.log('Tentando novamente após delay...');
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          await updateServiceItemsMutation.mutateAsync({
-            serviceId,
-            items: items || [],
-          });
-        } else {
-          throw itemsError; // Re-throw se não for o erro esperado
-        }
-      }
 
       setShowEditServiceModal(false);
       setSelectedServiceForEdit(null);
-
-      // Invalidar o cache do serviço específico para atualizar a tela de detalhes
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.SERVICE, serviceId],
-      });
-
-      // Invalidar também as queries de busca para garantir sincronização
-      queryClient.invalidateQueries({
-        queryKey: ['technician', 'search'],
-      });
 
       // Recarregar dados se necessário
       if (searchResult) {
@@ -336,10 +299,9 @@ export const TechnicianPage: React.FC = () => {
       const errorMessage = (
         error as { response?: { data?: { message?: string } } }
       )?.response?.data?.message;
+
       if (errorMessage?.includes('Service not found')) {
         toast.error('Serviço não encontrado. Tente recarregar a página.');
-      } else if (errorMessage?.includes('Service item not found')) {
-        toast.error('Erro ao atualizar itens do serviço. Tente novamente.');
       } else {
         toast.error('Erro ao salvar alterações do serviço');
       }
@@ -522,10 +484,7 @@ export const TechnicianPage: React.FC = () => {
           service={selectedServiceForEdit}
           vehicles={searchResult?.vehicles || []}
           onSubmit={handleEditServiceSubmit}
-          isLoading={
-            updateServiceMutation.isPending ||
-            updateServiceItemsMutation.isPending
-          }
+          isLoading={updateServiceWithItemsMutation.isPending}
           // Props para produtos
           products={products}
           categories={categories}
