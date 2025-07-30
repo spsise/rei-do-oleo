@@ -116,8 +116,8 @@ Este documento explica o comportamento detalhado das três operações disponív
 
 #### **Quando Usar:**
 
-- **remove_unsent = false**: Edições parciais seguras
-- **remove_unsent = true**: Edições parciais com limpeza
+- **remove_unsent = false**: Edições parciais seguras (correção de preços, quantidades)
+- **remove_unsent = true**: Edições parciais com limpeza (remoção de produtos deletados na interface)
 
 ---
 
@@ -313,6 +313,16 @@ public function executeOperation(int $serviceId, array $itemsData): Collection
 ### **Frontend (React):**
 
 ```typescript
+// Para edição de serviços (com remoção de produtos deletados)
+const unifiedData = {
+  service: serviceData,
+  items: {
+    operation: 'update' as const,
+    remove_unsent: true, // Remove itens não enviados (produtos deletados)
+    data: items || [],
+  },
+};
+
 const useUpdateServiceWithItems = () => {
   return useMutation({
     mutationFn: ({
