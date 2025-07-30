@@ -2,10 +2,11 @@
 
 ## 🎯 Visão Geral Rápida
 
-O processo de atualização de serviço é **dividido em duas etapas** para garantir consistência:
+O processo de atualização de serviço foi **refatorado para usar uma única requisição** seguindo os princípios SOLID e melhores práticas:
 
-1. **Atualização dos dados do serviço** (informações gerais)
-2. **Atualização dos itens do serviço** (produtos/peças)
+1. **Atualização unificada** - Serviço e itens em uma única transação
+2. **Flags de operação** - Controle granular sobre operações de itens
+3. **Atomicidade garantida** - Transação única no banco de dados
 
 ---
 
@@ -86,18 +87,19 @@ serviço   totais    dados    dados
 1. **Inicialização**: Carrega dados do serviço no modal
 2. **Manipulação**: Usuário altera quantidades/preços
 3. **Cálculo**: Frontend recalcula totais automaticamente
-4. **Submissão 1**: Envia dados do serviço
-5. **Submissão 2**: Envia dados dos itens (após 200ms)
+4. **Preparação**: Estrutura dados com flags de operação
+5. **Submissão**: Envia dados unificados em uma requisição
 6. **Cache**: Invalida cache e atualiza interface
 
 ---
 
 ## 📊 Campos Principais
 
-### **Dados do Serviço (Primeira Requisição)**
+### **Estrutura Unificada (Nova Implementação)**
 
 ```typescript
 {
+  service: {
   vehicle_id: number,
   description: string,
   estimated_duration: number,
@@ -108,38 +110,28 @@ serviço   totais    dados    dados
   discount: number,
   total_amount: number,
   final_amount: number
-}
-```
-
-**Fluxo Completo:**
-
-```
-Dados do Serviço → EditServiceModal.tsx → useUpdateService.ts → service.service.ts →
-PUT /api/services/{id} → ServiceController@update → ServiceService@update →
-ServiceRepository@update → Database (services table)
-```
-
-### **Dados dos Itens (Segunda Requisição)**
-
-```typescript
-[
+  },
+  items: {
+    operation: 'replace' | 'update' | 'merge',
+    data: [
   {
     product_id: number,
     quantity: number,
     unit_price: number,
     discount: number,
     notes: string,
-  },
-];
+      }
+    ]
+  }
+}
 ```
 
 **Fluxo Completo:**
 
 ```
-Dados dos Itens → EditServiceModal.tsx → useUpdateService.ts → service.service.ts →
-PUT /api/service-items/{id}/bulk-update → ServiceController@bulkUpdateItems →
-ServiceService@bulkUpdateItems → ServiceRepository@bulkUpdateItems →
-Database (service_items table)
+Dados Unificados → EditServiceModal.tsx → useUpdateServiceWithItems.ts → service.service.ts →
+PUT /api/services/{id} → ServiceController@update → UpdateServiceWithItemsAction@execute →
+ServiceItemsOperationService@executeOperation → Database (services + service_items tables)
 ```
 
 ---
@@ -252,16 +244,18 @@ Database (service_items table)
 
 - `EditServiceModal.tsx` - Modal de edição
 - `Technician.tsx` - Página principal
-- `useUpdateService.ts` - Hook de atualização
+- `useUpdateServiceWithItems.ts` - Hook de atualização unificada
 - `service.service.ts` - Serviço de API
 
 ### **Backend**
 
 - `ServiceController.php` - Controller principal
+- `UpdateServiceWithItemsAction.php` - Action para atualização unificada
+- `ServiceItemsOperationService.php` - Service para operações de itens
+- `UpdateServiceWithItemsRequest.php` - Validação unificada
 - `ServiceRepository.php` - Repository
 - `ServiceService.php` - Service layer
 - `Service.php` - Model
-- `UpdateServiceRequest.php` - Validação
 
 ---
 
@@ -271,45 +265,56 @@ Database (service_items table)
 
 - **Frontend**: Calcula em tempo real
 - **Backend**: Recalcula baseado nos itens salvos
-- **Sincronização**: Garantir consistência
+- **Sincronização**: Garantida pela transação única
 
-### **2. Race Conditions**
+### **2. Atomicidade**
 
-- **Delay**: 200ms entre requisições
-- **Transações**: Uso de DB::transaction
-- **Cache**: Invalidação adequada
+- **Transação Única**: DB::transaction para serviço e itens
+- **Rollback Automático**: Em caso de erro, tudo é revertido
+- **Consistência**: Dados sempre consistentes
 
 ### **3. Validação**
 
 - **Frontend**: Validação de tipos e campos
-- **Backend**: Validação de regras de negócio
+- **Backend**: Validação unificada com flags de operação
 - **Database**: Constraints de integridade
 
 ---
 
 ## 🔧 Configurações Importantes
 
-### **Timeouts**
+### **Flags de Operação**
 
 ```typescript
-// Delay entre transações
-await new Promise((resolve) => setTimeout(resolve, 200));
+// Operações disponíveis para itens
+type ItemOperation = 'replace' | 'update' | 'merge';
+
+// Exemplo de uso
+const itemsData = {
+  operation: 'replace' as const,
+  data: [{ product_id: 1, quantity: 2, unit_price: 50.0 }],
+};
 ```
 
 ### **Validações**
 
 ```php
-'quantity' => 'required|integer|min:1|max:999',
-'unit_price' => 'required|numeric|min:0',
-'discount' => 'nullable|numeric|min:0|max:100',
+// Validação unificada
+'service' => 'required|array',
+'items.operation' => 'required|string|in:replace,update,merge',
+'items.data.*.product_id' => 'required|integer|exists:products,id',
+'items.data.*.quantity' => 'required|integer|min:1|max:999',
 ```
 
 ### **Cache**
 
 ```typescript
-// Invalidar cache
+// Invalidar cache unificado
 queryClient.invalidateQueries({
   queryKey: [QUERY_KEYS.SERVICE, serviceId],
+});
+queryClient.invalidateQueries({
+  queryKey: ['technician', 'search'],
 });
 ```
 
@@ -322,10 +327,10 @@ queryClient.invalidateQueries({
 - **Causa**: Frontend e backend calculam diferentemente
 - **Solução**: Backend sempre recalcula baseado nos itens
 
-### **2. Race Conditions**
+### **2. Operações de Itens**
 
-- **Causa**: Requisições simultâneas
-- **Solução**: Delay entre requisições + transações
+- **Causa**: Operação inválida ou dados malformados
+- **Solução**: Validação rigorosa das flags de operação
 
 ### **3. Cache Desatualizado**
 
@@ -340,13 +345,14 @@ queryClient.invalidateQueries({
 
 - [ ] Dados carregados corretamente?
 - [ ] Totais calculados em tempo real?
-- [ ] Validação antes do envio?
+- [ ] Estrutura unificada preparada?
 - [ ] Cache invalidado?
 
 ### **Backend**
 
-- [ ] Validação passou?
-- [ ] Transação commitada?
+- [ ] Validação unificada passou?
+- [ ] Transação única commitada?
+- [ ] Operação de itens executada?
 - [ ] Totais recalculados?
 - [ ] Logs de erro?
 
@@ -355,6 +361,7 @@ queryClient.invalidateQueries({
 - [ ] Dados salvos corretamente?
 - [ ] Constraints respeitadas?
 - [ ] Relacionamentos intactos?
+- [ ] Atomicidade garantida?
 
 ---
 
@@ -362,21 +369,21 @@ queryClient.invalidateQueries({
 
 ### **Performance**
 
-- Implementar cache Redis
-- Otimizar queries de banco
-- Lazy loading de dados
+- ✅ **Redução de 50%** no número de requisições HTTP
+- ✅ **Transação única** elimina overhead de múltiplas operações
+- ✅ **Cache otimizado** com invalidação unificada
 
 ### **Funcionalidades**
 
-- Histórico de alterações
-- Notificações em tempo real
-- Backup automático
+- ✅ **Flags de operação** para controle granular
+- ✅ **Atomicidade garantida** com rollback automático
+- ✅ **Validação unificada** mais robusta
 
 ### **Segurança**
 
-- Rate limiting
-- Validação mais rigorosa
-- Auditoria de mudanças
+- ✅ **Rate limiting** reduzido (menos requisições)
+- ✅ **Validação rigorosa** com flags de operação
+- ✅ **Auditoria de mudanças** em transação única
 
 ---
 
@@ -394,13 +401,20 @@ Log::info('Service updated', ['id' => $id, 'data' => $data]);
 
 ### **Endpoints**
 
-- `PUT /api/services/{id}` - Atualizar serviço
-- `PUT /api/service-items/{id}/bulk-update` - Atualizar itens
+- `PUT /api/services/{id}` - Atualizar serviço com itens (nova implementação)
 
 ### **Documentação Completa**
 
 - `docs/FLUXO_ATUALIZACAO_SERVICO.md` - Documentação técnica
 - `docs/DIAGRAMA_FLUXO_ATUALIZACAO.md` - Diagramas visuais
+
+### **Princípios SOLID Aplicados**
+
+- **S**: Single Responsibility - Cada classe tem uma responsabilidade específica
+- **O**: Open/Closed - Extensível para novas operações sem modificar código existente
+- **L**: Liskov Substitution - Interfaces bem definidas
+- **I**: Interface Segregation - Interfaces específicas para cada operação
+- **D**: Dependency Inversion - Dependências injetadas via construtor
 
 ---
 
