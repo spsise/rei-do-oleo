@@ -10,6 +10,7 @@ use App\Http\Requests\BulkUpdateServiceItemsRequest;
 use App\Http\Requests\StoreServiceItemRequest;
 use App\Http\Requests\UpdateServiceItemRequest;
 use App\Http\Resources\ServiceItemResource;
+use App\Http\Resources\ServiceResource;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
@@ -460,8 +461,8 @@ class ServiceItemController extends Controller
      * @OA\Put(
      *     path="/api/v1/services/{serviceId}/items/bulk",
      *     tags={"Itens de Serviço"},
-     *     summary="Atualizar todos os itens do serviço",
-     *     description="Substitui todos os itens existentes de um serviço pelos novos itens fornecidos",
+     *     summary="Atualizar itens do serviço (Compatibilidade)",
+     *     description="**ENDPOINT DE COMPATIBILIDADE**: Redireciona para a nova implementação unificada. Use PUT /api/v1/services/{id} para novas implementações.",
      *     security={{"sanctum":{}}},
      *     @OA\Parameter(
      *         name="serviceId",
@@ -477,60 +478,31 @@ class ServiceItemController extends Controller
      *             @OA\Property(
      *                 property="items",
      *                 type="array",
+     *                 description="Lista de itens do serviço (será convertida para estrutura unificada)",
      *                 @OA\Items(
-     *                     @OA\Property(property="product_id", type="integer", example=5),
-     *                     @OA\Property(property="quantity", type="integer", example=2),
-     *                     @OA\Property(property="unit_price", type="number", format="float", example=89.90),
-     *                     @OA\Property(property="discount", type="number", format="float", example=10.0),
-     *                     @OA\Property(property="notes", type="string", example="Óleo sintético premium")
-     *                 ),
-     *                 example={
-     *                     {
-     *                         "product_id": 5,
-     *                         "quantity": 2,
-     *                         "unit_price": 89.90,
-     *                         "discount": 10.0,
-     *                         "notes": "Óleo sintético premium"
-     *                     },
-     *                     {
-     *                         "product_id": 8,
-     *                         "quantity": 1,
-     *                         "unit_price": 45.00,
-     *                         "discount": 5.0,
-     *                         "notes": "Filtro de óleo"
-     *                     }
-     *                 }
+     *                     @OA\Property(property="product_id", type="integer", example=5, description="ID do produto"),
+     *                     @OA\Property(property="quantity", type="integer", example=2, description="Quantidade"),
+     *                     @OA\Property(property="unit_price", type="number", format="float", example=89.90, description="Preço unitário"),
+     *                     @OA\Property(property="discount", type="number", format="float", example=10.0, description="Desconto em porcentagem"),
+     *                     @OA\Property(property="notes", type="string", example="Óleo sintético premium", description="Observações do item")
+     *                 )
      *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Itens do serviço atualizados com sucesso",
+     *         description="Itens do serviço atualizados com sucesso (via implementação unificada)",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Itens do serviço atualizados com sucesso"),
+     *             @OA\Property(property="message", type="string", example="Serviço atualizado com sucesso"),
      *             @OA\Property(
      *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="service_id", type="integer", example=1),
-     *                     @OA\Property(property="product_id", type="integer", example=5),
-     *                     @OA\Property(property="quantity", type="integer", example=2),
-     *                     @OA\Property(property="unit_price", type="number", format="float", example=89.90),
-     *                     @OA\Property(property="discount", type="number", format="float", example=10.0),
-     *                     @OA\Property(property="total_price", type="number", format="float", example=161.82),
-     *                     @OA\Property(property="notes", type="string", example="Óleo sintético premium"),
-     *                     @OA\Property(
-     *                         property="product",
-     *                         type="object",
-     *                         @OA\Property(property="id", type="integer", example=5),
-     *                         @OA\Property(property="name", type="string", example="Óleo Shell Helix Ultra"),
-     *                         @OA\Property(property="category", type="object")
-     *                     ),
-     *                     @OA\Property(property="created_at", type="string", format="date-time"),
-     *                     @OA\Property(property="updated_at", type="string", format="date-time")
-     *                 )
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="service_number", type="string", example="SER001"),
+     *                 @OA\Property(property="description", type="string", example="Troca de óleo e filtro"),
+     *                 @OA\Property(property="total_amount", type="number", format="float", example=140.00),
+     *                 @OA\Property(property="items", type="array", @OA\Items(type="object"))
      *             )
      *         )
      *     ),
@@ -546,36 +518,27 @@ class ServiceItemController extends Controller
      */
     public function bulkUpdate(BulkUpdateServiceItemsRequest $request, int $serviceId): JsonResponse
     {
-        $maxRetries = 3;
-        $retryCount = 0;
+        // Converter estrutura antiga para nova implementação unificada
+        $unifiedData = [
+            'service' => [], // Dados vazios, apenas atualizar itens
+            'items' => [
+                'operation' => 'replace',
+                'data' => $request->validated()['items']
+            ]
+        ];
 
-        while ($retryCount < $maxRetries) {
-            try {
-                $validated = $request->validated();
+        // Usar a nova implementação unificada
+        $service = app(\App\Domain\Service\Actions\UpdateServiceWithItemsAction::class)
+            ->execute($serviceId, $unifiedData);
 
-                $items = $this->serviceItemService->bulkUpdateServiceItems($serviceId, $validated['items']);
-
-                return $this->successResponse(
-                    ServiceItemResource::collection($items),
-                    'Itens do serviço atualizados com sucesso'
-                );
-            } catch (\InvalidArgumentException $e) {
-                $retryCount++;
-
-                // Se for "Service not found" e ainda temos tentativas, aguardar e tentar novamente
-                if (str_contains($e->getMessage(), 'Service not found') && $retryCount < $maxRetries) {
-                    // Aguardar um pouco antes de tentar novamente
-                    usleep(100000); // 100ms
-                    continue;
-                }
-
-                return $this->errorResponse($e->getMessage(), 404);
-            } catch (\Exception $e) {
-                return $this->errorResponse('Erro ao atualizar itens do serviço', 500);
-            }
+        if (!$service) {
+            return $this->errorResponse('Serviço não encontrado', 404);
         }
 
-        return $this->errorResponse('Erro ao atualizar itens do serviço após múltiplas tentativas', 500);
+        return $this->successResponse(
+            new ServiceResource($service),
+            'Serviço atualizado com sucesso'
+        );
     }
 
     /**

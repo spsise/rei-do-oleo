@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Service\StoreServiceRequest;
 use App\Http\Requests\Api\Service\UpdateServiceRequest;
+use App\Http\Requests\Api\Service\UpdateServiceWithItemsRequest;
 use App\Http\Requests\Api\Service\UpdateServiceStatusRequest;
 use App\Http\Requests\Api\Service\SearchServiceRequest;
 use App\Http\Resources\ServiceResource;
 use App\Domain\Service\Services\ServiceService;
 use App\Domain\Service\Actions\CreateServiceAction;
 use App\Domain\Service\Actions\UpdateServiceAction;
+use App\Domain\Service\Actions\UpdateServiceWithItemsAction;
 use App\Domain\Service\Actions\DeleteServiceAction;
 use App\Domain\Service\Actions\UpdateServiceStatusAction;
 use App\Domain\Service\Actions\GetServiceStatsAction;
@@ -26,6 +28,7 @@ class ServiceController extends Controller
         private ServiceService $serviceService,
         private CreateServiceAction $createServiceAction,
         private UpdateServiceAction $updateServiceAction,
+        private UpdateServiceWithItemsAction $updateServiceWithItemsAction,
         private DeleteServiceAction $deleteServiceAction,
         private UpdateServiceStatusAction $updateStatusAction,
         private GetServiceStatsAction $getStatsAction
@@ -165,9 +168,106 @@ class ServiceController extends Controller
      *     )
      * )
      */
-    public function update(UpdateServiceRequest $request, int $id): JsonResponse
+    /**
+     * @OA\Put(
+     *     path="/api/v1/services/{id}",
+     *     tags={"Serviços"},
+     *     summary="Atualizar serviço com itens",
+     *     description="Atualiza um serviço existente e seus itens em uma única transação",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID do serviço",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"service","items"},
+     *             @OA\Property(
+     *                 property="service",
+     *                 type="object",
+     *                 description="Dados do serviço",
+     *                 @OA\Property(property="service_center_id", type="integer", example=1, description="ID do centro de serviço"),
+     *                 @OA\Property(property="client_id", type="integer", example=1, description="ID do cliente"),
+     *                 @OA\Property(property="vehicle_id", type="integer", example=1, description="ID do veículo"),
+     *                 @OA\Property(property="service_number", type="string", example="SER001", description="Número do serviço"),
+     *                 @OA\Property(property="description", type="string", example="Troca de óleo e filtro", description="Descrição do serviço"),
+     *                 @OA\Property(property="complaint", type="string", example="Motor fazendo ruído", description="Reclamação do cliente"),
+     *                 @OA\Property(property="diagnosis", type="string", example="Óleo vencido", description="Diagnóstico técnico"),
+     *                 @OA\Property(property="solution", type="string", example="Troca de óleo", description="Solução aplicada"),
+     *                 @OA\Property(property="scheduled_at", type="string", format="date-time", example="2024-01-15T10:00:00Z", description="Data de agendamento"),
+     *                 @OA\Property(property="started_at", type="string", format="date-time", example="2024-01-15T10:00:00Z", description="Data de início"),
+     *                 @OA\Property(property="completed_at", type="string", format="date-time", example="2024-01-15T11:00:00Z", description="Data de conclusão"),
+     *                 @OA\Property(property="technician_id", type="integer", example=2, description="ID do técnico"),
+     *                 @OA\Property(property="attendant_id", type="integer", example=3, description="ID do atendente"),
+     *                 @OA\Property(property="service_status_id", type="integer", example=1, description="ID do status do serviço"),
+     *                 @OA\Property(property="payment_method_id", type="integer", example=1, description="ID do método de pagamento"),
+     *                 @OA\Property(property="mileage_at_service", type="integer", example=50000, description="Quilometragem no momento do serviço"),
+     *                 @OA\Property(property="total_amount", type="number", format="float", example=150.00, description="Valor total"),
+     *                 @OA\Property(property="discount_amount", type="number", format="float", example=10.00, description="Valor do desconto"),
+     *                 @OA\Property(property="final_amount", type="number", format="float", example=140.00, description="Valor final"),
+     *                 @OA\Property(property="observations", type="string", example="Observações gerais", description="Observações"),
+     *                 @OA\Property(property="notes", type="string", example="Notas internas", description="Notas internas"),
+     *                 @OA\Property(property="active", type="boolean", example=true, description="Status ativo"),
+     *                 @OA\Property(property="estimated_duration", type="integer", example=60, description="Duração estimada em minutos"),
+     *                 @OA\Property(property="priority", type="string", enum={"low","normal","high","urgent"}, example="normal", description="Prioridade do serviço")
+     *             ),
+     *             @OA\Property(
+     *                 property="items",
+     *                 type="object",
+     *                 description="Operação e dados dos itens do serviço",
+     *                 required={"operation","data"},
+     *                 @OA\Property(
+     *                     property="operation",
+     *                     type="string",
+     *                     enum={"replace","update","merge"},
+     *                     example="replace",
+     *                     description="Tipo de operação: replace (substitui todos), update (atualiza existentes + adiciona novos), merge (adiciona novos mantendo existentes)"
+     *                 ),
+     *                 @OA\Property(
+     *                     property="data",
+     *                     type="array",
+     *                     description="Lista de itens do serviço",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1, description="ID do item (opcional para operação 'update' - se fornecido, atualiza item existente; se não fornecido, cria novo item)"),
+     *                         @OA\Property(property="product_id", type="integer", example=1, description="ID do produto"),
+     *                         @OA\Property(property="quantity", type="integer", example=2, description="Quantidade"),
+     *                         @OA\Property(property="unit_price", type="number", format="float", example=25.00, description="Preço unitário"),
+     *                         @OA\Property(property="discount", type="number", format="float", example=5.0, description="Desconto em porcentagem"),
+     *                         @OA\Property(property="notes", type="string", example="Observações do item", description="Observações específicas do item")
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Serviço atualizado com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Serviço atualizado com sucesso"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="service_number", type="string", example="SER001"),
+     *                 @OA\Property(property="description", type="string", example="Troca de óleo e filtro"),
+     *                 @OA\Property(property="total_amount", type="number", format="float", example=140.00),
+     *                 @OA\Property(property="items", type="array", @OA\Items(type="object"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Serviço não encontrado"),
+     *     @OA\Response(response=422, description="Erro de validação")
+     * )
+     */
+    public function update(UpdateServiceWithItemsRequest $request, int $id): JsonResponse
     {
-        $service = $this->updateServiceAction->execute($id, $request->validated());
+        $service = $this->updateServiceWithItemsAction->execute($id, $request->validated());
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);

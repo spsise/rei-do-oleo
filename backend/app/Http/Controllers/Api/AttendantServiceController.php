@@ -47,7 +47,17 @@ class AttendantServiceController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
      *             @OA\Property(property="message", type="string", example="Serviço criado com sucesso"),
-     *             @OA\Property(property="data", ref="#/components/schemas/ServiceResource")
+     *             @OA\Property(
+                 property="data",
+                 type="object",
+                 @OA\Property(property="id", type="integer", example=1),
+                 @OA\Property(property="service_number", type="string", example="SER001"),
+                 @OA\Property(property="description", type="string", example="Troca de óleo e filtro"),
+                 @OA\Property(property="status", type="object"),
+                 @OA\Property(property="client", type="object"),
+                 @OA\Property(property="vehicle", type="object"),
+                 @OA\Property(property="created_at", type="string", format="date-time")
+             )
      *         )
      *     ),
      *     @OA\Response(
@@ -87,7 +97,17 @@ class AttendantServiceController extends Controller
      *             @OA\Property(property="technician_id", type="integer", example=2),
      *             @OA\Property(property="notes", type="string", example="Observações"),
      *             @OA\Property(property="observations", type="string", example="Observações detalhadas"),
-     *             @OA\Property(property="service_items", type="array", @OA\Items(ref="#/components/schemas/ServiceItemRequest"))
+     *             @OA\Property(
+                 property="service_items",
+                 type="array",
+                 @OA\Items(
+                     @OA\Property(property="product_id", type="integer", example=1),
+                     @OA\Property(property="quantity", type="integer", example=2),
+                     @OA\Property(property="unit_price", type="number", format="float", example=25.00),
+                     @OA\Property(property="discount", type="number", format="float", example=5.0),
+                     @OA\Property(property="notes", type="string", example="Observações do item")
+                 )
+             )
      *         )
      *     ),
      *     @OA\Response(
@@ -127,7 +147,18 @@ class AttendantServiceController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="string", example="success"),
      *             @OA\Property(property="message", type="string", example="Templates listados com sucesso"),
-     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/ServiceTemplateResource"))
+     *             @OA\Property(
+                 property="data",
+                 type="array",
+                 @OA\Items(
+                     @OA\Property(property="id", type="integer", example=1),
+                     @OA\Property(property="name", type="string", example="Troca de Óleo"),
+                     @OA\Property(property="description", type="string", example="Troca de óleo e filtro"),
+                     @OA\Property(property="category", type="string", example="maintenance"),
+                     @OA\Property(property="estimated_duration", type="integer", example=60),
+                     @OA\Property(property="items", type="array", @OA\Items(type="object"))
+                 )
+             )
      *         )
      *     )
      * )
