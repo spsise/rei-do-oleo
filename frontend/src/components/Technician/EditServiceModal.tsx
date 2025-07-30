@@ -61,6 +61,8 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   const [editData, setEditData] = useState<CreateTechnicianServiceData | null>(
     null
   );
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [currentServiceId, setCurrentServiceId] = useState<number | null>(null);
 
   // Memoizar os dados originais para evitar recriação desnecessária
   const originalServiceData = useMemo(() => {
@@ -211,55 +213,87 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   // Estado para toast de mudanças
   const [showNoChangesToast, setShowNoChangesToast] = useState(false);
 
-  // Inicializar dados de edição quando o serviço for carregado
+  // Inicializar dados de edição apenas uma vez quando o modal abrir ou quando o serviço mudar
   useEffect(() => {
     if (service && Object.keys(originalServiceData).length > 0) {
-      // Garantir que todos os campos obrigatórios estejam presentes
-      const originalData = originalServiceData as Record<string, unknown>;
-      const initialData: CreateTechnicianServiceData = {
-        client_id: (originalData.client_id as number) || 0,
-        vehicle_id: (originalData.vehicle_id as number) || 0,
-        description: (originalData.description as string) || '',
-        estimated_duration: (originalData.estimated_duration as number) || 60,
-        // Campos opcionais
-        service_center_id: originalData.service_center_id as number | undefined,
-        technician_id: originalData.technician_id as number | undefined,
-        attendant_id: originalData.attendant_id as number | undefined,
-        service_number: originalData.service_number as string | undefined,
-        scheduled_at: originalData.scheduled_at as string | undefined,
-        started_at: originalData.started_at as string | undefined,
-        completed_at: originalData.completed_at as string | undefined,
-        service_status_id: originalData.service_status_id as number | undefined,
-        payment_method_id: originalData.payment_method_id as number | undefined,
-        mileage_at_service: originalData.mileage_at_service as
-          | number
-          | undefined,
-        total_amount: originalData.total_amount as number | undefined,
-        discount_amount: originalData.discount_amount as number | undefined,
-        final_amount: originalData.final_amount as number | undefined,
-        observations: originalData.observations as string | undefined,
-        notes: originalData.notes as string | undefined,
-        active: originalData.active as boolean | undefined,
-        items:
-          service.items?.map((item, index) => ({
-            id: `item-${service.id}-${item.product?.id || item.product_id}-${index}`, // ID único para cada item
-            product_id:
-              item.product_id > 0
-                ? parseInt(String(item.product_id || 0))
-                : item.product?.id || 0,
-            product: item.product,
-            quantity: parseInt(String(item.quantity || 1)),
-            unit_price: parseFloat(String(item.unit_price || 0)),
-            total_price:
-              parseFloat(String(item.unit_price || 0)) *
-              parseInt(String(item.quantity || 1)),
-            notes: item.notes || '',
-          })) || [],
-      };
+      // Verificar se é um serviço diferente ou se ainda não foi inicializado
+      const shouldInitialize =
+        !isInitialized || currentServiceId !== service.id;
 
-      setEditData(initialData);
+      // Não inicializar se estiver carregando (evitar perda de dados durante atualização)
+      if (shouldInitialize && !isLoading) {
+        // Garantir que todos os campos obrigatórios estejam presentes
+        const originalData = originalServiceData as Record<string, unknown>;
+        const initialData: CreateTechnicianServiceData = {
+          client_id: (originalData.client_id as number) || 0,
+          vehicle_id: (originalData.vehicle_id as number) || 0,
+          description: (originalData.description as string) || '',
+          estimated_duration: (originalData.estimated_duration as number) || 60,
+          // Campos opcionais
+          service_center_id: originalData.service_center_id as
+            | number
+            | undefined,
+          technician_id: originalData.technician_id as number | undefined,
+          attendant_id: originalData.attendant_id as number | undefined,
+          service_number: originalData.service_number as string | undefined,
+          scheduled_at: originalData.scheduled_at as string | undefined,
+          started_at: originalData.started_at as string | undefined,
+          completed_at: originalData.completed_at as string | undefined,
+          service_status_id: originalData.service_status_id as
+            | number
+            | undefined,
+          payment_method_id: originalData.payment_method_id as
+            | number
+            | undefined,
+          mileage_at_service: originalData.mileage_at_service as
+            | number
+            | undefined,
+          total_amount: originalData.total_amount as number | undefined,
+          discount_amount: originalData.discount_amount as number | undefined,
+          final_amount: originalData.final_amount as number | undefined,
+          observations: originalData.observations as string | undefined,
+          notes: originalData.notes as string | undefined,
+          active: originalData.active as boolean | undefined,
+          items:
+            service.items?.map((item, index) => ({
+              id: `item-${service.id}-${item.product?.id || item.product_id}-${index}`, // ID único para cada item
+              product_id:
+                item.product_id > 0
+                  ? parseInt(String(item.product_id || 0))
+                  : item.product?.id || 0,
+              product: item.product,
+              quantity: parseInt(String(item.quantity || 1)),
+              unit_price: parseFloat(String(item.unit_price || 0)),
+              total_price:
+                parseFloat(String(item.unit_price || 0)) *
+                parseInt(String(item.quantity || 1)),
+              notes: item.notes || '',
+            })) || [],
+        };
+
+        setEditData(initialData);
+        setIsInitialized(true);
+        setCurrentServiceId(service.id);
+      }
     }
-  }, [service, originalServiceData]);
+  }, [
+    service,
+    originalServiceData,
+    isInitialized,
+    currentServiceId,
+    isLoading,
+    editData,
+  ]);
+
+  // Resetar estado quando o modal fechar
+  useEffect(() => {
+    if (!isOpen) {
+      setEditData(null);
+      setIsInitialized(false);
+      setCurrentServiceId(null);
+      setShowNoChangesToast(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen || !service || !editData) {
     return null;

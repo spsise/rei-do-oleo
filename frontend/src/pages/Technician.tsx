@@ -527,8 +527,12 @@ export const TechnicianPage: React.FC = () => {
           isLoadingProducts={isLoadingProducts}
           productSearchTerm={productSearchTerm}
           onProductSearch={searchProducts}
-          // Dados completos do serviço
-          serviceDetails={serviceDetails}
+          // Dados completos do serviço - apenas se for o mesmo serviço
+          serviceDetails={
+            selectedServiceForEdit?.id === selectedService?.id
+              ? serviceDetails
+              : null
+          }
         />
 
         {/* Update Status Modal */}
