@@ -280,7 +280,7 @@ export const TechnicianPage: React.FC = () => {
       });
 
       // Aguardar um pouco para garantir que a primeira transação foi commitada
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Atualizar os itens do serviço (sempre, mesmo que seja array vazio)
       try {
@@ -316,6 +316,11 @@ export const TechnicianPage: React.FC = () => {
       // Invalidar o cache do serviço específico para atualizar a tela de detalhes
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.SERVICE, serviceId],
+      });
+
+      // Invalidar também as queries de busca para garantir sincronização
+      queryClient.invalidateQueries({
+        queryKey: ['technician', 'search'],
       });
 
       // Recarregar dados se necessário
