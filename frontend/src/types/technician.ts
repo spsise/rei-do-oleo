@@ -81,6 +81,9 @@ export interface CreateTechnicianServiceData {
   service_status_id?: number;
   payment_method_id?: number;
   mileage_at_service?: number;
+  // Campos financeiros completos
+  labor_cost?: number;
+  items_total?: number;
   total_amount?: number;
   discount_amount?: number;
   final_amount?: number;

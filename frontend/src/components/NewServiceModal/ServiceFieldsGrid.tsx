@@ -21,7 +21,7 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
   isReadOnly = false,
 }) => {
   const handleDurationChange = (increment: boolean) => {
-    const currentDuration = serviceData.estimated_duration || 60;
+    const currentDuration = serviceData.estimated_duration ?? 60;
     const newDuration = increment
       ? Math.min(currentDuration + 15, 480) // Máximo 8 horas
       : Math.max(currentDuration - 15, 15); // Mínimo 15 minutos
@@ -32,7 +32,7 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Duração Estimada */}
       <div className="space-y-3">
         <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -42,12 +42,13 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
         <div className="relative">
           <input
             type="number"
-            value={serviceData.estimated_duration}
-            onChange={(e) =>
+            value={serviceData.estimated_duration ?? 0}
+            onChange={(e) => {
+              const value = Number(e.target.value) || 60;
               onServiceDataChange({
-                estimated_duration: Number(e.target.value),
-              })
-            }
+                estimated_duration: value,
+              });
+            }}
             min="15"
             max="480"
             step="15"
@@ -60,7 +61,7 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
               type="button"
               onClick={() => handleDurationChange(true)}
               disabled={
-                isReadOnly || (serviceData.estimated_duration || 0) >= 480
+                isReadOnly || (serviceData.estimated_duration ?? 60) >= 480
               }
               className="w-6 h-6 bg-blue-500 text-white rounded-md flex items-center justify-center hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
@@ -70,7 +71,7 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
               type="button"
               onClick={() => handleDurationChange(false)}
               disabled={
-                isReadOnly || (serviceData.estimated_duration || 0) <= 15
+                isReadOnly || (serviceData.estimated_duration ?? 60) <= 15
               }
               className="w-6 h-6 bg-blue-500 text-white rounded-md flex items-center justify-center hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
@@ -88,14 +89,13 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
         </label>
         <input
           type="number"
-          value={serviceData.mileage_at_service || ''}
-          onChange={(e) =>
+          value={serviceData.mileage_at_service ?? ''}
+          onChange={(e) => {
+            const value = e.target.value ? Number(e.target.value) : undefined;
             onServiceDataChange({
-              mileage_at_service: e.target.value
-                ? Number(e.target.value)
-                : undefined,
-            })
-          }
+              mileage_at_service: value,
+            });
+          }}
           min="0"
           placeholder="Ex: 50000"
           readOnly={isReadOnly}
@@ -130,7 +130,7 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
         </label>
         <input
           type="number"
-          value={serviceData.total_amount || 0}
+          value={serviceData.total_amount ?? 0}
           readOnly={true}
           min="0"
           step="0.01"
@@ -142,15 +142,33 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
         </p>
       </div>
 
-      {/* Desconto - Somente Leitura */}
-      <div className="space-y-3">
+      {/* Valor da Mão de Obra - Somente Leitura */}
+      {/* <div className="space-y-3">
         <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <CurrencyDollarIcon className="h-4 w-4 text-red-600" />
-          Desconto (R$)
+          <CurrencyDollarIcon className="h-4 w-4 text-blue-600" />
+          Mão de Obra (R$)
         </label>
         <input
           type="number"
-          value={serviceData.discount_amount || 0}
+          value={serviceData.labor_cost ?? 0}
+          readOnly={true}
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          className="w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 cursor-not-allowed"
+        />
+        <p className="text-xs text-gray-500">Valor da mão de obra do serviço</p>
+      </div> */}
+
+      {/* Total dos Itens - Somente Leitura */}
+      {/* <div className="space-y-3">
+        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <CurrencyDollarIcon className="h-4 w-4 text-purple-600" />
+          Total dos Itens (R$)
+        </label>
+        <input
+          type="number"
+          value={serviceData.items_total ?? 0}
           readOnly={true}
           min="0"
           step="0.01"
@@ -158,9 +176,27 @@ export const ServiceFieldsGrid: React.FC<ServiceFieldsGridProps> = ({
           className="w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 cursor-not-allowed"
         />
         <p className="text-xs text-gray-500">
-          Desconto calculado automaticamente
+          Soma total dos produtos utilizados
         </p>
-      </div>
+      </div> */}
+
+      {/* Desconto - Somente Leitura */}
+      {/* <div className="space-y-3">
+        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <CurrencyDollarIcon className="h-4 w-4 text-red-600" />
+          Desconto (R$)
+        </label>
+        <input
+          type="number"
+          value={serviceData.discount_amount ?? 0}
+          readOnly={true}
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          className="w-full px-4 py-3.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 cursor-not-allowed"
+        />
+        <p className="text-xs text-gray-500">Desconto aplicado ao serviço</p>
+      </div> */}
     </div>
   );
 };

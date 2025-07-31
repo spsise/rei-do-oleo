@@ -101,6 +101,30 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
     return 0;
   };
 
+  // Função para obter o valor da mão de obra
+  const getLaborCost = (): number => {
+    if (serviceDetails?.financial?.labor_cost) {
+      return parseFloat(String(serviceDetails.financial.labor_cost));
+    }
+    return 0;
+  };
+
+  // Função para obter o total dos itens
+  const getItemsTotal = (): number => {
+    if (serviceDetails?.financial?.items_total) {
+      return parseFloat(String(serviceDetails.financial.items_total));
+    }
+    return 0;
+  };
+
+  // Função para obter o desconto
+  const getDiscount = (): number => {
+    if (serviceDetails?.financial?.discount) {
+      return parseFloat(String(serviceDetails.financial.discount));
+    }
+    return 0;
+  };
+
   // Função para obter os itens do serviço
   const getServiceItems = () => {
     if (serviceDetails?.items) {
@@ -334,6 +358,35 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
 
                 <div>
                   <label className="text-sm font-medium text-gray-600">
+                    Mão de Obra
+                  </label>
+                  <p className="text-lg font-semibold text-blue-600">
+                    {formatCurrency(getLaborCost())}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Total dos Itens
+                  </label>
+                  <p className="text-lg font-semibold text-purple-600">
+                    {formatCurrency(getItemsTotal())}
+                  </p>
+                </div>
+
+                {getDiscount() > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Desconto
+                    </label>
+                    <p className="text-lg font-semibold text-red-600">
+                      {formatCurrency(getDiscount())}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
                     Data de Criação
                   </label>
                   <p className="text-gray-900 flex items-center gap-2">
@@ -525,7 +578,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
               Resumo Financeiro
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(getTotalAmount())}
@@ -535,16 +588,41 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
 
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
-                  {getStatusText(getServiceStatus())}
+                  {formatCurrency(getLaborCost())}
                 </div>
-                <div className="text-sm text-gray-600">Status Atual</div>
+                <div className="text-sm text-gray-600">Mão de Obra</div>
               </div>
 
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {formatDate(displayService.created_at)}
+                  {formatCurrency(getItemsTotal())}
                 </div>
-                <div className="text-sm text-gray-600">Data de Criação</div>
+                <div className="text-sm text-gray-600">Total dos Itens</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrency(getDiscount())}
+                </div>
+                <div className="text-sm text-gray-600">Desconto</div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-green-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-600">
+                    {getStatusText(getServiceStatus())}
+                  </div>
+                  <div className="text-sm text-gray-600">Status Atual</div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-lg font-bold text-purple-600">
+                    {formatDate(displayService.created_at)}
+                  </div>
+                  <div className="text-sm text-gray-600">Data de Criação</div>
+                </div>
               </div>
             </div>
           </div>

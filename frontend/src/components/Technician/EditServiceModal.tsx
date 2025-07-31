@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { type Service, type UpdateServiceData } from '../../types/service';
+import { type UpdateServiceData } from '../../types/service';
 import {
   type CreateTechnicianServiceData,
   type TechnicianProduct,
-  type TechnicianService,
   type TechnicianServiceItem,
   type TechnicianVehicle,
 } from '../../types/technician';
+import { type UnifiedServiceData } from '../../utils/serviceAdapter';
 import { ModalFooter } from '../NewServiceModal/ModalFooter';
 import { ModalHeader } from '../NewServiceModal/ModalHeader';
 import { ServiceDetailsTab } from '../NewServiceModal/ServiceDetailsTab';
@@ -28,7 +28,7 @@ interface EditServiceData extends UpdateServiceData {
 interface EditServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  service: TechnicianService | null;
+  service: UnifiedServiceData | null;
   vehicles: TechnicianVehicle[];
   onSubmit: (serviceId: number, data: EditServiceData) => Promise<void>;
   isLoading?: boolean;
@@ -38,8 +38,6 @@ interface EditServiceModalProps {
   isLoadingProducts: boolean;
   productSearchTerm: string;
   onProductSearch: (search: string) => void;
-  // Dados completos do serviço (opcional)
-  serviceDetails?: Service | null;
 }
 
 export const EditServiceModal: React.FC<EditServiceModalProps> = ({
@@ -54,7 +52,6 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   isLoadingProducts,
   productSearchTerm,
   onProductSearch,
-  serviceDetails,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'products'>('details');
   const [isMaximized, setIsMaximized] = useState(false);
@@ -68,76 +65,34 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
   const originalServiceData = useMemo(() => {
     if (!service) return {};
 
-    // Usar dados completos se disponíveis, senão usar dados básicos
-    const completeService = serviceDetails || service;
-
-    // Type guard para verificar se é Service completo
-    const isCompleteService = (
-      obj: TechnicianService | Service
-    ): obj is Service => {
-      return obj && typeof obj === 'object' && 'technician' in obj;
-    };
-
     const data = {
       client_id: 0,
       vehicle_id: vehicles.length > 0 ? vehicles[0].id : 0,
-      service_center_id: isCompleteService(completeService)
-        ? completeService.service_center?.id || 1
-        : 1,
-      technician_id: isCompleteService(completeService)
-        ? completeService.technician?.id || 1
-        : 1,
-      attendant_id: isCompleteService(completeService)
-        ? completeService.attendant?.id || 1
-        : 1,
+      service_center_id: 1,
+      technician_id: 1,
+      attendant_id: 1,
       service_number: service.service_number,
-      description: service.description || '',
-      estimated_duration: 60,
-      scheduled_at: isCompleteService(completeService)
-        ? completeService.scheduled_date
-        : undefined,
-      started_at: isCompleteService(completeService)
-        ? completeService.started_at
-        : undefined,
-      completed_at: isCompleteService(completeService)
-        ? completeService.finished_at
-        : undefined,
-      service_status_id:
-        isCompleteService(completeService) &&
-        typeof completeService.status === 'object'
-          ? completeService.status?.id || 1
-          : 1,
-      payment_method_id: isCompleteService(completeService)
-        ? completeService.payment_method?.id || 1
-        : 1,
-      mileage_at_service: isCompleteService(completeService)
-        ? completeService.vehicle?.mileage_at_service
-        : service.mileage_at_service || 0,
-      total_amount:
-        isCompleteService(completeService) &&
-        completeService.financial?.total_amount
-          ? parseFloat(completeService.financial.total_amount)
-          : service.total_amount || 0,
-      discount_amount: isCompleteService(completeService)
-        ? completeService.financial?.discount || 0
-        : 0,
-      final_amount:
-        isCompleteService(completeService) &&
-        completeService.financial?.total_amount
-          ? parseFloat(completeService.financial.total_amount)
-          : service.total_amount || 0,
-      observations: isCompleteService(completeService)
-        ? completeService.observations
-        : service.observations || '',
-      notes: isCompleteService(completeService)
-        ? completeService.internal_notes
-        : service.notes || '',
+      description: service.description,
+      estimated_duration: service.estimated_duration,
+      scheduled_at: service.scheduled_at,
+      started_at: service.started_at,
+      completed_at: service.completed_at,
+      service_status_id: service.status.id,
+      payment_method_id: 1,
+      mileage_at_service: service.mileage_at_service,
+      labor_cost: service.financial.labor_cost,
+      items_total: service.financial.items_total,
+      total_amount: service.financial.total_amount,
+      discount_amount: service.financial.discount_amount,
+      final_amount: service.financial.final_amount,
+      observations: service.observations,
+      notes: service.notes,
       active: true,
-      items: service.items || [],
+      items: service.items,
     };
 
     return data;
-  }, [service, serviceDetails, vehicles]);
+  }, [service, vehicles]);
 
   // Verificação simples e direta de mudanças
   const hasAnyChanges = React.useMemo(() => {
@@ -155,6 +110,8 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
       'mileage_at_service',
       'observations',
       'notes',
+      'labor_cost',
+      'items_total',
       'total_amount',
       'discount_amount',
       'final_amount',
@@ -172,10 +129,19 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
       const normalizeValue = (value: unknown) => {
         if (typeof value === 'string') return value.trim();
         if (typeof value === 'number') return Number(value);
+        if (value === null || value === undefined) {
+          // Tratar campos específicos com valores padrão
+          if (field === 'mileage_at_service') return 0;
+          if (field === 'estimated_duration') return 60;
+          return 0;
+        }
         return value;
       };
 
-      if (normalizeValue(originalValue) !== normalizeValue(currentValue)) {
+      const normalizedOriginal = normalizeValue(originalValue);
+      const normalizedCurrent = normalizeValue(currentValue);
+
+      if (normalizedOriginal !== normalizedCurrent) {
         return true;
       }
     }
@@ -245,9 +211,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
           payment_method_id: originalData.payment_method_id as
             | number
             | undefined,
-          mileage_at_service: originalData.mileage_at_service as
-            | number
-            | undefined,
+          mileage_at_service: (originalData.mileage_at_service as number) ?? 0,
           total_amount: originalData.total_amount as number | undefined,
           discount_amount: originalData.discount_amount as number | undefined,
           final_amount: originalData.final_amount as number | undefined,
@@ -497,7 +461,7 @@ export const EditServiceModal: React.FC<EditServiceModalProps> = ({
       vehicle_id: editData.vehicle_id,
       description: editData.description,
       estimated_duration: editData.estimated_duration,
-      scheduled_at: editData.scheduled_at,
+      scheduled_at: editData.scheduled_at || undefined,
       mileage_at_service: editData.mileage_at_service,
       internal_notes: editData.notes,
       observations: editData.observations,

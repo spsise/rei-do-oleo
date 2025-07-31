@@ -36,6 +36,9 @@ export const useTechnician = () => {
       service_status_id: undefined,
       payment_method_id: undefined,
       mileage_at_service: undefined,
+      // Campos financeiros
+      labor_cost: undefined,
+      items_total: undefined,
       total_amount: undefined,
       discount_amount: undefined,
       final_amount: undefined,
@@ -154,6 +157,9 @@ export const useTechnician = () => {
           service_status_id: undefined,
           payment_method_id: undefined,
           mileage_at_service: undefined,
+          // Campos financeiros
+          labor_cost: undefined,
+          items_total: undefined,
           total_amount: undefined,
           discount_amount: undefined,
           final_amount: undefined,
