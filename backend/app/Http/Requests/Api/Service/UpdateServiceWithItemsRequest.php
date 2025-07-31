@@ -16,6 +16,25 @@ class UpdateServiceWithItemsRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        $serviceData = $this->input('service', []);
+
+        // Remove undefined values and convert to null
+        $cleanedServiceData = [];
+        foreach ($serviceData as $key => $value) {
+            if ($value !== 'undefined' && $value !== null) {
+                $cleanedServiceData[$key] = $value;
+            }
+        }
+
+        $this->merge(['service' => $cleanedServiceData]);
+
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array

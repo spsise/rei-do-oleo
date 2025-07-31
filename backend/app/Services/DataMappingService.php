@@ -24,6 +24,11 @@ class DataMappingService
 
         foreach ($mappings as $frontendField => $backendField) {
             if (isset($data[$frontendField])) {
+                // if the frontend field and backend field have the same name, do nothing
+                if ($frontendField === $backendField) {
+                    continue;
+                }
+
                 $data[$backendField] = $data[$frontendField];
                 unset($data[$frontendField]);
             }
@@ -51,6 +56,11 @@ class DataMappingService
 
         foreach ($mappings as $backendField => $frontendField) {
             if (isset($data[$backendField])) {
+                // if the backend field and frontend field have the same name, do nothing
+                if ($backendField === $frontendField) {
+                    continue;
+                }
+
                 $data[$frontendField] = $data[$backendField];
                 unset($data[$backendField]);
             }

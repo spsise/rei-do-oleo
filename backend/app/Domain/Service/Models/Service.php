@@ -61,6 +61,7 @@ class Service extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'mileage_at_service' => 'integer',
+        'estimated_duration' => 'integer',
         'total_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',

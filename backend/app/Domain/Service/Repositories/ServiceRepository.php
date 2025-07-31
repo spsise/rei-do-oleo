@@ -295,8 +295,21 @@ class ServiceRepository implements ServiceRepositoryInterface
                 continue;
             }
 
+            // skip null or undefined values
+            if ($value === null || $value === 'undefined') {
+                continue;
+            }
+
+            $currentValue = $service->getAttribute($field);
+
+            // Normalizar tipos para comparação
+            if (is_numeric($currentValue) && is_numeric($value)) {
+                $currentValue = (int) $currentValue;
+                $value = (int) $value;
+            }
+
             // Comparar valores
-            if ($service->getAttribute($field) != $value) {
+            if ($currentValue != $value) {
                 $changedFields[$field] = $value;
             }
         }
