@@ -102,20 +102,20 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
   };
 
   // Função para obter o valor da mão de obra
-  const getLaborCost = (): number => {
-    if (serviceDetails?.financial?.labor_cost) {
-      return parseFloat(String(serviceDetails.financial.labor_cost));
-    }
-    return 0;
-  };
+  // const getLaborCost = (): number => {
+  //   if (serviceDetails?.financial?.labor_cost) {
+  //     return parseFloat(String(serviceDetails.financial.labor_cost));
+  //   }
+  //   return 0;
+  // };
 
   // Função para obter o total dos itens
-  const getItemsTotal = (): number => {
-    if (serviceDetails?.financial?.items_total) {
-      return parseFloat(String(serviceDetails.financial.items_total));
-    }
-    return 0;
-  };
+  // const getItemsTotal = (): number => {
+  //   if (serviceDetails?.financial?.items_total) {
+  //     return parseFloat(String(serviceDetails.financial.items_total));
+  //   }
+  //   return 0;
+  // };
 
   // Função para obter o desconto
   const getDiscount = (): number => {
@@ -356,23 +356,23 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                   </p>
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium text-gray-600">
                     Mão de Obra
                   </label>
                   <p className="text-lg font-semibold text-blue-600">
                     {formatCurrency(getLaborCost())}
                   </p>
-                </div>
+                </div> */}
 
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium text-gray-600">
                     Total dos Itens
                   </label>
                   <p className="text-lg font-semibold text-purple-600">
                     {formatCurrency(getItemsTotal())}
                   </p>
-                </div>
+                </div> */}
 
                 {getDiscount() > 0 && (
                   <div>
@@ -586,19 +586,19 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                 <div className="text-sm text-gray-600">Valor Total</div>
               </div>
 
-              <div className="text-center">
+              {/* <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
                   {formatCurrency(getLaborCost())}
                 </div>
                 <div className="text-sm text-gray-600">Mão de Obra</div>
-              </div>
+              </div> */}
 
-              <div className="text-center">
+              {/* <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
                   {formatCurrency(getItemsTotal())}
                 </div>
                 <div className="text-sm text-gray-600">Total dos Itens</div>
-              </div>
+              </div> */}
 
               <div className="text-center">
                 <div className="text-2xl font-bold text-red-600">
