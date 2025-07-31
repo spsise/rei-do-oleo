@@ -50,7 +50,7 @@ class UpdateServiceWithItemsAction
                 $this->recalculateServiceTotals($serviceId);
 
                 // Return fresh service with relationships
-                return $this->serviceService->findService($serviceId);
+                return $this->serviceService->findServiceWithRelations($serviceId);
 
             } catch (\Exception $e) {
                 Log::error('Error updating service with items', [

@@ -26,6 +26,8 @@ interface ServiceRepositoryInterface
 
     public function find(int $id): ?Service;
 
+    public function findWithRelations(int $id): ?Service;
+
     public function create(array $data): Service;
 
     public function update(int $id, array $data): ?Service;

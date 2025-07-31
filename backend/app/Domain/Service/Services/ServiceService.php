@@ -144,6 +144,11 @@ class ServiceService
         return $this->serviceRepository->find($id);
     }
 
+    public function findServiceWithRelations(int $id): ?Service
+    {
+        return $this->serviceRepository->findWithRelations($id);
+    }
+
     public function updateService(int $id, array $data): ?Service
     {
         $service = $this->serviceRepository->update($id, $data);

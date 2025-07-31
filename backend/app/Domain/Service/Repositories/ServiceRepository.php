@@ -212,12 +212,7 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'paymentMethod:id,name',
                 'technician:id,name',
                 'attendant:id,name',
-                'serviceItems' => function ($query) {
-                    $query->with([
-                        'product:id,name,sku,category_id',
-                        'product.category:id,name'
-                    ]);
-                }
+                'serviceItems.product.category'
             ])->find($id);
 
             // Se não encontrar, retornar null
@@ -227,6 +222,23 @@ class ServiceRepository implements ServiceRepositoryInterface
 
             return $service;
         });
+    }
+
+    public function findWithRelations(int $id): ?Service
+    {
+        // Load service with all necessary relationships for API response
+        $service = Service::with([
+            'client:id,name,phone01,cpf,cnpj',
+            'vehicle:id,license_plate,brand,model,year',
+            'serviceCenter:id,name,code',
+            'serviceStatus:id,name,color',
+            'paymentMethod:id,name',
+            'technician:id,name',
+            'attendant:id,name',
+            'serviceItems.product.category'
+        ])->find($id);
+
+        return $service;
     }
 
     public function create(array $data): Service

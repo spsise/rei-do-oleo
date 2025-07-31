@@ -69,13 +69,13 @@ class ServiceResource extends JsonResource
                 'code' => $this->serviceCenter->code ?? null,
             ]),
             'technician' => $this->when($this->technician, [
-                'id' => $this->technician->id,
-                'name' => $this->technician->name,
-                'specialties' => $this->technician->specialties,
+                'id' => $this->technician->id ?? null,
+                'name' => $this->technician->name ?? null,
+                'specialties' => $this->technician->specialties ?? null,
             ]),
             'attendant' => $this->when($this->attendant, [
-                'id' => $this->attendant->id,
-                'name' => $this->attendant->name,
+                'id' => $this->attendant->id ?? null,
+                'name' => $this->attendant->name ?? null,
             ]),
             'warranty_months' => $this->warranty_months,
             'warranty_expires_at' => $this->when($this->completed_at && $this->warranty_months, function () {
@@ -90,34 +90,34 @@ class ServiceResource extends JsonResource
                         'service_id' => $item->service_id,
                         'product_id' => $item->product_id,
                         'product' => $item->product ? [
-                            'id' => $item->product->id,
-                            'name' => $item->product->name,
-                            'sku' => $item->product->sku,
-                            'brand' => $item->product->brand,
+                            'id' => $item->product->id ?? null,
+                            'name' => $item->product->name ?? null,
+                            'sku' => $item->product->sku ?? null,
+                            'brand' => $item->product->brand ?? null,
                             'category' => $item->product->category->name ?? null,
-                            'unit' => $item->product->unit,
-                            'current_stock' => $item->product->stock_quantity
+                            'unit' => $item->product->unit ?? null,
+                            'current_stock' => $item->product->stock_quantity ?? 0
                         ] : null,
-                        'quantity' => $item->quantity,
-                        'unit_price' => $item->unit_price,
-                        'unit_price_formatted' => 'R$ ' . number_format($item->unit_price, 2, ',', '.'),
+                        'quantity' => $item->quantity ?? 0,
+                        'unit_price' => $item->unit_price ?? 0,
+                        'unit_price_formatted' => 'R$ ' . number_format($item->unit_price ?? 0, 2, ',', '.'),
                         'discount' => $item->discount ?? 0,
                         'discount_formatted' => $item->discount ? number_format($item->discount, 2, ',', '.') . '%' : null,
-                        'discount_amount' => $item->quantity * $item->unit_price * ($item->discount / 100),
-                        'discount_amount_formatted' => 'R$ ' . number_format($item->quantity * $item->unit_price * ($item->discount / 100), 2, ',', '.'),
-                        'subtotal' => $item->quantity * $item->unit_price,
-                        'subtotal_formatted' => 'R$ ' . number_format($item->quantity * $item->unit_price, 2, ',', '.'),
-                        'total_price' => $item->total_price,
-                        'total_price_formatted' => 'R$ ' . number_format($item->total_price, 2, ',', '.'),
-                        'notes' => $item->notes,
-                        'created_at' => $item->created_at->format('d/m/Y H:i'),
-                        'updated_at' => $item->updated_at->format('d/m/Y H:i')
+                        'discount_amount' => ($item->quantity ?? 0) * ($item->unit_price ?? 0) * (($item->discount ?? 0) / 100),
+                        'discount_amount_formatted' => 'R$ ' . number_format(($item->quantity ?? 0) * ($item->unit_price ?? 0) * (($item->discount ?? 0) / 100), 2, ',', '.'),
+                        'subtotal' => ($item->quantity ?? 0) * ($item->unit_price ?? 0),
+                        'subtotal_formatted' => 'R$ ' . number_format(($item->quantity ?? 0) * ($item->unit_price ?? 0), 2, ',', '.'),
+                        'total_price' => $item->total_price ?? 0,
+                        'total_price_formatted' => 'R$ ' . number_format($item->total_price ?? 0, 2, ',', '.'),
+                        'notes' => $item->notes ?? null,
+                        'created_at' => $item->created_at ? $item->created_at->format('d/m/Y H:i') : null,
+                        'updated_at' => $item->updated_at ? $item->updated_at->format('d/m/Y H:i') : null
                     ];
                 });
             }),
             'items_count' => $this->whenCounted('serviceItems'),
-            'created_at' => $this->created_at->format('d/m/Y H:i'),
-            'updated_at' => $this->updated_at->format('d/m/Y H:i')
+            'created_at' => $this->created_at ? $this->created_at->format('d/m/Y H:i') : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->format('d/m/Y H:i') : null
         ];
     }
 
