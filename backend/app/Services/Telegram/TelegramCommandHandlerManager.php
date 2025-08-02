@@ -13,6 +13,7 @@ use App\Services\Telegram\Reports\ProductsReportGenerator;
 use App\Services\Telegram\TelegramMenuBuilder;
 use App\Services\Channels\TelegramChannel;
 use App\Services\SpeechToTextService;
+use Illuminate\Support\Facades\Log;
 
 class TelegramCommandHandlerManager
 {
@@ -36,8 +37,16 @@ class TelegramCommandHandlerManager
             new StartCommandHandler($this->menuBuilder),
             new ReportCommandHandler($this->menuBuilder),
             new StatusCommandHandler($this->telegramChannel),
-            new VoiceCommandHandler(app(SpeechToTextService::class), $this->telegramChannel),
         ];
+
+        // Add voice command handler only if SpeechToTextService is available
+        try {
+            $speechService = app(SpeechToTextService::class);
+            $this->commandHandlers[] = new VoiceCommandHandler($speechService, $this->telegramChannel);
+        } catch (\Exception $e) {
+            // Log error but don't break other handlers
+            Log::warning('VoiceCommandHandler not registered: ' . $e->getMessage());
+        }
     }
 
     /**
