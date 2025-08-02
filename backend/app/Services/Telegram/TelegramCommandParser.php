@@ -96,6 +96,42 @@ class TelegramCommandParser
             ];
         }
 
+        // Enhanced voice command patterns
+        if (preg_match('/(enviar|quero|preciso|mostre|mostra).*(relatório|report)/i', $text)) {
+            return [
+                'type' => 'report',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
+        if (preg_match('/(como|está|status).*(sistema|serviços|tudo)/i', $text)) {
+            return [
+                'type' => 'status',
+                'params' => []
+            ];
+        }
+
+        if (preg_match('/(menu|ajuda|help|comandos|opções)/i', $text)) {
+            return [
+                'type' => 'start',
+                'params' => []
+            ];
+        }
+
+        if (preg_match('/(serviços|services).*(hoje|semana|mês|month)/i', $text)) {
+            return [
+                'type' => 'services',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
+        if (preg_match('/(produtos|products).*(hoje|semana|mês|month)/i', $text)) {
+            return [
+                'type' => 'products',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
         return [
             'type' => 'unknown',
             'params' => []
@@ -148,5 +184,115 @@ class TelegramCommandParser
             'report_type' => $parts[1] ?? null,
             'from' => $parts[1] ?? null
         ];
+    }
+
+    /**
+     * Parse command from voice-converted text
+     */
+    public function parseVoiceCommand(string $text): array
+    {
+        $text = trim(strtolower($text));
+
+        // Remove common voice recognition artifacts
+        $text = $this->cleanVoiceText($text);
+
+        // Parse as regular command
+        return $this->parseCommand($text);
+    }
+
+    /**
+     * Clean voice recognition text
+     */
+    private function cleanVoiceText(string $text): string
+    {
+        // Remove common voice recognition artifacts
+        $replacements = [
+            'ponto' => '.',
+            'vírgula' => ',',
+            'interrogação' => '?',
+            'exclamação' => '!',
+            'dois pontos' => ':',
+            'ponto e vírgula' => ';',
+            'aspas' => '"',
+            'parênteses' => '()',
+            'colchetes' => '[]',
+            'chaves' => '{}',
+            'hífen' => '-',
+            'underscore' => '_',
+            'arroba' => '@',
+            'cerquilha' => '#',
+            'porcentagem' => '%',
+            'cifrão' => '$',
+            'e comercial' => '&',
+            'asterisco' => '*',
+            'mais' => '+',
+            'igual' => '=',
+            'barra' => '/',
+            'contra barra' => '\\',
+            'pipe' => '|',
+            'til' => '~',
+            'acento' => '^',
+            'menor que' => '<',
+            'maior que' => '>',
+            'espaço' => ' ',
+            'nova linha' => "\n",
+            'enter' => "\n",
+            'tab' => "\t",
+            'tabulação' => "\t"
+        ];
+
+        foreach ($replacements as $voice => $symbol) {
+            $text = str_replace($voice, $symbol, $text);
+        }
+
+        // Remove extra spaces
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        return trim($text);
+    }
+
+    /**
+     * Extract intent from voice command
+     */
+    private function extractVoiceIntent(string $text): array
+    {
+        $intent = [
+            'confidence' => 0.0,
+            'command' => 'unknown',
+            'params' => []
+        ];
+
+        // Simple confidence scoring based on keyword matches
+        $keywords = [
+            'relatório' => ['relatório', 'report', 'enviar', 'quero', 'preciso'],
+            'serviços' => ['serviços', 'services', 'status'],
+            'produtos' => ['produtos', 'products', 'estoque'],
+            'status' => ['status', 'como', 'está', 'sistema'],
+            'menu' => ['menu', 'ajuda', 'help', 'comandos']
+        ];
+
+        $textLower = strtolower($text);
+        $maxScore = 0;
+        $bestMatch = 'unknown';
+
+        foreach ($keywords as $command => $commandKeywords) {
+            $score = 0;
+            foreach ($commandKeywords as $keyword) {
+                if (str_contains($textLower, $keyword)) {
+                    $score += 1;
+                }
+            }
+
+            if ($score > $maxScore) {
+                $maxScore = $score;
+                $bestMatch = $command;
+            }
+        }
+
+        $intent['confidence'] = $maxScore / max(array_map('count', $keywords));
+        $intent['command'] = $bestMatch;
+        $intent['params'] = $this->extractPeriodFromText($text);
+
+        return $intent;
     }
 }

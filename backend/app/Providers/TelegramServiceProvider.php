@@ -38,12 +38,16 @@ class TelegramServiceProvider extends ServiceProvider
             );
         });
 
+        // Register speech-to-text service
+        $this->app->singleton(\App\Services\SpeechToTextService::class);
+
         // Register TelegramMessageProcessorService with explicit dependencies
         $this->app->singleton(\App\Services\TelegramMessageProcessorService::class, function ($app) {
             return new \App\Services\TelegramMessageProcessorService(
                 $app->make(\App\Services\TelegramBotService::class),
                 $app->make(\App\Services\TelegramLoggingService::class),
-                $app->make(\App\Services\Channels\TelegramChannel::class)
+                $app->make(\App\Services\Channels\TelegramChannel::class),
+                $app->make(\App\Services\SpeechToTextService::class)
             );
         });
     }

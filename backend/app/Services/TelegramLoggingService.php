@@ -178,10 +178,54 @@ class TelegramLoggingService
             return 'callback_query';
         }
 
+        if (isset($payload['message']['text'])) {
+            return 'text';
+        }
+
+        if (isset($payload['message']['voice'])) {
+            return 'voice';
+        }
+
+        if (isset($payload['message']['audio'])) {
+            return 'audio';
+        }
+
         if (isset($payload['message'])) {
             return 'message';
         }
 
         return 'unknown';
+    }
+
+    /**
+     * Log voice processing
+     */
+    public function logVoiceProcessing(array $message, array $result): void
+    {
+        $chatId = $message['chat']['id'] ?? null;
+        $voice = $message['voice'] ?? null;
+        $recognizedText = $result['recognized_text'] ?? null;
+
+        $logContext = [
+            'chat_id' => $chatId,
+            'message_type' => 'voice',
+            'voice_duration' => $voice['duration'] ?? null,
+            'voice_file_id' => $voice['file_id'] ?? null,
+            'recognized_text' => $recognizedText,
+            'text_length' => strlen($recognizedText ?? ''),
+            'success' => $result['success'] ?? false,
+            'processing_time' => $result['processing_time'] ?? null
+        ];
+
+        if ($result['success'] ?? false) {
+            Log::info('Voice message processed successfully', $logContext);
+        } else {
+            Log::error('Voice message processing failed', array_merge($logContext, [
+                'error' => $result['error'] ?? 'Unknown error'
+            ]));
+        }
+
+        // Store in repository for analytics
+        // $this->telegramRepository->storeVoiceProcessingLog($message, $result); // TODO: Implement in repository
     }
 }

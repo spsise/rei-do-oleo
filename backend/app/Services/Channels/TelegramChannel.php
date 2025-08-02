@@ -348,4 +348,112 @@ class TelegramChannel implements NotificationChannelInterface
                "⏰ *Timestamp:* {$timestamp}\n\n" .
                "Sistema: Rei do Óleo";
     }
+
+    /**
+     * Get file info from Telegram
+     */
+    public function getFile(string $fileId): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::get("{$this->apiUrl}/getFile", [
+                'file_id' => $fileId
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'file_path' => $data['result']['file_path'] ?? null,
+                    'file_size' => $data['result']['file_size'] ?? null,
+                    'file_id' => $data['result']['file_id'] ?? null
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Telegram get file error', [
+                'error' => $e->getMessage(),
+                'file_id' => $fileId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send typing indicator
+     */
+    public function sendTypingIndicator(string $chatId): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::post("{$this->apiUrl}/sendChatAction", [
+                'chat_id' => $chatId,
+                'action' => 'typing'
+            ]);
+
+            return [
+                'success' => $response->successful(),
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send upload document indicator
+     */
+    public function sendUploadDocumentIndicator(string $chatId): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::post("{$this->apiUrl}/sendChatAction", [
+                'chat_id' => $chatId,
+                'action' => 'upload_document'
+            ]);
+
+            return [
+                'success' => $response->successful(),
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 }
