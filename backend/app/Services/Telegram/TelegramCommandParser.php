@@ -19,9 +19,12 @@ class TelegramCommandParser
             $command = $matches[1];
             $params = $matches[2] ?? '';
 
+            $parsedParams = $this->parseParams($params);
+            $parsedParams['command'] = $command; // Add command to params for handlers
+
             return [
                 'type' => $command,
-                'params' => $this->parseParams($params)
+                'params' => $parsedParams
             ];
         }
 

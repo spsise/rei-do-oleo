@@ -6,11 +6,13 @@ use App\Contracts\Telegram\TelegramCommandHandlerInterface;
 use App\Services\Telegram\Handlers\StartCommandHandler;
 use App\Services\Telegram\Handlers\ReportCommandHandler;
 use App\Services\Telegram\Handlers\StatusCommandHandler;
+use App\Services\Telegram\Handlers\VoiceCommandHandler;
 use App\Services\Telegram\Reports\GeneralReportGenerator;
 use App\Services\Telegram\Reports\ServicesReportGenerator;
 use App\Services\Telegram\Reports\ProductsReportGenerator;
 use App\Services\Telegram\TelegramMenuBuilder;
 use App\Services\Channels\TelegramChannel;
+use App\Services\SpeechToTextService;
 
 class TelegramCommandHandlerManager
 {
@@ -34,6 +36,7 @@ class TelegramCommandHandlerManager
             new StartCommandHandler($this->menuBuilder),
             new ReportCommandHandler($this->menuBuilder),
             new StatusCommandHandler($this->telegramChannel),
+            new VoiceCommandHandler(app(SpeechToTextService::class), $this->telegramChannel),
         ];
     }
 

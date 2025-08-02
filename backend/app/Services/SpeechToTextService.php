@@ -433,13 +433,25 @@ class SpeechToTextService
     public function testConnection(): array
     {
         try {
+            // Check if provider is configured
+            $status = $this->getProviderStatus($this->provider);
+
+            if (!$status['configured']) {
+                return [
+                    'success' => false,
+                    'error' => 'Provider not configured',
+                    'provider' => $this->provider
+                ];
+            }
+
             // Create a simple test audio file or use existing one
             $testFile = storage_path('app/temp/test_voice.ogg');
 
             if (!file_exists($testFile)) {
                 return [
                     'success' => false,
-                    'error' => 'Test file not found'
+                    'error' => 'Test file not found',
+                    'provider' => $this->provider
                 ];
             }
 
@@ -448,7 +460,7 @@ class SpeechToTextService
             return [
                 'success' => !empty($result),
                 'provider' => $this->provider,
-                'test_result' => $result
+                'test_result' => $result ?? 'No result'
             ];
 
         } catch (\Exception $e) {
