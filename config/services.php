@@ -28,4 +28,24 @@ return [
         'speech_region' => env('AZURE_SPEECH_REGION'),
         'speech_url' => 'https://' . env('AZURE_SPEECH_REGION') . '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1',
     ],
+
+    // Free Speech-to-Text Providers
+    'vosk' => [
+        'model_path' => env('VOSK_MODEL_PATH', storage_path('app/vosk-models/vosk-model-small-pt-0.3')),
+    ],
+
+    'whisper_cpp' => [
+        'path' => env('WHISPER_CPP_PATH', '/usr/local/bin/whisper'),
+        'model_path' => env('WHISPER_CPP_MODEL_PATH', storage_path('app/whisper-models/ggml-base.bin')),
+    ],
+
+    'deepspeech' => [
+        'model_path' => env('DEEPSPEECH_MODEL_PATH', storage_path('app/deepspeech-models/deepspeech-0.9.3-models.pbmm')),
+        'scorer_path' => env('DEEPSPEECH_SCORER_PATH', storage_path('app/deepspeech-models/deepspeech-0.9.3-models.scorer')),
+    ],
+
+    'huggingface' => [
+        'api_url' => env('HUGGINGFACE_API_URL', 'https://api-inference.huggingface.co/models/openai/whisper-base'),
+        'api_key' => env('HUGGINGFACE_API_KEY'),
+    ],
 ];

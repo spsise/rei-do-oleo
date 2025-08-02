@@ -74,8 +74,20 @@ class TelegramTestSpeechCommand extends Command
 
         // Test all providers if requested
         if ($this->option('all-providers')) {
-            $this->testAllProviders($speechService);
+            $this->info('Testing all available providers...');
+            $results = $speechService->testAllProviders();
+
+            $this->newLine();
+            $this->info('Provider Test Summary:');
+
+            foreach ($results as $provider => $result) {
+                $status = $result['success'] ? '✅' : '❌';
+                $this->line("{$status} {$provider}: " . ($result['success'] ? 'OK' : ($result['error'] ?? 'Failed')));
+            }
         }
+
+        // Show available providers
+        $this->showAvailableProviders($speechService);
 
         // Test specific provider
         if ($provider = $this->option('provider')) {
@@ -88,44 +100,28 @@ class TelegramTestSpeechCommand extends Command
         return 0;
     }
 
-    /**
-     * Test all available providers
+        /**
+     * Show available providers
      */
-    private function testAllProviders(SpeechToTextService $speechService): void
+    private function showAvailableProviders(SpeechToTextService $speechService): void
     {
-        $this->info('Testing all available providers...');
+        $this->info('Available Speech-to-Text Providers:');
         $this->newLine();
 
-        $providers = ['openai', 'google', 'azure'];
-        $results = [];
+        $providers = $speechService->getAvailableProviders();
 
-        foreach ($providers as $provider) {
-            $this->info("Testing {$provider}...");
+        foreach ($providers as $key => $provider) {
+            $status = $speechService->getProviderStatus($key);
+            $statusIcon = $status['configured'] ? '✅' : '❌';
 
-            try {
-                // Temporarily change provider
-                config(["services.speech.provider" => $provider]);
+            $this->line("{$statusIcon} {$provider['name']}");
+            $this->line("   Type: {$provider['type']} | Cost: {$provider['cost']} | Accuracy: {$provider['accuracy']} | Speed: {$provider['speed']}");
 
-                $result = $speechService->testConnection();
-                $results[$provider] = $result;
-
-                if ($result['success']) {
-                    $this->info("✅ {$provider}: OK");
-                } else {
-                    $this->warn("⚠️ {$provider}: {$result['error']}");
-                }
-            } catch (\Exception $e) {
-                $this->error("❌ {$provider}: {$e->getMessage()}");
-                $results[$provider] = ['success' => false, 'error' => $e->getMessage()];
+            if (!$status['configured']) {
+                $this->line("   ⚠️  Not configured: {$status['error']}");
             }
-        }
 
-        $this->newLine();
-        $this->info('Provider Test Summary:');
-
-        foreach ($results as $provider => $result) {
-            $status = $result['success'] ? '✅' : '❌';
-            $this->line("{$status} {$provider}: " . ($result['success'] ? 'OK' : $result['error']));
+            $this->newLine();
         }
     }
 
@@ -136,9 +132,10 @@ class TelegramTestSpeechCommand extends Command
     {
         $this->info("Testing specific provider: {$provider}");
 
-        if (!in_array($provider, ['openai', 'google', 'azure'])) {
+        $providers = $speechService->getAvailableProviders();
+        if (!in_array($provider, array_keys($providers))) {
             $this->error("❌ Invalid provider: {$provider}");
-            $this->error("Valid providers: openai, google, azure");
+            $this->error("Valid providers: " . implode(', ', array_keys($providers)));
             return;
         }
 
