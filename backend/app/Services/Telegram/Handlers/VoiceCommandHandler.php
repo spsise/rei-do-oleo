@@ -5,6 +5,7 @@ namespace App\Services\Telegram\Handlers;
 use App\Contracts\Telegram\TelegramCommandHandlerInterface;
 use App\Services\SpeechToTextService;
 use App\Services\Channels\TelegramChannel;
+use App\Services\Telegram\TelegramMenuBuilder;
 use Illuminate\Support\Facades\Log;
 
 class VoiceCommandHandler implements TelegramCommandHandlerInterface
@@ -29,7 +30,8 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
 
     public function __construct(
         private SpeechToTextService $speechService,
-        private TelegramChannel $telegramChannel
+        private TelegramChannel $telegramChannel,
+        private TelegramMenuBuilder $menuBuilder
     ) {}
 
     /**
@@ -83,11 +85,6 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
     private function testVoiceService(int $chatId): array
     {
         try {
-            $this->telegramChannel->sendTextMessage(
-                "🧪 Testando serviço de voz...",
-                (string) $chatId
-            );
-
             // Test connection to speech service
             $testResult = $this->speechService->testConnection();
 
@@ -105,13 +102,17 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 $message .= "💡 **Solução**: Use o comando `/enablevoice` para ativar.";
             }
 
-            $this->telegramChannel->sendTextMessage($message, (string) $chatId);
-
-            return [
-                'success' => true,
-                'message' => 'Voice test completed',
-                'chat_id' => $chatId
+            $keyboard = [
+                [
+                    ['text' => '🔧 Ativar Voz', 'callback_data' => 'enablevoice'],
+                    ['text' => '📊 Status', 'callback_data' => 'voice_status']
+                ],
+                [
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ]
             ];
+
+            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
 
         } catch (\Exception $e) {
             Log::error('Voice test failed', [
@@ -119,17 +120,15 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 'error' => $e->getMessage()
             ]);
 
-            $this->telegramChannel->sendTextMessage(
-                "❌ **Erro no teste de voz**: {$e->getMessage()}",
-                (string) $chatId
-            );
+            $message = "❌ **Erro no teste de voz**: {$e->getMessage()}";
 
-            return [
-                'success' => false,
-                'message' => 'Voice test failed',
-                'error' => $e->getMessage(),
-                'chat_id' => $chatId
+            $keyboard = [
+                [
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ]
             ];
+
+            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
         }
     }
 
@@ -139,11 +138,6 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
     private function enableVoiceService(int $chatId): array
     {
         try {
-            $this->telegramChannel->sendTextMessage(
-                "🔧 Ativando serviço de voz...",
-                (string) $chatId
-            );
-
             // Get available providers
             $providers = $this->speechService->getAvailableProviders();
             $enabledProviders = [];
@@ -179,14 +173,17 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 $message .= "\n💡 **Como usar**: Envie uma mensagem de voz para testar o reconhecimento.";
             }
 
-            $this->telegramChannel->sendTextMessage($message, (string) $chatId);
-
-            return [
-                'success' => true,
-                'message' => 'Voice service activation completed',
-                'enabled_providers' => $enabledProviders,
-                'chat_id' => $chatId
+            $keyboard = [
+                [
+                    ['text' => '🧪 Testar Voz', 'callback_data' => 'testvoice'],
+                    ['text' => '📊 Status', 'callback_data' => 'voice_status']
+                ],
+                [
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ]
             ];
+
+            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
 
         } catch (\Exception $e) {
             Log::error('Voice activation failed', [
@@ -194,17 +191,15 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 'error' => $e->getMessage()
             ]);
 
-            $this->telegramChannel->sendTextMessage(
-                "❌ **Erro ao ativar voz**: {$e->getMessage()}",
-                (string) $chatId
-            );
+            $message = "❌ **Erro ao ativar voz**: {$e->getMessage()}";
 
-            return [
-                'success' => false,
-                'message' => 'Voice activation failed',
-                'error' => $e->getMessage(),
-                'chat_id' => $chatId
+            $keyboard = [
+                [
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ]
             ];
+
+            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
         }
     }
 
@@ -235,13 +230,17 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
             $message .= "• `/enablevoice` - Ativar serviço de voz\n";
             $message .= "• `/voice_status` - Ver este status";
 
-            $this->telegramChannel->sendTextMessage($message, (string) $chatId);
-
-            return [
-                'success' => true,
-                'message' => 'Voice status retrieved',
-                'chat_id' => $chatId
+            $keyboard = [
+                [
+                    ['text' => '🧪 Testar Voz', 'callback_data' => 'testvoice'],
+                    ['text' => '🔧 Ativar Voz', 'callback_data' => 'enablevoice']
+                ],
+                [
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ]
             ];
+
+            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
 
         } catch (\Exception $e) {
             Log::error('Voice status check failed', [
@@ -249,17 +248,15 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 'error' => $e->getMessage()
             ]);
 
-            $this->telegramChannel->sendTextMessage(
-                "❌ **Erro ao verificar status**: {$e->getMessage()}",
-                (string) $chatId
-            );
+            $message = "❌ **Erro ao verificar status**: {$e->getMessage()}";
 
-            return [
-                'success' => false,
-                'message' => 'Voice status check failed',
-                'error' => $e->getMessage(),
-                'chat_id' => $chatId
+            $keyboard = [
+                [
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ]
             ];
+
+            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
         }
     }
 
@@ -278,12 +275,19 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
         $message .= "• `/voice_status` ou `/status_voz`\n\n";
         $message .= "💡 **Lembrete**: Estes comandos são ocultos e só funcionam para usuários autorizados.";
 
-        $this->telegramChannel->sendTextMessage($message, (string) $chatId);
-
-        return [
-            'success' => true,
-            'message' => 'Help message sent',
-            'chat_id' => $chatId
+        $keyboard = [
+            [
+                ['text' => '🧪 Testar Voz', 'callback_data' => 'testvoice'],
+                ['text' => '🔧 Ativar Voz', 'callback_data' => 'enablevoice']
+            ],
+            [
+                ['text' => '📊 Status', 'callback_data' => 'voice_status']
+            ],
+            [
+                ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+            ]
         ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
     }
 }

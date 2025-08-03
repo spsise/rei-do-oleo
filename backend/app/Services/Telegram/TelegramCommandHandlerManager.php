@@ -39,14 +39,12 @@ class TelegramCommandHandlerManager
             new StatusCommandHandler($this->telegramChannel),
         ];
 
-        // Add voice command handler only if SpeechToTextService is available
-        try {
-            $speechService = app(SpeechToTextService::class);
-            $this->commandHandlers[] = new VoiceCommandHandler($speechService, $this->telegramChannel);
-        } catch (\Exception $e) {
-            // Log error but don't break other handlers
-            Log::warning('VoiceCommandHandler not registered: ' . $e->getMessage());
-        }
+        // Add voice command handler
+        $this->commandHandlers[] = new VoiceCommandHandler(
+            app(SpeechToTextService::class),
+            $this->telegramChannel,
+            $this->menuBuilder
+        );
     }
 
     /**
