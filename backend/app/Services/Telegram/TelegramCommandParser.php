@@ -2,6 +2,8 @@
 
 namespace App\Services\Telegram;
 
+use Illuminate\Support\Facades\Log;
+
 class TelegramCommandParser
 {
     /**
@@ -9,6 +11,7 @@ class TelegramCommandParser
      */
     public function parseCommand(string $text): array
     {
+        $originalText = $text;
         $text = trim(strtolower($text));
 
         // Remove bot username if present
@@ -22,14 +25,31 @@ class TelegramCommandParser
             $parsedParams = $this->parseParams($params);
             $parsedParams['command'] = $command; // Add command to params for handlers
 
-            return [
+            $result = [
                 'type' => $command,
                 'params' => $parsedParams
             ];
+
+            Log::info('Command parsed (slash command)', [
+                'original_text' => $originalText,
+                'cleaned_text' => $text,
+                'command' => $command,
+                'result' => $result
+            ]);
+
+            return $result;
         }
 
         // Handle natural language
-        return $this->parseNaturalLanguage($text);
+        $result = $this->parseNaturalLanguage($text);
+
+        Log::info('Command parsed (natural language)', [
+            'original_text' => $originalText,
+            'cleaned_text' => $text,
+            'result' => $result
+        ]);
+
+        return $result;
     }
 
     /**
@@ -63,7 +83,23 @@ class TelegramCommandParser
      */
     private function parseNaturalLanguage(string $text): array
     {
-        // Handle natural language
+        // Handle basic commands first (highest priority)
+        if (preg_match('/(menu|ajuda|help|comandos|opções|iniciar|start)/i', $text)) {
+            return [
+                'type' => 'start',
+                'params' => []
+            ];
+        }
+
+        // Handle status/dashboard commands
+        if (preg_match('/(dashboard|status|como|está).*(sistema|serviços|tudo)/i', $text)) {
+            return [
+                'type' => 'dashboard',
+                'params' => []
+            ];
+        }
+
+        // Handle report commands
         if (str_contains($text, 'relatório') || str_contains($text, 'report')) {
             return [
                 'type' => 'report',
@@ -71,35 +107,7 @@ class TelegramCommandParser
             ];
         }
 
-        if (str_contains($text, 'serviços') || str_contains($text, 'services')) {
-            return [
-                'type' => 'services',
-                'params' => $this->extractPeriodFromText($text)
-            ];
-        }
-
-        if (str_contains($text, 'produtos') || str_contains($text, 'products')) {
-            return [
-                'type' => 'products',
-                'params' => $this->extractPeriodFromText($text)
-            ];
-        }
-
-        if (str_contains($text, 'dashboard') || str_contains($text, 'status')) {
-            return [
-                'type' => 'dashboard',
-                'params' => []
-            ];
-        }
-
-        if (str_contains($text, 'menu') || str_contains($text, 'ajuda') || str_contains($text, 'help')) {
-            return [
-                'type' => 'menu',
-                'params' => []
-            ];
-        }
-
-        // Enhanced voice command patterns
+        // Enhanced voice command patterns for reports
         if (preg_match('/(enviar|quero|preciso|mostre|mostra).*(relatório|report)/i', $text)) {
             return [
                 'type' => 'report',
@@ -107,20 +115,15 @@ class TelegramCommandParser
             ];
         }
 
-        if (preg_match('/(como|está|status).*(sistema|serviços|tudo)/i', $text)) {
+        // Handle services commands
+        if (str_contains($text, 'serviços') || str_contains($text, 'services')) {
             return [
-                'type' => 'status',
-                'params' => []
+                'type' => 'services',
+                'params' => $this->extractPeriodFromText($text)
             ];
         }
 
-        if (preg_match('/(menu|ajuda|help|comandos|opções)/i', $text)) {
-            return [
-                'type' => 'start',
-                'params' => []
-            ];
-        }
-
+        // Enhanced voice command patterns for services
         if (preg_match('/(serviços|services).*(hoje|semana|mês|month)/i', $text)) {
             return [
                 'type' => 'services',
@@ -128,6 +131,15 @@ class TelegramCommandParser
             ];
         }
 
+        // Handle products commands
+        if (str_contains($text, 'produtos') || str_contains($text, 'products')) {
+            return [
+                'type' => 'products',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
+        // Enhanced voice command patterns for products
         if (preg_match('/(produtos|products).*(hoje|semana|mês|month)/i', $text)) {
             return [
                 'type' => 'products',
@@ -248,10 +260,36 @@ class TelegramCommandParser
             $text = str_replace($voice, $symbol, $text);
         }
 
-        // Remove extra spaces
-        $text = preg_replace('/\s+/', ' ', $text);
+        // Normalize common voice recognition variations for basic commands
+        $commandNormalizations = [
+            '/menu/' => 'menu',
+            '/menus/' => 'menu',
+            '/menú/' => 'menu',
+            '/start/' => 'start',
+            '/starts/' => 'start',
+            '/iniciar/' => 'start',
+            '/inicia/' => 'start',
+            '/começar/' => 'start',
+            '/começa/' => 'start',
+            '/ajuda/' => 'help',
+            '/ajudas/' => 'help',
+            '/help/' => 'help',
+            '/helps/' => 'help',
+            '/comandos/' => 'menu',
+            '/comando/' => 'menu',
+            '/opções/' => 'menu',
+            '/opção/' => 'menu'
+        ];
 
-        return trim($text);
+        foreach ($commandNormalizations as $pattern => $normalized) {
+            $text = preg_replace($pattern, $normalized, $text);
+        }
+
+        // Remove extra spaces and normalize
+        $text = preg_replace('/\s+/', ' ', $text);
+        $text = trim($text);
+
+        return $text;
     }
 
     /**

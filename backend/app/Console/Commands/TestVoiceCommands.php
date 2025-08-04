@@ -30,12 +30,21 @@ class TestVoiceCommands extends Command
     {
         $chatId = (int) $this->option('chat-id');
 
-        $this->info("🧪 Testando comandos ocultos de voz...");
+        $this->info("🧪 Testando comandos de voz e texto...");
         $this->info("Chat ID: {$chatId}");
         $this->newLine();
 
-        // Test commands
-        $commands = [
+        // Test basic commands
+        $basicCommands = [
+            'menu',
+            'start',
+            'ajuda',
+            'help',
+            'comandos'
+        ];
+
+        // Test hidden voice commands
+        $hiddenCommands = [
             'testvoice',
             'enablevoice',
             'voice_status'
@@ -44,8 +53,36 @@ class TestVoiceCommands extends Command
         $commandHandlerManager = app(TelegramCommandHandlerManager::class);
         $commandParser = app(TelegramCommandParser::class);
 
-        foreach ($commands as $command) {
-            $this->info("📝 Testando comando: /{$command}");
+        $this->info("📝 Testando comandos básicos:");
+        $this->newLine();
+
+        foreach ($basicCommands as $command) {
+            $this->info("🔍 Testando comando: '{$command}'");
+
+            // Parse command
+            $parsed = $commandParser->parseCommand($command);
+
+            $this->info("   📋 Tipo detectado: {$parsed['type']}");
+            $this->info("   📋 Parâmetros: " . json_encode($parsed['params']));
+
+            // Handle command
+            $result = $commandHandlerManager->handleCommand($parsed['type'], $chatId, $parsed['params']);
+
+            if ($result['success'] ?? false) {
+                $this->info("   ✅ Comando '{$command}' executado com sucesso");
+            } else {
+                $this->error("   ❌ Comando '{$command}' falhou");
+                $this->error("   🚨 Erro: " . ($result['error'] ?? 'Erro desconhecido'));
+            }
+
+            $this->newLine();
+        }
+
+        $this->info("📝 Testando comandos ocultos:");
+        $this->newLine();
+
+        foreach ($hiddenCommands as $command) {
+            $this->info("🔍 Testando comando: /{$command}");
 
             // Parse command
             $parsed = $commandParser->parseCommand("/{$command}");
@@ -54,16 +91,16 @@ class TestVoiceCommands extends Command
             $result = $commandHandlerManager->handleCommand($parsed['type'], $chatId, $parsed['params']);
 
             if ($result['success'] ?? false) {
-                $this->info("✅ Comando /{$command} executado com sucesso");
+                $this->info("   ✅ Comando /{$command} executado com sucesso");
             } else {
-                $this->error("❌ Comando /{$command} falhou");
-                $this->error("Erro: " . ($result['error'] ?? 'Erro desconhecido'));
+                $this->error("   ❌ Comando /{$command} falhou");
+                $this->error("   🚨 Erro: " . ($result['error'] ?? 'Erro desconhecido'));
             }
 
             $this->newLine();
         }
 
-        $this->info("🎉 Teste de comandos ocultos concluído!");
+        $this->info("🎉 Teste de comandos concluído!");
 
         return self::SUCCESS;
     }

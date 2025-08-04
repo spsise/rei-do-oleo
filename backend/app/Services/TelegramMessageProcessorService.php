@@ -129,13 +129,24 @@ class TelegramMessageProcessorService
                 (string) $chatId
             );
 
+            // Clean and parse voice command specifically
+            $commandParser = app(\App\Services\Telegram\TelegramCommandParser::class);
+            $parsedCommand = $commandParser->parseVoiceCommand($text);
+
+            Log::info('Voice command parsed', [
+                'original_text' => $text,
+                'parsed_command' => $parsedCommand,
+                'chat_id' => $chatId
+            ]);
+
             // Create synthetic message with recognized text
             $syntheticMessage = [
                 'chat' => $message['chat'],
                 'from' => $message['from'],
                 'text' => $text,
                 'voice_original' => $voice,
-                'is_voice_converted' => true
+                'is_voice_converted' => true,
+                'parsed_command' => $parsedCommand
             ];
 
             // Process as text message
