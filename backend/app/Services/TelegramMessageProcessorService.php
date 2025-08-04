@@ -2,16 +2,16 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Log;
+use App\Contracts\LoggingServiceInterface;
 use App\Services\Channels\TelegramChannel;
 
 class TelegramMessageProcessorService
 {
     public function __construct(
         private TelegramBotService $telegramBotService,
-        private TelegramLoggingService $loggingService,
         private TelegramChannel $telegramChannel,
-        private SpeechToTextService $speechService
+        private SpeechToTextService $speechService,
+        private LoggingServiceInterface $loggingService
     ) {}
 
     /**
@@ -33,7 +33,6 @@ class TelegramMessageProcessorService
                     'message' => 'No message in payload'
                 ];
 
-                $this->loggingService->logWebhookProcessing($payload, $result);
                 return $result;
             }
 
@@ -62,11 +61,9 @@ class TelegramMessageProcessorService
                 'error' => $e->getMessage()
             ];
 
-            $this->loggingService->logWebhookProcessing($payload, $result);
-
-            Log::error('Telegram webhook error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_processing',
+                'payload' => $payload
             ]);
 
             return $result;
@@ -82,9 +79,6 @@ class TelegramMessageProcessorService
         $result['status'] = 'success';
         $result['message'] = 'Text message processed';
         $result['input_type'] = 'text';
-
-        $this->loggingService->logWebhookProcessing(['message' => $message], $result);
-        $this->loggingService->logMessageProcessing($message, $result);
 
         return $result;
     }
@@ -115,6 +109,11 @@ class TelegramMessageProcessorService
             $text = $this->speechService->convertVoiceToText($voiceFilePath);
 
             if (!$text) {
+                $this->loggingService->logException(new \Exception('Failed to convert voice to text'), [
+                    'chat_id' => $chatId,
+                    'file_path' => $voiceFilePath
+                ]);
+
                 return $this->createErrorResult('Failed to convert voice to text');
             }
 
@@ -132,12 +131,6 @@ class TelegramMessageProcessorService
             // Clean and parse voice command specifically
             $commandParser = app(\App\Services\Telegram\TelegramCommandParser::class);
             $parsedCommand = $commandParser->parseVoiceCommand($text);
-
-            Log::info('Voice command parsed', [
-                'original_text' => $text,
-                'parsed_command' => $parsedCommand,
-                'chat_id' => $chatId
-            ]);
 
             // Create synthetic message with recognized text
             $syntheticMessage = [
@@ -157,13 +150,16 @@ class TelegramMessageProcessorService
             $result['original_voice'] = $voice;
             $result['recognized_text'] = $text;
 
-            $this->loggingService->logWebhookProcessing(['message' => $message], $result);
-            // $this->loggingService->logVoiceProcessing($message, $result); // TODO: Implement in repository
-
             return $result;
 
         } catch (\Exception $e) {
-            return $this->createErrorResult('Voice processing error', $e->getMessage());
+            $this->loggingService->logException($e, [
+                'operation' => 'voice_message_processing',
+                'chat_id' => $message['chat']['id'] ?? null,
+                'message' => $message
+            ]);
+
+            return $this->createErrorResult('Voice processing failed: ' . $e->getMessage());
         }
     }
 
@@ -182,7 +178,6 @@ class TelegramMessageProcessorService
     private function downloadVoiceFile(string $fileId): ?string
     {
         try {
-            // Get file info from Telegram
             $fileInfo = $this->telegramChannel->getFile($fileId);
 
             if (!$fileInfo['success']) {
@@ -203,6 +198,11 @@ class TelegramMessageProcessorService
             $fileContent = file_get_contents($fileUrl);
 
             if ($fileContent === false) {
+                $this->loggingService->logException(new \Exception('Failed to download voice file'), [
+                    'file_id' => $fileId,
+                    'file_url' => $fileUrl
+                ]);
+
                 return null;
             }
 
@@ -211,8 +211,8 @@ class TelegramMessageProcessorService
             return $localPath;
 
         } catch (\Exception $e) {
-            Log::error('Voice file download error', [
-                'error' => $e->getMessage(),
+            $this->loggingService->logException($e, [
+                'operation' => 'voice_file_download',
                 'file_id' => $fileId
             ]);
 
@@ -257,27 +257,15 @@ class TelegramMessageProcessorService
             $result['status'] = 'success';
             $result['message'] = 'Callback query processed';
 
-            // Log the processing
-            $this->loggingService->logCallbackQuery($callbackQuery, $result);
-
             return $result;
 
         } catch (\Exception $e) {
-            $result = [
-                'success' => false,
-                'status' => 'error',
-                'message' => 'Internal server error',
-                'error' => $e->getMessage()
-            ];
-
-            $this->loggingService->logCallbackQuery($callbackQuery, $result);
-
-            Log::error('Telegram callback query error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $this->loggingService->logException($e, [
+                'operation' => 'callback_query_processing',
+                'callback_query' => $callbackQuery
             ]);
 
-            return $result;
+            return $this->createErrorResult('Callback query processing failed: ' . $e->getMessage());
         }
     }
 }

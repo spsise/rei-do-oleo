@@ -6,7 +6,7 @@ use App\Services\Telegram\TelegramCommandParser;
 use App\Services\Telegram\TelegramCommandHandlerManager;
 use App\Services\Telegram\TelegramAuthorizationService;
 use App\Services\Telegram\TelegramMenuBuilder;
-use Illuminate\Support\Facades\Log;
+use App\Contracts\LoggingServiceInterface;
 
 class TelegramBotService
 {
@@ -14,7 +14,8 @@ class TelegramBotService
         private TelegramCommandParser $commandParser,
         private TelegramCommandHandlerManager $commandHandlerManager,
         private TelegramAuthorizationService $authorizationService,
-        private TelegramMenuBuilder $menuBuilder
+        private TelegramMenuBuilder $menuBuilder,
+        private LoggingServiceInterface $loggingService
     ) {}
 
     /**
@@ -26,12 +27,6 @@ class TelegramBotService
             $chatId = $message['chat']['id'];
             $text = $message['text'] ?? '';
             $from = $message['from'] ?? [];
-
-            Log::info('Telegram message received', [
-                'chat_id' => $chatId,
-                'text' => $text,
-                'from' => $from
-            ]);
 
             // Check if user is authorized
             if (!$this->authorizationService->isAuthorizedUser($chatId)) {
@@ -45,8 +40,10 @@ class TelegramBotService
             return $this->commandHandlerManager->handleCommand($command['type'], $chatId, $command['params']);
 
         } catch (\Exception $e) {
-            Log::error('Error processing Telegram message', [
-                'error' => $e->getMessage(),
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_message_processing',
+                'chat_id' => $message['chat']['id'] ?? null,
+                'user_id' => $message['from']['id'] ?? null,
                 'message' => $message
             ]);
 
@@ -65,12 +62,6 @@ class TelegramBotService
             $callbackData = $callbackQuery['data'] ?? '';
             $from = $callbackQuery['from'] ?? [];
 
-            Log::info('Telegram callback query received', [
-                'chat_id' => $chatId,
-                'callback_data' => $callbackData,
-                'from' => $from
-            ]);
-
             // Check if user is authorized
             if (!$this->authorizationService->isAuthorizedUser($chatId)) {
                 return $this->menuBuilder->buildUnauthorizedMessage($chatId);
@@ -83,8 +74,10 @@ class TelegramBotService
             return $this->commandHandlerManager->handleCallbackQuery($callback['action'], $chatId, $callback);
 
         } catch (\Exception $e) {
-            Log::error('Error processing Telegram callback query', [
-                'error' => $e->getMessage(),
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_callback_processing',
+                'chat_id' => $callbackQuery['message']['chat']['id'] ?? null,
+                'user_id' => $callbackQuery['from']['id'] ?? null,
                 'callback_query' => $callbackQuery
             ]);
 

@@ -3,8 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
+use App\Contracts\LoggingServiceInterface;
 
 class TelegramWebhookService
 {
@@ -12,7 +11,7 @@ class TelegramWebhookService
     private string $apiUrl;
 
     public function __construct(
-        private TelegramLoggingService $loggingService
+        private LoggingServiceInterface $loggingService
     ) {
         $this->botToken = config('services.telegram.bot_token');
         $this->apiUrl = "https://api.telegram.org/bot{$this->botToken}";
@@ -37,7 +36,11 @@ class TelegramWebhookService
                     'data' => $data
                 ];
 
-                $this->loggingService->logWebhookSetup('set', $result, true);
+                $this->loggingService->logBusinessOperation('telegram_webhook_setup_success', [
+                    'webhook_url' => $webhookUrl,
+                    'result' => $result
+                ], 'success');
+
                 return $result;
             }
 
@@ -47,7 +50,11 @@ class TelegramWebhookService
                 'error' => $response->json()
             ];
 
-            $this->loggingService->logWebhookSetup('set', $result, false);
+            $this->loggingService->logBusinessOperation('telegram_webhook_setup_failed', [
+                'webhook_url' => $webhookUrl,
+                'error' => $result['error']
+            ], 'error');
+
             return $result;
 
         } catch (\Exception $e) {
@@ -57,7 +64,11 @@ class TelegramWebhookService
                 'error' => $e->getMessage()
             ];
 
-            $this->loggingService->logWebhookSetup('set', $result, false);
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_setup',
+                'webhook_url' => $webhookUrl
+            ]);
+
             return $result;
         }
     }
@@ -68,26 +79,42 @@ class TelegramWebhookService
     public function getWebhookInfo(): array
     {
         try {
+            $this->loggingService->logBusinessOperation('telegram_webhook_info_request', [
+                'action' => 'get_webhook_info'
+            ], 'info');
+
             $response = Http::get("{$this->apiUrl}/getWebhookInfo");
 
             if ($response->successful()) {
                 $data = $response->json();
 
-                return [
+                $result = [
                     'success' => true,
                     'data' => $data
                 ];
+
+                $this->loggingService->logBusinessOperation('telegram_webhook_info_success', [
+                    'result' => $result
+                ], 'success');
+
+                return $result;
             }
 
-            return [
+            $result = [
                 'success' => false,
                 'message' => 'Failed to get webhook info',
                 'error' => $response->json()
             ];
 
+            $this->loggingService->logBusinessOperation('telegram_webhook_info_failed', [
+                'error' => $result['error']
+            ], 'error');
+
+            return $result;
+
         } catch (\Exception $e) {
-            Log::error('Error getting Telegram webhook info', [
-                'error' => $e->getMessage()
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_info'
             ]);
 
             return [
@@ -104,6 +131,10 @@ class TelegramWebhookService
     public function deleteWebhook(): array
     {
         try {
+            $this->loggingService->logBusinessOperation('telegram_webhook_deletion_attempt', [
+                'action' => 'delete_webhook'
+            ], 'info');
+
             $response = Http::post("{$this->apiUrl}/deleteWebhook");
 
             if ($response->successful()) {
@@ -115,7 +146,10 @@ class TelegramWebhookService
                     'data' => $data
                 ];
 
-                $this->loggingService->logWebhookSetup('delete', $result, true);
+                $this->loggingService->logBusinessOperation('telegram_webhook_deletion_success', [
+                    'result' => $result
+                ], 'success');
+
                 return $result;
             }
 
@@ -125,7 +159,10 @@ class TelegramWebhookService
                 'error' => $response->json()
             ];
 
-            $this->loggingService->logWebhookSetup('delete', $result, false);
+            $this->loggingService->logBusinessOperation('telegram_webhook_deletion_failed', [
+                'error' => $result['error']
+            ], 'error');
+
             return $result;
 
         } catch (\Exception $e) {
@@ -135,7 +172,10 @@ class TelegramWebhookService
                 'error' => $e->getMessage()
             ];
 
-            $this->loggingService->logWebhookSetup('delete', $result, false);
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_deletion'
+            ]);
+
             return $result;
         }
     }
@@ -146,6 +186,10 @@ class TelegramWebhookService
     public function testBot(): array
     {
         try {
+            $this->loggingService->logBusinessOperation('telegram_bot_test_attempt', [
+                'action' => 'test_bot'
+            ], 'info');
+
             $recipients = config('services.telegram.recipients', []);
 
             if (empty($recipients)) {
@@ -154,7 +198,10 @@ class TelegramWebhookService
                     'message' => 'No recipients configured'
                 ];
 
-                $this->loggingService->logBotTest($result);
+                $this->loggingService->logBusinessOperation('telegram_bot_test_failed', [
+                    'error' => 'No recipients configured'
+                ], 'error');
+
                 return $result;
             }
 
@@ -174,7 +221,12 @@ class TelegramWebhookService
                 'results' => $results
             ];
 
-            $this->loggingService->logBotTest($result);
+            $this->loggingService->logBusinessOperation('telegram_bot_test_success', [
+                'sent_to' => $successCount,
+                'total_recipients' => count($recipients),
+                'result' => $result
+            ], 'success');
+
             return $result;
 
         } catch (\Exception $e) {
@@ -183,7 +235,10 @@ class TelegramWebhookService
                 'message' => 'Test failed: ' . $e->getMessage()
             ];
 
-            $this->loggingService->logBotTest($result);
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_bot_test'
+            ]);
+
             return $result;
         }
     }
@@ -207,6 +262,11 @@ class TelegramWebhookService
             ]);
 
             if ($response->successful()) {
+                $this->loggingService->logBusinessOperation('test_message_sent_successfully', [
+                    'chat_id' => $recipient,
+                    'message_type' => 'test'
+                ], 'info');
+
                 return [
                     'success' => true,
                     'message' => 'Test message sent successfully'
@@ -219,6 +279,11 @@ class TelegramWebhookService
             ];
 
         } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_test_message_send',
+                'recipient' => $recipient
+            ]);
+
             return [
                 'success' => false,
                 'error' => $e->getMessage()
