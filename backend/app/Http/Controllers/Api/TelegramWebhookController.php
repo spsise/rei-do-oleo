@@ -28,6 +28,9 @@ class TelegramWebhookController extends Controller
     {
         try {
             $payload = $request->validated();
+            $this->loggingService->logTelegramEvent('telegram_webhook_received', [
+                'payload' => $payload
+            ], 'info');
 
             // Validate payload structure
             $validation = $this->webhookService->validatePayload($payload);
