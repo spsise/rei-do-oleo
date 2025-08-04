@@ -2,7 +2,7 @@
 
 ## 📋 Visão Geral
 
-A nova arquitetura do Telegram Bot foi completamente refatorada para seguir os princípios SOLID e padrões de design modernos. A estrutura agora é **modular**, **extensível** e **fácil de manter**.
+A nova arquitetura do Telegram Bot foi completamente refatorada para seguir os princípios SOLID e padrões de design modernos. A estrutura agora é **modular**, **extensível** e **fácil de manter**, incluindo suporte completo para **processamento de voz e áudio**.
 
 ## 🎯 Problemas Resolvidos
 
@@ -13,14 +13,17 @@ A nova arquitetura do Telegram Bot foi completamente refatorada para seguir os p
 - **Dificuldade para adicionar** novos comandos
 - **Código duplicado** e difícil de testar
 - **Acoplamento forte** entre componentes
+- **Sem suporte** para comandos de voz
 
-### ✅ **Depois (Arquitetura Modular)**
+### ✅ **Depois (Arquitetura Modular + Voz)**
 
 - **Separação clara** de responsabilidades
 - **Fácil extensão** de funcionalidades
 - **Código reutilizável** e testável
 - **Baixo acoplamento** entre componentes
 - **Conformidade total** com SOLID
+- **Suporte completo** para comandos de voz e áudio
+- **Processamento unificado** de texto e voz
 
 ## 🏛️ Nova Arquitetura
 
@@ -33,18 +36,23 @@ backend/app/
 │   ├── TelegramReportGeneratorInterface.php
 │   └── TelegramMenuBuilderInterface.php
 ├── Services/Telegram/                     # Serviços principais
-│   ├── TelegramCommandParser.php         # Parser de comandos
+│   ├── TelegramCommandParser.php         # Parser de comandos (texto + voz)
 │   ├── TelegramCommandHandlerManager.php # Gerenciador de handlers
 │   ├── TelegramAuthorizationService.php  # Autorização
 │   ├── TelegramMenuBuilder.php           # Construtor de menus
 │   ├── Handlers/                         # Handlers de comandos
 │   │   ├── StartCommandHandler.php
 │   │   ├── ReportCommandHandler.php
-│   │   └── StatusCommandHandler.php
+│   │   ├── StatusCommandHandler.php
+│   │   └── VoiceCommandHandler.php       # Handler para comandos de voz
 │   └── Reports/                          # Geradores de relatórios
 │       ├── GeneralReportGenerator.php
 │       ├── ServicesReportGenerator.php
 │       └── ProductsReportGenerator.php
+├── Services/                             # Serviços de processamento
+│   ├── TelegramMessageProcessorService.php  # Processador unificado
+│   ├── SpeechToTextService.php              # Conversão voz→texto
+│   └── TelegramLoggingService.php           # Logging especializado
 └── Providers/
     └── TelegramServiceProvider.php       # Service Provider
 ```
@@ -79,23 +87,36 @@ interface TelegramReportGeneratorInterface
 
 ### 2. **Serviços Principais**
 
+#### `TelegramMessageProcessorService`
+
+- **Responsabilidade**: Processamento unificado de mensagens (texto, voz, áudio)
+- **Funcionalidades**:
+  - Identificação automática do tipo de mensagem
+  - Download de arquivos de voz/áudio
+  - Conversão de voz para texto
+  - Processamento unificado de comandos
+  - Limpeza automática de arquivos temporários
+
 #### `TelegramCommandParser`
 
-- **Responsabilidade**: Parsing de comandos e callback queries
+- **Responsabilidade**: Parsing de comandos e callback queries (texto + voz)
 - **Funcionalidades**:
   - Parse comandos `/start`, `/help`, etc.
   - Parse linguagem natural
   - Parse callback data de botões
+  - **Parse comandos de voz** com limpeza de artefatos
   - Normalização de parâmetros
+  - Extração de intenções de voz
 
 #### `TelegramCommandHandlerManager`
 
 - **Responsabilidade**: Gerenciar e rotear comandos para handlers apropriados
 - **Funcionalidades**:
-  - Registro de handlers
+  - Registro de handlers (incluindo VoiceCommandHandler)
   - Roteamento de comandos
   - Roteamento de callback queries
   - Gerenciamento de relatórios
+  - Suporte a comandos ocultos de voz
 
 #### `TelegramAuthorizationService`
 
@@ -114,6 +135,16 @@ interface TelegramReportGeneratorInterface
   - Navegação entre menus
   - Mensagens de erro e autorização
 
+#### `SpeechToTextService`
+
+- **Responsabilidade**: Conversão de voz para texto
+- **Funcionalidades**:
+  - Suporte a múltiplos provedores (OpenAI, Google, Azure, etc.)
+  - Cache de conversões para performance
+  - Limpeza e normalização de áudio
+  - Testes de conectividade
+  - Gerenciamento de status dos provedores
+
 ### 3. **Handlers de Comandos**
 
 #### `StartCommandHandler`
@@ -130,6 +161,16 @@ interface TelegramReportGeneratorInterface
 
 - **Comandos**: `/status`
 - **Ação**: Mostrar status do sistema
+
+#### `VoiceCommandHandler` ⭐ **NOVO**
+
+- **Comandos Ocultos**: `/testvoice`, `/enablevoice`, `/voice_status`
+- **Ação**: Gerenciar funcionalidades de voz
+- **Funcionalidades**:
+  - Teste de conectividade com provedores
+  - Ativação/desativação de serviços de voz
+  - Status detalhado dos provedores
+  - Comandos em português e inglês
 
 ### 4. **Geradores de Relatórios**
 
@@ -153,23 +194,78 @@ interface TelegramReportGeneratorInterface
 
 ## 🔄 **Fluxo de Processamento**
 
-### 1. **Processamento de Mensagem**
+### 1. **Processamento de Mensagem de Texto**
 
 ```
-Mensagem → TelegramBotService → AuthorizationService → CommandParser → CommandHandlerManager → Handler Específico
+Mensagem de Texto → TelegramMessageProcessorService → AuthorizationService → CommandParser → CommandHandlerManager → Handler Específico
 ```
 
-### 2. **Processamento de Callback**
+### 2. **Processamento de Mensagem de Voz** ⭐ **NOVO**
 
 ```
-Callback → TelegramBotService → AuthorizationService → CommandParser → CommandHandlerManager → Handler Específico
+Mensagem de Voz → TelegramMessageProcessorService → Download Arquivo → SpeechToTextService → Conversão → CommandParser → CommandHandlerManager → Handler Específico
 ```
 
-### 3. **Geração de Relatório**
+### 3. **Processamento de Callback**
+
+```
+Callback → TelegramMessageProcessorService → AuthorizationService → CommandParser → CommandHandlerManager → Handler Específico
+```
+
+### 4. **Geração de Relatório**
 
 ```
 Comando → CommandHandlerManager → ReportGenerator → Formatação → Resposta
 ```
+
+## 🎤 **Sistema de Voz e Áudio**
+
+### **Provedores Suportados**
+
+#### **OpenAI Whisper (Padrão)**
+
+- **Vantagens**: Alta precisão, suporte a múltiplos idiomas
+- **Configuração**: Requer API key do OpenAI
+- **Custo**: Baseado no uso
+
+#### **Google Speech-to-Text**
+
+- **Vantagens**: Integração com Google Cloud, alta precisão
+- **Configuração**: Requer Google Cloud Speech API
+- **Custo**: Baseado no uso
+
+#### **Azure Speech Services**
+
+- **Vantagens**: Integração com Microsoft Azure
+- **Configuração**: Requer Azure Speech Services
+- **Custo**: Baseado no uso
+
+#### **Vosk (Local)**
+
+- **Vantagens**: Processamento local, sem custos
+- **Configuração**: Instalação local
+- **Custo**: Gratuito
+
+### **Comandos de Voz Suportados**
+
+#### **Comandos Diretos**
+
+- "Envie relatório" → Gera relatório
+- "Quero relatório de serviços" → Relatório específico
+- "Como está o sistema?" → Status do sistema
+- "Mostre menu" → Menu principal
+
+#### **Comandos com Períodos**
+
+- "Relatório da semana" → Relatório semanal
+- "Serviços do mês" → Relatório mensal
+- "Produtos de hoje" → Relatório diário
+
+#### **Comandos Ocultos**
+
+- "Teste de voz" → `/testvoice`
+- "Ativar voz" → `/enablevoice`
+- "Status da voz" → `/voice_status`
 
 ## 🚀 **Como Adicionar Novos Comandos**
 
@@ -258,32 +354,66 @@ class NewReportGenerator implements TelegramReportGeneratorInterface
 $this->reportGenerators['newreport'] = app(NewReportGenerator::class);
 ```
 
+## 🎤 **Como Adicionar Suporte a Voz**
+
+### 1. **Configurar Provedor**
+
+```env
+# Adicionar ao .env
+SPEECH_PROVIDER=openai
+OPENAI_API_KEY=your_api_key_here
+```
+
+### 2. **Adicionar Comandos de Voz**
+
+```php
+// Em TelegramCommandParser::cleanVoiceText()
+$commandNormalizations = [
+    '/novo_comando/' => 'newcommand',
+    '/novo comando/' => 'newcommand',
+    // ... outros comandos
+];
+```
+
+### 3. **Testar Funcionalidade**
+
+```bash
+# Comandos de teste disponíveis
+php artisan telegram:test-voice --file=test.ogg
+php artisan telegram:test-speech --all-providers
+```
+
 ## 📊 **Benefícios da Nova Arquitetura**
 
 ### ✅ **Single Responsibility Principle (SRP)**
 
 - Cada classe tem uma única responsabilidade
 - Código mais focado e coeso
+- **Separação clara** entre processamento de texto e voz
 
 ### ✅ **Open/Closed Principle (OCP)**
 
 - Fácil extensão sem modificar código existente
 - Novos comandos e relatórios podem ser adicionados
+- **Novos provedores de voz** podem ser integrados
 
 ### ✅ **Liskov Substitution Principle (LSP)**
 
 - Interfaces bem definidas
 - Implementações intercambiáveis
+- **Provedores de voz** intercambiáveis
 
 ### ✅ **Interface Segregation Principle (ISP)**
 
 - Interfaces específicas para cada funcionalidade
 - Dependências mínimas
+- **Interfaces separadas** para comandos e relatórios
 
 ### ✅ **Dependency Inversion Principle (DIP)**
 
 - Dependências injetadas via construtor
 - Abstrações em vez de implementações concretas
+- **Injeção de dependências** para serviços de voz
 
 ## 🧪 **Testabilidade**
 
@@ -311,6 +441,18 @@ class StartCommandHandlerTest extends TestCase
         $this->assertArrayHasKey('success', $result);
     }
 }
+
+// Testes de voz
+class VoiceCommandHandlerTest extends TestCase
+{
+    public function test_handle_voice_test_command()
+    {
+        $handler = new VoiceCommandHandler($this->mockSpeechService, $this->mockChannel, $this->mockMenuBuilder);
+        $result = $handler->handle(123456, ['command' => 'testvoice']);
+
+        $this->assertArrayHasKey('success', $result);
+    }
+}
 ```
 
 ## 📈 **Métricas de Melhoria**
@@ -318,12 +460,14 @@ class StartCommandHandlerTest extends TestCase
 | Aspecto               | Antes                 | Depois                          |
 | --------------------- | --------------------- | ------------------------------- |
 | **Linhas de código**  | 844 linhas            | ~50 linhas (TelegramBotService) |
-| **Classes**           | 1 classe monolítica   | 12+ classes especializadas      |
+| **Classes**           | 1 classe monolítica   | 15+ classes especializadas      |
 | **Responsabilidades** | 10+ responsabilidades | 1 responsabilidade por classe   |
 | **Testabilidade**     | Difícil               | Fácil                           |
 | **Extensibilidade**   | Limitada              | Alta                            |
 | **Manutenibilidade**  | Baixa                 | Alta                            |
 | **Reutilização**      | Baixa                 | Alta                            |
+| **Suporte a Voz**     | ❌ Não                | ✅ Completo                     |
+| **Provedores STT**    | ❌ Nenhum             | ✅ 7+ provedores                |
 
 ## 🔧 **Configuração**
 
@@ -344,7 +488,28 @@ class StartCommandHandlerTest extends TestCase
 $this->app->singleton(TelegramCommandParser::class);
 $this->app->singleton(TelegramCommandHandlerManager::class);
 $this->app->singleton(TelegramAuthorizationService::class);
+$this->app->singleton(TelegramMessageProcessorService::class);
+$this->app->singleton(SpeechToTextService::class);
 // ...
+```
+
+### **Configuração de Voz**
+
+```env
+# Speech-to-Text Configuration
+SPEECH_PROVIDER=openai
+SPEECH_CACHE_ENABLED=true
+SPEECH_CACHE_TTL=3600
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Google Speech-to-Text (Alternative)
+GOOGLE_SPEECH_API_KEY=your_google_speech_api_key_here
+
+# Azure Speech Services (Alternative)
+AZURE_SPEECH_KEY=your_azure_speech_key_here
+AZURE_SPEECH_REGION=your_azure_region_here
 ```
 
 ## 🎯 **Próximos Passos**
@@ -354,18 +519,30 @@ $this->app->singleton(TelegramAuthorizationService::class);
 - Testes unitários para cada handler
 - Testes de integração para o manager
 - Testes de aceitação para comandos
+- **Testes específicos para funcionalidades de voz**
 
 ### 2. **Adicionar Mais Funcionalidades**
 
 - Handlers para mais comandos
 - Geradores para mais relatórios
 - Validação de parâmetros
+- **Suporte a mais idiomas**
+- **Comandos de voz avançados**
 
 ### 3. **Melhorar Monitoramento**
 
 - Logs estruturados
 - Métricas de performance
 - Alertas automáticos
+- **Métricas de conversão de voz**
+- **Monitoramento de provedores STT**
+
+### 4. **Otimizações de Voz**
+
+- **Processamento assíncrono** de mensagens de voz
+- **Cache inteligente** baseado em similaridade
+- **Aprendizado de máquina** para melhorar reconhecimento
+- **Personalização** por usuário
 
 ## 🏆 **Conclusão**
 
@@ -377,5 +554,9 @@ A nova arquitetura modular do Telegram Bot representa uma **evolução significa
 - ✅ **Conformidade com SOLID**
 - ✅ **Baixo acoplamento**
 - ✅ **Alta coesão**
+- ✅ **Suporte completo a voz e áudio**
+- ✅ **Processamento unificado** de texto e voz
+- ✅ **Múltiplos provedores** de speech-to-text
+- ✅ **Comandos ocultos** para gerenciamento
 
-O sistema agora está **preparado para crescer** e **fácil de entender**, seguindo as melhores práticas de desenvolvimento moderno! 🚀
+O sistema agora está **preparado para crescer**, **fácil de entender** e oferece uma **experiência de usuário moderna** com suporte completo a comandos de voz! 🚀🎤

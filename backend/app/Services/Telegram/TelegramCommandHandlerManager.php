@@ -7,6 +7,7 @@ use App\Services\Telegram\Handlers\StartCommandHandler;
 use App\Services\Telegram\Handlers\ReportCommandHandler;
 use App\Services\Telegram\Handlers\StatusCommandHandler;
 use App\Services\Telegram\Handlers\VoiceCommandHandler;
+use App\Services\Telegram\Handlers\MenuCommandHandler;
 use App\Services\Telegram\Reports\GeneralReportGenerator;
 use App\Services\Telegram\Reports\ServicesReportGenerator;
 use App\Services\Telegram\Reports\ProductsReportGenerator;
@@ -37,6 +38,7 @@ class TelegramCommandHandlerManager
             new StartCommandHandler($this->menuBuilder),
             new ReportCommandHandler($this->menuBuilder),
             new StatusCommandHandler($this->telegramChannel),
+            new MenuCommandHandler($this->menuBuilder),
         ];
 
         // Add voice command handler
@@ -71,10 +73,7 @@ class TelegramCommandHandlerManager
             }
         }
 
-        // Handle menu commands
-        if ($this->isMenuCommand($command)) {
-            return $this->handleMenuCommand($command, $chatId);
-        }
+
 
         // Handle report commands
         if ($this->isReportCommand($command)) {
@@ -109,27 +108,7 @@ class TelegramCommandHandlerManager
         return $this->menuBuilder->buildMainMenu($chatId);
     }
 
-    /**
-     * Check if command is menu command
-     */
-    private function isMenuCommand(string $command): bool
-    {
-        return in_array($command, ['menu', 'services', 'products', 'dashboard']);
-    }
 
-    /**
-     * Handle menu command
-     */
-    private function handleMenuCommand(string $command, int $chatId): array
-    {
-        return match($command) {
-            'menu' => $this->menuBuilder->buildMainMenu($chatId),
-            'services' => $this->menuBuilder->buildServicesMenu($chatId),
-            'products' => $this->menuBuilder->buildProductsMenu($chatId),
-            'dashboard' => $this->menuBuilder->buildDashboardMenu($chatId),
-            default => $this->menuBuilder->buildMainMenu($chatId)
-        };
-    }
 
     /**
      * Check if command is report command

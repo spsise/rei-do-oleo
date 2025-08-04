@@ -30,7 +30,8 @@ class StartCommandHandler implements TelegramCommandHandlerInterface
     {
         $menuCommands = [
             'start', 'help', 'menu', 'ajuda', 'comandos',
-            'opções', 'iniciar', 'begin', 'home', 'principal'
+            'opções', 'iniciar', 'begin', 'home', 'principal',
+            'main_menu', 'voltar', 'back', 'menu_principal'
         ];
 
         return in_array(strtolower($command), $menuCommands);

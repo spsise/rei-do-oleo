@@ -84,7 +84,7 @@ class TelegramCommandParser
     private function parseNaturalLanguage(string $text): array
     {
         // Handle basic commands first (highest priority)
-        if (preg_match('/(menu|ajuda|help|comandos|opções|iniciar|start)/i', $text)) {
+        if (preg_match('/(menu|ajuda|help|comandos|opções|iniciar|start|main_menu|voltar|back|home|principal)/i', $text)) {
             return [
                 'type' => 'start',
                 'params' => []
@@ -92,18 +92,20 @@ class TelegramCommandParser
         }
 
         // Handle status/dashboard commands
-        if (preg_match('/(dashboard|status|como|está).*(sistema|serviços|tudo)/i', $text)) {
+        if (preg_match('/(dashboard|status|como|está|dashboard_menu).*(sistema|serviços|tudo)/i', $text) ||
+            preg_match('/(dashboard|dashboard_menu)/i', $text)) {
             return [
-                'type' => 'dashboard',
-                'params' => []
+                'type' => 'menu',
+                'params' => ['menu_type' => 'dashboard']
             ];
         }
 
         // Handle report commands
-        if (str_contains($text, 'relatório') || str_contains($text, 'report')) {
+        if (str_contains($text, 'relatório') || str_contains($text, 'report') ||
+            str_contains($text, 'report_menu')) {
             return [
-                'type' => 'report',
-                'params' => $this->extractPeriodFromText($text)
+                'type' => 'menu',
+                'params' => ['menu_type' => 'report']
             ];
         }
 
@@ -116,10 +118,11 @@ class TelegramCommandParser
         }
 
         // Handle services commands
-        if (str_contains($text, 'serviços') || str_contains($text, 'services')) {
+        if (str_contains($text, 'serviços') || str_contains($text, 'services') ||
+            str_contains($text, 'services_menu')) {
             return [
-                'type' => 'services',
-                'params' => $this->extractPeriodFromText($text)
+                'type' => 'menu',
+                'params' => ['menu_type' => 'services']
             ];
         }
 
@@ -132,10 +135,11 @@ class TelegramCommandParser
         }
 
         // Handle products commands
-        if (str_contains($text, 'produtos') || str_contains($text, 'products')) {
+        if (str_contains($text, 'produtos') || str_contains($text, 'products') ||
+            str_contains($text, 'products_menu')) {
             return [
-                'type' => 'products',
-                'params' => $this->extractPeriodFromText($text)
+                'type' => 'menu',
+                'params' => ['menu_type' => 'products']
             ];
         }
 
