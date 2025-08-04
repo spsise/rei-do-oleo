@@ -2,41 +2,37 @@
 
 namespace App\Services;
 
+use App\Traits\HasSafeLogging;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
 
 class WhatsAppService
 {
+    use HasSafeLogging;
+
     private string $apiUrl;
-    private string $accessToken;
+    private string $token;
     private string $phoneNumberId;
-    private string $version;
 
     public function __construct()
     {
-        $this->apiUrl = config('services.whatsapp.api_url', 'https://graph.facebook.com');
-        $this->accessToken = config('services.whatsapp.access_token');
+        $this->apiUrl = config('services.whatsapp.api_url');
+        $this->token = config('services.whatsapp.token');
         $this->phoneNumberId = config('services.whatsapp.phone_number_id');
-        $this->version = config('services.whatsapp.version', 'v18.0');
     }
 
     /**
-     * Send text message via WhatsApp
-     *
-     * @param string $toPhoneNumber
-     * @param string $message
-     * @return array
+     * Send WhatsApp message
      */
-    public function sendTextMessage(string $toPhoneNumber, string $message): array
+    public function sendMessage(string $to, string $message): array
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Authorization' => 'Bearer ' . $this->token,
                 'Content-Type' => 'application/json',
-            ])->post("{$this->apiUrl}/{$this->version}/{$this->phoneNumberId}/messages", [
+            ])->post($this->apiUrl . '/messages', [
                 'messaging_product' => 'whatsapp',
-                'to' => $this->formatPhoneNumber($toPhoneNumber),
+                'to' => $to,
                 'type' => 'text',
                 'text' => [
                     'body' => $message
@@ -44,8 +40,9 @@ class WhatsAppService
             ]);
 
             if ($response->successful()) {
-                Log::info('WhatsApp message sent successfully', [
-                    'to' => $toPhoneNumber,
+                $this->logWhatsAppEvent('message_sent', [
+                    'phone' => $to,
+                    'message_type' => 'text',
                     'response' => $response->json()
                 ]);
 
@@ -54,24 +51,23 @@ class WhatsAppService
                     'message_id' => $response->json('messages.0.id'),
                     'response' => $response->json()
                 ];
+            } else {
+                $this->logError('WhatsApp API error', [
+                    'phone' => $to,
+                    'status_code' => $response->status(),
+                    'response' => $response->json()
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => 'API Error',
+                    'response' => $response->json()
+                ];
             }
-
-            Log::error('WhatsApp API error', [
-                'to' => $toPhoneNumber,
-                'status' => $response->status(),
-                'response' => $response->json()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $response->json(),
-                'status' => $response->status()
-            ];
-
         } catch (\Exception $e) {
-            Log::error('WhatsApp service exception', [
-                'error' => $e->getMessage(),
-                'to' => $toPhoneNumber
+            $this->logException($e, [
+                'phone' => $to,
+                'message' => $message
             ]);
 
             return [
@@ -82,19 +78,14 @@ class WhatsAppService
     }
 
     /**
-     * Send template message via WhatsApp
-     *
-     * @param string $toPhoneNumber
-     * @param string $templateName
-     * @param array $components
-     * @return array
+     * Send WhatsApp template message
      */
-    public function sendTemplateMessage(string $toPhoneNumber, string $templateName, array $components = []): array
+    public function sendTemplateMessage(string $to, string $templateName, array $parameters = []): array
     {
         try {
             $payload = [
                 'messaging_product' => 'whatsapp',
-                'to' => $this->formatPhoneNumber($toPhoneNumber),
+                'to' => $to,
                 'type' => 'template',
                 'template' => [
                     'name' => $templateName,
@@ -104,19 +95,25 @@ class WhatsAppService
                 ]
             ];
 
-            if (!empty($components)) {
-                $payload['template']['components'] = $components;
+            if (!empty($parameters)) {
+                $payload['template']['components'] = [
+                    [
+                        'type' => 'body',
+                        'parameters' => $parameters
+                    ]
+                ];
             }
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Authorization' => 'Bearer ' . $this->token,
                 'Content-Type' => 'application/json',
-            ])->post("{$this->apiUrl}/{$this->version}/{$this->phoneNumberId}/messages", $payload);
+            ])->post($this->apiUrl . '/messages', $payload);
 
             if ($response->successful()) {
-                Log::info('WhatsApp template message sent successfully', [
-                    'to' => $toPhoneNumber,
-                    'template' => $templateName,
+                $this->logWhatsAppEvent('template_message_sent', [
+                    'phone' => $to,
+                    'message_type' => 'template',
+                    'template_name' => $templateName,
                     'response' => $response->json()
                 ]);
 
@@ -125,26 +122,25 @@ class WhatsAppService
                     'message_id' => $response->json('messages.0.id'),
                     'response' => $response->json()
                 ];
+            } else {
+                $this->logError('WhatsApp template API error', [
+                    'phone' => $to,
+                    'template_name' => $templateName,
+                    'status_code' => $response->status(),
+                    'response' => $response->json()
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => 'Template API Error',
+                    'response' => $response->json()
+                ];
             }
-
-            Log::error('WhatsApp template API error', [
-                'to' => $toPhoneNumber,
-                'template' => $templateName,
-                'status' => $response->status(),
-                'response' => $response->json()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $response->json(),
-                'status' => $response->status()
-            ];
-
         } catch (\Exception $e) {
-            Log::error('WhatsApp template service exception', [
-                'error' => $e->getMessage(),
-                'to' => $toPhoneNumber,
-                'template' => $templateName
+            $this->logException($e, [
+                'phone' => $to,
+                'template_name' => $templateName,
+                'parameters' => $parameters
             ]);
 
             return [
@@ -156,121 +152,63 @@ class WhatsAppService
 
     /**
      * Send deploy notification
-     *
-     * @param array $deployData
-     * @return array
      */
-    public function sendDeployNotification(array $deployData): array
+    public function sendDeployNotification(array $recipients, array $deployData): array
     {
-        $recipients = config('services.whatsapp.deploy_recipients', []);
-
         if (empty($recipients)) {
-            Log::warning('No WhatsApp recipients configured for deploy notifications');
+            $this->logWarning('No WhatsApp recipients configured for deploy notifications');
             return ['success' => false, 'error' => 'No recipients configured'];
         }
 
-        $message = $this->formatDeployMessage($deployData);
-        $results = [];
+        $successCount = 0;
+        $totalRecipients = count($recipients);
 
         foreach ($recipients as $recipient) {
-            $result = $this->sendTextMessage($recipient, $message);
-            $results[$recipient] = $result;
+            $message = $this->formatDeployMessage($deployData);
+            $result = $this->sendMessage($recipient, $message);
+
+            if ($result['success']) {
+                $successCount++;
+            }
         }
 
-        $successCount = count(array_filter($results, fn($r) => $r['success']));
-        $totalCount = count($results);
-
-        Log::info('Deploy notification sent', [
-            'success_count' => $successCount,
-            'total_count' => $totalCount,
-            'results' => $results
+        $this->logInfo('Deploy notification sent', [
+            'sent_to' => $successCount,
+            'total_recipients' => $totalRecipients,
+            'deploy_data' => $deployData
         ]);
 
         return [
             'success' => $successCount > 0,
             'sent_to' => $successCount,
-            'total_recipients' => $totalCount,
-            'results' => $results
+            'total_recipients' => $totalRecipients
         ];
     }
 
     /**
      * Format deploy message
-     *
-     * @param array $deployData
-     * @return string
      */
     private function formatDeployMessage(array $deployData): string
     {
         $status = $deployData['status'] ?? 'unknown';
         $branch = $deployData['branch'] ?? 'unknown';
-        $commit = $deployData['commit'] ?? 'unknown';
-        $message = $deployData['message'] ?? 'no message';
-        $timestamp = $deployData['timestamp'] ?? now()->format('d/m/Y H:i:s');
+        $timestamp = $deployData['timestamp'] ?? now()->format('Y-m-d H:i:s');
 
-        $emoji = $status === 'success' ? '✅' : ($status === 'error' ? '❌' : '⚠️');
-        $statusText = $status === 'success' ? 'SUCESSO' : ($status === 'error' ? 'ERRO' : 'ATENÇÃO');
-
-        return "🚀 *DEPLOY NOTIFICATION*\n\n" .
-               "{$emoji} *Status:* {$statusText}\n" .
-               "🌿 *Branch:* {$branch}\n" .
-               "🔗 *Commit:* {$commit}\n" .
-               "💬 *Message:* {$message}\n" .
-               "⏰ *Timestamp:* {$timestamp}\n\n" .
-               "Sistema: Rei do Óleo";
+        return "🚀 *Deploy Status: {$status}*\n\n" .
+               "📋 Branch: `{$branch}`\n" .
+               "⏰ Time: {$timestamp}\n\n" .
+               "Status: " . ($status === 'success' ? '✅ Success' : '❌ Failed');
     }
 
     /**
-     * Format phone number for WhatsApp API
-     *
-     * @param string $phoneNumber
-     * @return string
+     * Get WhatsApp configuration
      */
-    private function formatPhoneNumber(string $phoneNumber): string
+    public function getConfig(): array
     {
-        // Remove all non-numeric characters
-        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
-
-        // Add country code if not present (assuming Brazil +55)
-        if (!str_starts_with($phoneNumber, '55')) {
-            $phoneNumber = '55' . $phoneNumber;
-        }
-
-        return $phoneNumber;
-    }
-
-    /**
-     * Test WhatsApp connection
-     *
-     * @return array
-     */
-    public function testConnection(): array
-    {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
-            ])->get("{$this->apiUrl}/{$this->version}/{$this->phoneNumberId}");
-
-            if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'phone_number' => $response->json('phone_number'),
-                    'verified_name' => $response->json('verified_name'),
-                    'code_verification_status' => $response->json('code_verification_status')
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => $response->json(),
-                'status' => $response->status()
-            ];
-
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
+        return [
+            'api_url' => $this->apiUrl,
+            'phone_number_id' => $this->phoneNumberId,
+            'has_token' => !empty($this->token)
+        ];
     }
 }

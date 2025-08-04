@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Domain\Service\Repositories\ServiceTemplateRepositoryInterface;
-use App\Domain\Service\Repositories\ServiceTemplateRepository;
+use App\Contracts\LoggingServiceInterface;
+use App\Services\LoggingService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,8 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register Service Template Repository
-        $this->app->bind(ServiceTemplateRepositoryInterface::class, ServiceTemplateRepository::class);
+        // Bind LoggingService interface to implementation
+        $this->app->bind(LoggingServiceInterface::class, LoggingService::class);
     }
 
     /**
