@@ -29,7 +29,13 @@ class TelegramWebhookController extends Controller
         try {
             $payload = $request->validated();
             $this->loggingService->logTelegramEvent('telegram_webhook_received', [
-                'payload' => $payload
+                'payload' => $payload,
+                'chat_id' => $request->input('message.chat.id'),
+                'user_id' => $request->input('message.from.id'),
+                'message_id' => $request->input('message.message_id'),
+                'message_text' => $request->input('message.text'),
+                'message_date' => $request->input('message.date'),
+                'message_from' => $request->input('message.from'),
             ], 'info');
 
             // Validate payload structure
