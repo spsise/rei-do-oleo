@@ -40,6 +40,7 @@ class TelegramWebhookController extends Controller
 
             // Validate payload structure
             $validation = $this->webhookService->validatePayload($payload);
+
             if (!$validation['valid']) {
                 return TelegramWebhookResource::ignored($validation['message'])
                     ->response()
