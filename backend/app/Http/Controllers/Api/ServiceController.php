@@ -3,21 +3,35 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Domain\Service\Repositories\ServiceRepositoryInterface;
-use App\Domain\Service\Services\ServiceService;
+use App\Http\Requests\Api\Service\StoreServiceRequest;
+use App\Http\Requests\Api\Service\UpdateServiceRequest;
+use App\Http\Requests\Api\Service\UpdateServiceWithItemsRequest;
+use App\Http\Requests\Api\Service\UpdateServiceStatusRequest;
+use App\Http\Requests\Api\Service\SearchServiceRequest;
 use App\Http\Resources\ServiceResource;
+use App\Domain\Service\Services\ServiceService;
+use App\Domain\Service\Actions\CreateServiceAction;
+use App\Domain\Service\Actions\UpdateServiceAction;
+use App\Domain\Service\Actions\UpdateServiceWithItemsAction;
+use App\Domain\Service\Actions\DeleteServiceAction;
+use App\Domain\Service\Actions\UpdateServiceStatusAction;
+use App\Domain\Service\Actions\GetServiceStatsAction;
 use App\Traits\ApiResponseTrait;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
     use ApiResponseTrait;
 
     public function __construct(
-        private ServiceRepositoryInterface $serviceRepository,
-        private ServiceService $serviceService
+        private ServiceService $serviceService,
+        private CreateServiceAction $createServiceAction,
+        private UpdateServiceAction $updateServiceAction,
+        private UpdateServiceWithItemsAction $updateServiceWithItemsAction,
+        private DeleteServiceAction $deleteServiceAction,
+        private UpdateServiceStatusAction $updateStatusAction,
+        private GetServiceStatsAction $getStatsAction
     ) {}
 
     /**
@@ -39,14 +53,9 @@ class ServiceController extends Controller
      *     @OA\Response(response=200, description="Lista de serviços obtida com sucesso")
      * )
      */
-    public function index(Request $request): JsonResponse
+    public function index(SearchServiceRequest $request): JsonResponse
     {
-        $filters = $request->only([
-            'search', 'service_center_id', 'client_id', 'vehicle_id',
-            'status', 'technician_id', 'date_from', 'date_to', 'per_page'
-        ]);
-
-        $services = $this->serviceRepository->searchByFilters($filters);
+        $services = $this->serviceService->searchServices($request->validated());
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -81,41 +90,9 @@ class ServiceController extends Controller
      *     @OA\Response(response=422, description="Erro de validação")
      * )
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreServiceRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'service_center_id' => 'required|exists:service_centers,id',
-            'client_id' => 'required|exists:clients,id',
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'service_number' => 'nullable|string|max:20|unique:services,service_number',
-            'description' => 'required|string',
-            'complaint' => 'nullable|string',
-            'diagnosis' => 'nullable|string',
-            'solution' => 'nullable|string',
-            'scheduled_date' => 'nullable|date',
-            'started_at' => 'nullable|date',
-            'finished_at' => 'nullable|date',
-            'technician_id' => 'nullable|exists:users,id',
-            'attendant_id' => 'nullable|exists:users,id',
-            'status_id' => 'required|exists:service_statuses,id',
-            'payment_method_id' => 'nullable|exists:payment_methods,id',
-            'labor_cost' => 'nullable|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0',
-            'total_amount' => 'nullable|numeric|min:0',
-            'mileage' => 'nullable|integer|min:0',
-            'fuel_level' => ['nullable', Rule::in(['empty', '1/4', '1/2', '3/4', 'full'])],
-            'observations' => 'nullable|string',
-            'internal_notes' => 'nullable|string',
-            'warranty_months' => 'nullable|integer|min:0',
-            'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'urgent'])],
-            'items' => 'nullable|array',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.discount' => 'nullable|numeric|min:0'
-        ]);
-
-        $service = $this->serviceService->create($validated);
+        $service = $this->createServiceAction->execute($request->validated());
 
         return $this->successResponse(
             new ServiceResource($service),
@@ -137,7 +114,7 @@ class ServiceController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $service = $this->serviceRepository->find($id);
+        $service = $this->serviceService->findService($id);
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -191,36 +168,106 @@ class ServiceController extends Controller
      *     )
      * )
      */
-    public function update(Request $request, int $id): JsonResponse
+    /**
+     * @OA\Put(
+     *     path="/api/v1/services/{id}",
+     *     tags={"Serviços"},
+     *     summary="Atualizar serviço com itens",
+     *     description="Atualiza um serviço existente e seus itens em uma única transação",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID do serviço",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"service","items"},
+     *             @OA\Property(
+     *                 property="service",
+     *                 type="object",
+     *                 description="Dados do serviço",
+     *                 @OA\Property(property="service_center_id", type="integer", example=1, description="ID do centro de serviço"),
+     *                 @OA\Property(property="client_id", type="integer", example=1, description="ID do cliente"),
+     *                 @OA\Property(property="vehicle_id", type="integer", example=1, description="ID do veículo"),
+     *                 @OA\Property(property="service_number", type="string", example="SER001", description="Número do serviço"),
+     *                 @OA\Property(property="description", type="string", example="Troca de óleo e filtro", description="Descrição do serviço"),
+     *                 @OA\Property(property="complaint", type="string", example="Motor fazendo ruído", description="Reclamação do cliente"),
+     *                 @OA\Property(property="diagnosis", type="string", example="Óleo vencido", description="Diagnóstico técnico"),
+     *                 @OA\Property(property="solution", type="string", example="Troca de óleo", description="Solução aplicada"),
+     *                 @OA\Property(property="scheduled_at", type="string", format="date-time", example="2024-01-15T10:00:00Z", description="Data de agendamento"),
+     *                 @OA\Property(property="started_at", type="string", format="date-time", example="2024-01-15T10:00:00Z", description="Data de início"),
+     *                 @OA\Property(property="completed_at", type="string", format="date-time", example="2024-01-15T11:00:00Z", description="Data de conclusão"),
+     *                 @OA\Property(property="technician_id", type="integer", example=2, description="ID do técnico"),
+     *                 @OA\Property(property="attendant_id", type="integer", example=3, description="ID do atendente"),
+     *                 @OA\Property(property="service_status_id", type="integer", example=1, description="ID do status do serviço"),
+     *                 @OA\Property(property="payment_method_id", type="integer", example=1, description="ID do método de pagamento"),
+     *                 @OA\Property(property="mileage_at_service", type="integer", example=50000, description="Quilometragem no momento do serviço"),
+     *                 @OA\Property(property="total_amount", type="number", format="float", example=150.00, description="Valor total"),
+     *                 @OA\Property(property="discount_amount", type="number", format="float", example=10.00, description="Valor do desconto"),
+     *                 @OA\Property(property="final_amount", type="number", format="float", example=140.00, description="Valor final"),
+     *                 @OA\Property(property="observations", type="string", example="Observações gerais", description="Observações"),
+     *                 @OA\Property(property="notes", type="string", example="Notas internas", description="Notas internas"),
+     *                 @OA\Property(property="active", type="boolean", example=true, description="Status ativo"),
+     *                 @OA\Property(property="estimated_duration", type="integer", example=60, description="Duração estimada em minutos"),
+     *                 @OA\Property(property="priority", type="string", enum={"low","normal","high","urgent"}, example="normal", description="Prioridade do serviço")
+     *             ),
+     *             @OA\Property(
+     *                 property="items",
+     *                 type="object",
+     *                 description="Operação e dados dos itens do serviço",
+     *                 required={"operation","data"},
+     *                 @OA\Property(
+     *                     property="operation",
+     *                     type="string",
+     *                     enum={"replace","update","merge"},
+     *                     example="replace",
+     *                     description="Tipo de operação: replace (substitui todos), update (atualiza existentes + adiciona novos), merge (adiciona novos mantendo existentes)"
+     *                 ),
+     *                 @OA\Property(
+     *                     property="data",
+     *                     type="array",
+     *                     description="Lista de itens do serviço",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1, description="ID do item (opcional para operação 'update' - se fornecido, atualiza item existente; se não fornecido, cria novo item)"),
+     *                         @OA\Property(property="product_id", type="integer", example=1, description="ID do produto"),
+     *                         @OA\Property(property="quantity", type="integer", example=2, description="Quantidade"),
+     *                         @OA\Property(property="unit_price", type="number", format="float", example=25.00, description="Preço unitário"),
+     *                         @OA\Property(property="discount", type="number", format="float", example=5.0, description="Desconto em porcentagem"),
+     *                         @OA\Property(property="notes", type="string", example="Observações do item", description="Observações específicas do item")
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Serviço atualizado com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="success"),
+     *             @OA\Property(property="message", type="string", example="Serviço atualizado com sucesso"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="service_number", type="string", example="SER001"),
+     *                 @OA\Property(property="description", type="string", example="Troca de óleo e filtro"),
+     *                 @OA\Property(property="total_amount", type="number", format="float", example=140.00),
+     *                 @OA\Property(property="items", type="array", @OA\Items(type="object"))
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Serviço não encontrado"),
+     *     @OA\Response(response=422, description="Erro de validação")
+     * )
+     */
+    public function update(UpdateServiceWithItemsRequest $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'service_center_id' => 'sometimes|exists:service_centers,id',
-            'client_id' => 'sometimes|exists:clients,id',
-            'vehicle_id' => 'sometimes|exists:vehicles,id',
-            'service_number' => ['sometimes', 'string', 'max:20', Rule::unique('services')->ignore($id)],
-            'description' => 'sometimes|string',
-            'complaint' => 'nullable|string',
-            'diagnosis' => 'nullable|string',
-            'solution' => 'nullable|string',
-            'scheduled_date' => 'nullable|date',
-            'started_at' => 'nullable|date',
-            'finished_at' => 'nullable|date',
-            'technician_id' => 'nullable|exists:users,id',
-            'attendant_id' => 'nullable|exists:users,id',
-            'status_id' => 'sometimes|exists:service_statuses,id',
-            'payment_method_id' => 'nullable|exists:payment_methods,id',
-            'labor_cost' => 'nullable|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0',
-            'total_amount' => 'nullable|numeric|min:0',
-            'mileage' => 'nullable|integer|min:0',
-            'fuel_level' => ['nullable', Rule::in(['empty', '1/4', '1/2', '3/4', 'full'])],
-            'observations' => 'nullable|string',
-            'internal_notes' => 'nullable|string',
-            'warranty_months' => 'nullable|integer|min:0',
-            'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'urgent'])]
-        ]);
-
-        $service = $this->serviceRepository->update($id, $validated);
+        $service = $this->updateServiceWithItemsAction->execute($id, $request->validated());
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -258,7 +305,7 @@ class ServiceController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $deleted = $this->serviceRepository->delete($id);
+        $deleted = $this->deleteServiceAction->execute($id);
 
         if (!$deleted) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -289,7 +336,7 @@ class ServiceController extends Controller
      */
     public function getByServiceCenter(int $serviceCenterId): JsonResponse
     {
-        $services = $this->serviceRepository->getServicesByCenter($serviceCenterId);
+        $services = $this->serviceService->getServicesByCenter($serviceCenterId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -319,7 +366,7 @@ class ServiceController extends Controller
      */
     public function getByClient(int $clientId): JsonResponse
     {
-        $services = $this->serviceRepository->getServicesByClient($clientId);
+        $services = $this->serviceService->getServicesByClient($clientId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -349,7 +396,7 @@ class ServiceController extends Controller
      */
     public function getByVehicle(int $vehicleId): JsonResponse
     {
-        $services = $this->serviceRepository->getByVehicle($vehicleId);
+        $services = $this->serviceService->getServicesByVehicle($vehicleId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -379,7 +426,7 @@ class ServiceController extends Controller
      */
     public function getByTechnician(int $technicianId): JsonResponse
     {
-        $services = $this->serviceRepository->getByTechnician($technicianId);
+        $services = $this->serviceService->getServicesByTechnician($technicianId);
 
         return $this->successResponse(
             ServiceResource::collection($services),
@@ -428,7 +475,7 @@ class ServiceController extends Controller
     {
         $request->validate(['service_number' => 'required|string|max:50']);
 
-        $service = $this->serviceRepository->findByServiceNumber($request->service_number);
+        $service = $this->serviceService->findByServiceNumber($request->service_number);
 
         if (!$service) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -480,14 +527,9 @@ class ServiceController extends Controller
      *     )
      * )
      */
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(UpdateServiceStatusRequest $request, int $id): JsonResponse
     {
-        $request->validate([
-            'status_id' => 'required|exists:service_statuses,id',
-            'notes' => 'nullable|string'
-        ]);
-
-        $updated = $this->serviceService->updateStatus($id, $request->status_id, $request->notes);
+        $updated = $this->updateStatusAction->execute($id, $request->validated());
 
         if (!$updated) {
             return $this->errorResponse('Serviço não encontrado', 404);
@@ -537,7 +579,7 @@ class ServiceController extends Controller
     public function getDashboardStats(Request $request): JsonResponse
     {
         $serviceCenterId = $request->get('service_center_id');
-        $stats = $this->serviceRepository->getDashboardStats($serviceCenterId);
+        $stats = $this->getStatsAction->execute($serviceCenterId);
 
         return $this->successResponse($stats, 'Estatísticas do dashboard');
     }

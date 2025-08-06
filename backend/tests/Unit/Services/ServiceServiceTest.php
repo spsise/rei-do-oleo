@@ -189,7 +189,7 @@ class ServiceServiceTest extends TestCase
 
         $this->serviceRepositoryMock
             ->shouldReceive('updateServiceStatus')
-            ->with($serviceId, $status)
+            ->with($serviceId, $status, null)
             ->andReturn(true);
 
         $this->serviceRepositoryMock
@@ -208,7 +208,7 @@ class ServiceServiceTest extends TestCase
 
         $this->serviceRepositoryMock
             ->shouldReceive('updateServiceStatus')
-            ->with($serviceId, 'in_progress')
+            ->with($serviceId, 'in_progress', null)
             ->andReturn(true);
 
         $this->serviceRepositoryMock
@@ -227,7 +227,7 @@ class ServiceServiceTest extends TestCase
 
         $this->serviceRepositoryMock
             ->shouldReceive('updateServiceStatus')
-            ->with($serviceId, 'completed')
+            ->with($serviceId, 'completed', null)
             ->andReturn(true);
 
         $this->serviceRepositoryMock
@@ -246,7 +246,7 @@ class ServiceServiceTest extends TestCase
 
         $this->serviceRepositoryMock
             ->shouldReceive('updateServiceStatus')
-            ->with($serviceId, 'cancelled')
+            ->with($serviceId, 'cancelled', null)
             ->andReturn(true);
 
         $this->serviceRepositoryMock

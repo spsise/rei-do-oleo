@@ -4,6 +4,7 @@ import type {
   Service,
   ServiceFilters,
   UpdateServiceData,
+  UpdateServiceWithItemsData,
 } from '../types/service';
 import { apiCall, httpClient, type ApiResponse } from './http-client';
 
@@ -40,6 +41,15 @@ class ServiceService {
   async updateService(
     id: number,
     data: UpdateServiceData
+  ): Promise<ApiResponse<Service>> {
+    return apiCall(() =>
+      httpClient.instance.put<ApiResponse<Service>>(`/services/${id}`, data)
+    );
+  }
+
+  async updateServiceWithItems(
+    id: number,
+    data: UpdateServiceWithItemsData
   ): Promise<ApiResponse<Service>> {
     return apiCall(() =>
       httpClient.instance.put<ApiResponse<Service>>(`/services/${id}`, data)

@@ -61,11 +61,11 @@ export const ROUTE_CONFIGS: Record<string, RouteConfig> = {
   '/home': {
     path: '/home',
     requiredRole: 'admin',
-    redirectTo: '/technician',
+    redirectTo: '/servicos',
     layout: 'dashboard',
   },
-  '/technician': {
-    path: '/technician',
+  '/servicos': {
+    path: '/servicos',
     requiredRole: 'technician',
     layout: 'technician',
   },
@@ -145,7 +145,7 @@ export const usePermissions = () => {
 
   const getDefaultRoute = useCallback((): string => {
     if (hasRole('technician')) {
-      return '/technician';
+      return '/servicos';
     }
 
     if (hasPermission('canViewDashboard')) {

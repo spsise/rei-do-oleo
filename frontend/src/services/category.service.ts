@@ -54,6 +54,14 @@ class CategoryService {
       httpClient.instance.delete<ApiResponse<null>>(`/categories/${id}`)
     );
   }
+
+  async getActiveCategories(): Promise<ApiResponse<Category[]>> {
+    return apiCall(() =>
+      httpClient.instance.get<ApiResponse<Category[]>>(
+        '/categories/active/list'
+      )
+    );
+  }
 }
 
 export const categoryService = new CategoryService();

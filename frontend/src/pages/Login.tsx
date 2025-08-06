@@ -331,7 +331,7 @@ export const Login = () => {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-500">
-            © 2024 Rei do Óleo. Todos os direitos reservados.
+            © 2025 Rei do Óleo. Todos os direitos reservados.
           </p>
         </div>
       </div>

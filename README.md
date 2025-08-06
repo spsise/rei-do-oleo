@@ -1,4 +1,4 @@
-# 🛢️ Sistema Rei do Óleo MVP
+# 🛢️ Sistema Rei do Óleo
 
 > **Sistema completo de gestão para troca de óleo automotivo**  
 > Desenvolvido como monorepo com Laravel 12 + React 18 + PWA
@@ -36,14 +36,15 @@ bash scripts/start.sh
 ```
 
 **Pronto!** Acesse:
+
 - 🌐 **App**: http://frontend.reidooleo.local
 - 🔧 **API**: http://api.reidooleo.local
 - 📧 **Email**: http://localhost:8025
 
-
 ## 🏗️ Arquitetura
 
 ### Backend (Laravel 12)
+
 - **API RESTful** com autenticação JWT
 - **MySQL 8.0** + **Redis 7** para cache/sessões
 - **Queue Jobs** para processamento assíncrono
@@ -51,12 +52,14 @@ bash scripts/start.sh
 - **Telescope** para debugging (dev)
 
 ### Frontend (React 18)
+
 - **TypeScript** + **Vite** para desenvolvimento rápido
 - **TanStack Query** para gerenciamento de estado servidor
 - **Tailwind CSS** para styling
 - **PWA** com service worker e cache offline
 
 ### DevOps
+
 - **Docker** + **Docker Compose** para containerização
 - **GitHub Actions** para CI/CD
 - **Nginx** como proxy reverso
@@ -65,12 +68,14 @@ bash scripts/start.sh
 ## 🎯 Funcionalidades MVP
 
 ### 👥 Gestão de Clientes
+
 - ✅ Cadastro por placa veicular
 - ✅ Limite de 500 clientes por filial
 - ✅ Histórico completo de serviços
 - ✅ Busca avançada e filtros
 
 ### 🔧 Tipos de Serviços
+
 - ✅ Troca de óleo motor
 - ✅ Filtro de óleo
 - ✅ Filtro de ar
@@ -78,12 +83,14 @@ bash scripts/start.sh
 - ✅ Fluidos diversos (freio, direção, etc.)
 
 ### 📱 Interface Moderna
+
 - ✅ Design responsivo (mobile-first)
 - ✅ PWA instalável
 - ✅ Funcionalidade offline
 - ✅ Notificações push
 
 ### 📊 Dashboard Gerencial
+
 - ✅ Métricas em tempo real
 - ✅ Relatórios de serviços
 - ✅ Controle de estoque básico
@@ -136,6 +143,7 @@ rei-do-oleo/
 ## 🛠️ Desenvolvimento
 
 ### Pré-requisitos
+
 - **Docker** 20.10+ & **Docker Compose** 2.0+
 - **Git** 2.30+
 - **VSCode** (recomendado) com extensão Dev Containers
@@ -166,6 +174,7 @@ bash scripts/deploy.sh staging    # Deploy staging
 ## 🚀 Deploy & Produção
 
 ### Deploy Automático (GitHub Actions)
+
 ```bash
 # Staging
 git push origin develop
@@ -175,6 +184,7 @@ git push origin main
 ```
 
 ### Deploy Manual
+
 ```bash
 # Configurar variáveis de ambiente
 cp .env.example .env.production
@@ -185,6 +195,7 @@ bash scripts/deploy.sh production
 ```
 
 ### Monitoramento
+
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3001
 - **Logs**: `docker-compose -f docker-compose.prod.yml logs`
@@ -192,6 +203,7 @@ bash scripts/deploy.sh production
 ## 🔒 Segurança
 
 ### Recursos Implementados
+
 - ✅ **Rate Limiting**: 60 req/min geral, 1 req/s login
 - ✅ **Headers de Segurança**: HSTS, CSP, XSS Protection
 - ✅ **Autenticação JWT** com Laravel Sanctum
@@ -200,6 +212,7 @@ bash scripts/deploy.sh production
 - ✅ **Logs de Auditoria** para ações críticas
 
 ### SSL/HTTPS
+
 ```bash
 # Gerar certificados para desenvolvimento
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -223,12 +236,14 @@ WHITE_LABEL_COMPANY_NAME="Minha Empresa"
 ## 📊 Performance
 
 ### Métricas Alvo
+
 - ⚡ **First Contentful Paint**: < 1.5s
 - ⚡ **Time to Interactive**: < 3s
 - ⚡ **API Response**: < 200ms (95th percentile)
 - ⚡ **Cache Hit Rate**: > 90%
 
 ### Otimizações Implementadas
+
 - 🚀 **Frontend**: Code splitting, lazy loading, service worker
 - 🚀 **Backend**: OPcache, query optimization, Redis cache
 - 🚀 **Nginx**: Gzip, cache headers, rate limiting
@@ -237,10 +252,12 @@ WHITE_LABEL_COMPANY_NAME="Minha Empresa"
 ## 🧪 Testes
 
 ### Cobertura Atual
+
 - **Backend**: 85% (PHPUnit + Pest)
 - **Frontend**: 80% (Vitest + Testing Library)
 
 ### Executar Testes
+
 ```bash
 # Todos os testes
 npm test
@@ -248,7 +265,7 @@ npm test
 # Backend apenas
 cd backend && php artisan test
 
-# Frontend apenas  
+# Frontend apenas
 cd frontend && npm test
 
 # Análise estática
@@ -265,6 +282,7 @@ cd frontend && npm run type-check
 5. **Abra** um Pull Request
 
 ### Padrões de Commit
+
 - `✨ feat:` Nova funcionalidade
 - `🐛 fix:` Correção de bug
 - `📝 docs:` Documentação
@@ -285,18 +303,21 @@ Este projeto está licenciado sob a [MIT License](LICENSE) - veja o arquivo para
 ## 🗺️ Roadmap
 
 ### 🎯 Fase 1 - MVP (Atual)
+
 - [x] Gestão básica de clientes
 - [x] 5 tipos de serviços essenciais
 - [x] Interface PWA responsiva
 - [x] Dashboard com métricas básicas
 
 ### 🚀 Fase 2 - Expansão
+
 - [ ] Sistema de agendamento online
 - [ ] Integração com WhatsApp Business
 - [ ] Relatórios avançados com BI
 - [ ] Sistema multi-tenant
 
 ### 🌟 Fase 3 - Escala
+
 - [ ] Aplicativo móvel nativo
 - [ ] Integração com sistemas fiscais
 - [ ] Machine Learning para previsões

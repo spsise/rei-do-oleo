@@ -5,6 +5,7 @@ import type {
   Service,
   ServiceFilters,
   UpdateServiceData,
+  UpdateServiceWithItemsData,
 } from '../types/service';
 import { QUERY_KEYS } from './query-keys';
 
@@ -39,7 +40,10 @@ export const useService = (id: number) => {
       return response.data!;
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutos - aumentar cache time
+    gcTime: 30 * 60 * 1000, // 30 minutos - garbage collection
+    refetchOnWindowFocus: false, // Evitar refetch desnecessário
+    refetchOnMount: false, // Usar cache se disponível
   });
 };
 
@@ -144,6 +148,45 @@ export const useUpdateService = () => {
     },
     onError: (error: ApiError) => {
       console.error('Erro ao atualizar serviço:', error);
+      throw error;
+    },
+  });
+};
+
+// Atualizar serviço com itens (nova implementação unificada)
+export const useUpdateServiceWithItems = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: UpdateServiceWithItemsData;
+    }): Promise<Service> => {
+      const response = await serviceService.updateServiceWithItems(id, data);
+      return response.data!;
+    },
+    onSuccess: (updatedService) => {
+      // Atualizar cache do serviço específico
+      queryClient.setQueryData(
+        [QUERY_KEYS.SERVICE, updatedService.id],
+        updatedService
+      );
+
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.SERVICES],
+      });
+
+      // Invalidar queries de busca do técnico
+      queryClient.invalidateQueries({
+        queryKey: ['technician', 'search'],
+      });
+    },
+    onError: (error: ApiError) => {
+      console.error('Erro ao atualizar serviço com itens:', error);
       throw error;
     },
   });

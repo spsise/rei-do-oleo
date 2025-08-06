@@ -10,6 +10,7 @@ export interface Service {
   scheduled_date?: string;
   started_at?: string;
   finished_at?: string;
+  estimated_duration?: number;
   duration?: number;
   duration_formatted?: string;
   status?: {
@@ -66,6 +67,7 @@ export interface Service {
   warranty_months?: number;
   observations?: string;
   internal_notes?: string;
+  items?: ServiceItem[];
   created_at: string;
   updated_at: string;
 }
@@ -83,7 +85,15 @@ export interface ServiceItem {
   updated_at: string;
 
   // Relacionamentos
-  product?: Product;
+  product?: {
+    id: number;
+    name: string;
+    sku: string;
+    brand?: string;
+    category: string;
+    unit: string;
+    current_stock: number;
+  };
 }
 
 export interface ServiceStatus {
@@ -207,11 +217,11 @@ export interface CreateServiceData {
   discount?: number;
   total_amount?: number;
   mileage?: number;
+  estimated_duration?: number;
   fuel_level?: 'empty' | '1/4' | '1/2' | '3/4' | 'full';
   observations?: string;
   internal_notes?: string;
   warranty_months?: number;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
   items?: CreateServiceItemData[];
 }
 
@@ -236,11 +246,23 @@ export interface UpdateServiceData {
   discount?: number;
   total_amount?: number;
   mileage?: number;
+  estimated_duration?: number;
+  scheduled_at?: string;
+  mileage_at_service?: number;
   fuel_level?: 'empty' | '1/4' | '1/2' | '3/4' | 'full';
   observations?: string;
   internal_notes?: string;
   warranty_months?: number;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
+}
+
+// New unified structure for updating service with items
+export interface UpdateServiceWithItemsData {
+  service: UpdateServiceData;
+  items: {
+    operation: 'replace' | 'update' | 'merge';
+    remove_unsent?: boolean;
+    data: CreateServiceItemData[];
+  };
 }
 
 // Dados para criação de item

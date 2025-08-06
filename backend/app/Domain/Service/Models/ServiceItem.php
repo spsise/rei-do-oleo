@@ -18,6 +18,7 @@ class ServiceItem extends Model
         'product_id',
         'quantity',
         'unit_price',
+        'discount',
         'total_price',
         'notes',
     ];
@@ -28,6 +29,7 @@ class ServiceItem extends Model
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
+        'discount' => 'decimal:2',
         'total_price' => 'decimal:2',
     ];
 
@@ -84,7 +86,9 @@ class ServiceItem extends Model
      */
     public function calculateTotalPrice(): void
     {
-        $this->total_price = $this->quantity * $this->unit_price;
+        $subtotal = $this->quantity * $this->unit_price;
+        $discountAmount = $subtotal * ($this->discount / 100);
+        $this->total_price = $subtotal - $discountAmount;
     }
 
     /**

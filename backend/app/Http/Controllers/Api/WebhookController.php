@@ -3,13 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\DeployNotification;
+use App\Services\WhatsAppService;
+use App\Services\UnifiedNotificationService;
+use App\Contracts\LoggingServiceInterface;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
-use Illuminate\Support\Facades\Artisan;
 
 class WebhookController extends Controller
 {
+    public function __construct(
+        private LoggingServiceInterface $loggingService
+    ) {}
+
     /**
      * Handle GitHub webhook for automatic deployment
      *
@@ -18,11 +24,13 @@ class WebhookController extends Controller
      */
     public function deploy(Request $request)
     {
+        $startTime = microtime(true);
+
         try {
             // Log the webhook request
-            Log::info('Webhook: Deploy request received', [
-                'headers' => $request->headers->all(),
-                'payload' => $request->all()
+            $this->loggingService->logApiRequest($request, [
+                'webhook_type' => 'github_deploy',
+                'operation' => 'deploy_webhook'
             ]);
 
             // Get the payload
@@ -30,9 +38,10 @@ class WebhookController extends Controller
 
             // Verify if it's a push to the hostinger-hom branch
             if (!isset($payload['ref']) || $payload['ref'] !== 'refs/heads/hostinger-hom') {
-                Log::info('Webhook: Ignored - not hostinger-hom branch', [
+                $this->loggingService->logBusinessOperation('deploy_webhook_ignored', [
+                    'reason' => 'not_hostinger_hom_branch',
                     'ref' => $payload['ref'] ?? 'not set'
-                ]);
+                ], 'info');
 
                 return response()->json([
                     'status' => 'ignored',
@@ -44,9 +53,10 @@ class WebhookController extends Controller
             // Verify repository
             if (!isset($payload['repository']['full_name']) ||
                 $payload['repository']['full_name'] !== 'spsise/rei-do-oleo') {
-                Log::warning('Webhook: Wrong repository', [
-                    'repository' => $payload['repository']['full_name'] ?? 'not set'
-                ]);
+                $this->loggingService->logSecurityEvent('deploy_webhook_wrong_repository', [
+                    'repository' => $payload['repository']['full_name'] ?? 'not set',
+                    'expected' => 'spsise/rei-do-oleo'
+                ], 'warning');
 
                 return response()->json([
                     'status' => 'error',
@@ -54,17 +64,23 @@ class WebhookController extends Controller
                 ], 400);
             }
 
-            Log::info('Webhook: Starting deployment', [
+            $this->loggingService->logBusinessOperation('deploy_webhook_started', [
                 'branch' => 'hostinger-hom',
                 'commit' => $payload['head_commit']['id'] ?? 'unknown',
-                'message' => $payload['head_commit']['message'] ?? 'no message'
-            ]);
+                'message' => $payload['head_commit']['message'] ?? 'no message',
+                'repository' => $payload['repository']['full_name']
+            ], 'info');
 
             // Execute deployment script in background
             $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh';
 
             if (!file_exists($deployScript)) {
-                Log::error('Webhook: Deploy script not found', ['script' => $deployScript]);
+                $this->loggingService->logBusinessOperation('deploy_script_not_found', [
+                    'script_path' => $deployScript,
+                    'current_user' => get_current_user()
+                ], 'error');
+
+                $this->sendDeployNotification('error', $payload, 'Deploy script not found');
 
                 return response()->json([
                     'status' => 'error',
@@ -74,7 +90,9 @@ class WebhookController extends Controller
 
             // Check if script is executable
             if (!is_executable($deployScript)) {
-                Log::warning('Webhook: Deploy script not executable, making it executable', ['script' => $deployScript]);
+                $this->loggingService->logBusinessOperation('deploy_script_made_executable', [
+                    'script_path' => $deployScript
+                ], 'warning');
                 chmod($deployScript, 0755);
             }
 
@@ -87,9 +105,13 @@ class WebhookController extends Controller
             // Start the process and capture output
             $process->start(function ($type, $buffer) {
                 if ($type === Process::ERR) {
-                    Log::error('Webhook: Deploy error', ['output' => trim($buffer)]);
+                    $this->loggingService->logBusinessOperation('deploy_process_error', [
+                        'output' => trim($buffer)
+                    ], 'error');
                 } else {
-                    Log::info('Webhook: Deploy output', ['output' => trim($buffer)]);
+                    $this->loggingService->logBusinessOperation('deploy_process_output', [
+                        'output' => trim($buffer)
+                    ], 'info');
                 }
             });
 
@@ -98,11 +120,14 @@ class WebhookController extends Controller
 
             // Check if process completed successfully
             if (!$process->isSuccessful()) {
-                Log::error('Webhook: Deploy process failed', [
+                $this->loggingService->logBusinessOperation('deploy_process_failed', [
                     'exit_code' => $process->getExitCode(),
                     'error_output' => $process->getErrorOutput(),
                     'output' => $process->getOutput()
-                ]);
+                ], 'error');
+
+                // Send WhatsApp notification for failed deploy
+                $this->sendDeployNotification('error', $payload, $process->getErrorOutput());
 
                 return response()->json([
                     'status' => 'error',
@@ -112,33 +137,89 @@ class WebhookController extends Controller
                 ], 500);
             }
 
-            Log::info('Webhook: Deploy process completed successfully', [
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $this->loggingService->logBusinessOperation('deploy_process_completed', [
                 'exit_code' => $process->getExitCode(),
                 'output' => $process->getOutput(),
-                //'deploy_script' => $deployScript
+                'processing_time_ms' => round($duration, 2)
+            ], 'success');
+
+            // Log performance metric
+            $this->loggingService->logPerformance('github_deploy_webhook', $duration, [
+                'branch' => 'hostinger-hom',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown'
             ]);
+
+            // Send WhatsApp notification for successful deploy (Telegram)
+            $this->sendDeployNotification('success', $payload, $process->getOutput());
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Deployment completed successfully',
-                // 'branch' => 'hostinger-hom',
-                // 'commit' => $payload['head_commit']['id'] ?? 'unknown',
-                // 'exit_code' => $process->getExitCode(),
-                // 'output' => $process->getOutput(),
-                // 'deploy_script' => $deployScript,
-                // 'process_id' => $process->getPid()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Webhook: Exception during deployment', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $this->loggingService->logException($e, [
+                'operation' => 'github_deploy_webhook',
+                'processing_time_ms' => round($duration, 2)
             ]);
+
+            // Send WhatsApp notification for exception
+            $this->sendDeployNotification('error', $payload ?? [], $e->getMessage());
 
             return response()->json([
                 'status' => 'error',
                 'message' => 'Exception during deployment: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Send deploy notification via unified service
+     *
+     * @param string $status
+     * @param array $payload
+     * @param string $output
+     * @return void
+     */
+    private function sendDeployNotification(string $status, array $payload, string $output = ''): void
+    {
+        try {
+            $deployData = [
+                'status' => $status,
+                'branch' => $payload['ref'] ?? 'unknown',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                'message' => $payload['head_commit']['message'] ?? 'no message',
+                'timestamp' => now()->format('d/m/Y H:i:s'),
+                'output' => $output
+            ];
+
+            // Send notification using unified service
+            $notificationService = app(UnifiedNotificationService::class);
+            $result = $notificationService->sendDeployNotification($deployData);
+
+            if ($result['success']) {
+                $this->loggingService->logBusinessOperation('deploy_notification_sent', [
+                    'status' => $status,
+                    'sent_to_channels' => $result['sent_to_channels'],
+                    'total_channels' => $result['total_channels'],
+                    'channels' => array_keys(array_filter($result['results'], fn($r) => $r['success']))
+                ], 'success');
+            } else {
+                $this->loggingService->logBusinessOperation('deploy_notification_failed', [
+                    'status' => $status,
+                    'results' => $result['results']
+                ], 'error');
+            }
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_deploy_notification',
+                'status' => $status
+            ]);
         }
     }
 
@@ -150,7 +231,13 @@ class WebhookController extends Controller
     public function health()
     {
         $deployScript = '/home/' . get_current_user() . '/rei-do-oleo/deploy.sh';
-        
+
+        $this->loggingService->logBusinessOperation('webhook_health_check', [
+            'deploy_script_exists' => file_exists($deployScript),
+            'deploy_script_executable' => file_exists($deployScript) ? is_executable($deployScript) : false,
+            'current_user' => get_current_user()
+        ], 'info');
+
         return response()->json([
             'status' => 'healthy',
             'message' => 'Webhook endpoint is working',
@@ -160,6 +247,20 @@ class WebhookController extends Controller
             'deploy_script_path' => $deployScript,
             'current_user' => get_current_user(),
             'working_directory' => getcwd()
+        ]);
+    }
+
+    public function testSendNotification()
+    {
+        $this->loggingService->logBusinessOperation('test_notification_sent', [
+            'type' => 'deploy_notification'
+        ], 'info');
+
+        $this->sendDeployNotification('testNotification', [], 'Test');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Test notification sent'
         ]);
     }
 }

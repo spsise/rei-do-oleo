@@ -58,6 +58,8 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         'sensitive.data' => \App\Http\Middleware\CheckSensitiveDataPermission::class,
+        'performance.monitor' => \App\Http\Middleware\PerformanceMonitor::class,
+        'service.update.monitor' => \App\Http\Middleware\ServiceUpdateMonitor::class,
 
     ];
 }

@@ -123,9 +123,9 @@ const StatCard: React.FC<StatCardProps> = ({
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2 mb-2">
-            <p className="text-sm font-medium text-gray-600 truncate">
+            <span className="text-sm font-medium text-gray-600 truncate">
               {title}
-            </p>
+            </span>
             {description && (
               <div className="group relative">
                 <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center cursor-help">

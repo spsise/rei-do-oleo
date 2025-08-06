@@ -11,6 +11,46 @@ echo "📁 Projeto: /home/$(whoami)/rei-do-oleo"
 echo "🔗 API: /home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
 echo "🌐 Frontend: /home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
 
+# Função para aplicar limite de 2 backups
+apply_backup_limit() {
+    local backup_dir="$1"
+    if [ -d "$backup_dir" ]; then
+        echo "🔧 Aplicando limite de 2 backups em: $backup_dir"
+
+        # Limpar backups de API
+        api_backups=$(ls -t "$backup_dir"/api_backup_* 2>/dev/null || true)
+        if [ -n "$api_backups" ]; then
+            total_api=$(echo "$api_backups" | wc -l)
+            if [ "$total_api" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_api - 2)) backups antigos de API..."
+                echo "$api_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de frontend
+        frontend_backups=$(ls -t "$backup_dir"/frontend_backup_* 2>/dev/null || true)
+        if [ -n "$frontend_backups" ]; then
+            total_frontend=$(echo "$frontend_backups" | wc -l)
+            if [ "$total_frontend" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_frontend - 2)) backups antigos de frontend..."
+                echo "$frontend_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de rollback
+        rollback_backups=$(ls -t "$backup_dir"/*_rollback_backup_* 2>/dev/null || true)
+        if [ -n "$rollback_backups" ]; then
+            total_rollback=$(echo "$rollback_backups" | wc -l)
+            if [ "$total_rollback" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_rollback - 2)) backups antigos de rollback..."
+                echo "$rollback_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        echo "✅ Limite de 2 backups aplicado com sucesso!"
+    fi
+}
+
 # Diretórios do projeto
 PROJECT_ROOT="/home/$(whoami)/rei-do-oleo"
 API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
@@ -20,6 +60,9 @@ FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
 mkdir -p "$PROJECT_ROOT"
 mkdir -p "$API_DIR"
 mkdir -p "$FRONTEND_DIR"
+
+# Aplicar limite de 2 backups se o diretório de backup existir
+apply_backup_limit "$PROJECT_ROOT/backups"
 
 # Verificar se já existe um .git e se é do projeto correto
 if [ -d "$PROJECT_ROOT/.git" ]; then
@@ -152,6 +195,50 @@ echo "✅ Repositório atualizado com sucesso"
 
 # Log do deploy
 echo "$(date): Deploy iniciado - repositório atualizado" >> "$PROJECT_ROOT/deploy.log"
+
+# FUNÇÃO PARA LIMPAR BACKUPS ANTIGOS (EXECUTAR ANTES DE CRIAR NOVOS)
+cleanup_old_backups() {
+    echo "🧹 Limpando backups antigos antes de criar novos..."
+
+    if [ -d "$BACKUP_DIR" ]; then
+        # Limpar backups de API (manter apenas os 2 mais recentes)
+        api_backups=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null || true)
+        if [ -n "$api_backups" ]; then
+            total_api=$(echo "$api_backups" | wc -l)
+            if [ "$total_api" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_api - 2)) backups antigos de API..."
+                echo "$api_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de frontend (manter apenas os 2 mais recentes)
+        frontend_backups=$(ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null || true)
+        if [ -n "$frontend_backups" ]; then
+            total_frontend=$(echo "$frontend_backups" | wc -l)
+            if [ "$total_frontend" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_frontend - 2)) backups antigos de frontend..."
+                echo "$frontend_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de rollback (manter apenas os 2 mais recentes)
+        rollback_backups=$(ls -t "$BACKUP_DIR"/*_rollback_backup_* 2>/dev/null || true)
+        if [ -n "$rollback_backups" ]; then
+            total_rollback=$(echo "$rollback_backups" | wc -l)
+            if [ "$total_rollback" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_rollback - 2)) backups antigos de rollback..."
+                echo "$rollback_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        echo "✅ Limpeza de backups antigos concluída - mantidos apenas os 2 mais recentes de cada tipo"
+    else
+        echo "ℹ️ Diretório de backup não encontrado: $BACKUP_DIR"
+    fi
+}
+
+# EXECUTAR LIMPEZA DE BACKUPS ANTIGOS ANTES DE CRIAR NOVOS
+cleanup_old_backups
 
 # Função para fazer backup de arquivos importantes
 backup_important_files() {
@@ -447,7 +534,7 @@ if [ -d "frontend" ]; then
         echo "⚠️ Build local não encontrado. Execute npm run build no frontend antes do deploy."
         echo "   Comandos: cd frontend && npm install && npm run build"
         echo "❌ Deploy do frontend interrompido - build necessário"
-        
+
         # Limpar diretório temporário
         cd "$PROJECT_ROOT"
         rm -rf "$TEMP_BUILD_DIR"
@@ -522,10 +609,9 @@ else
     echo "✅ Arquivo de log criado com permissões corretas: $PROJECT_ROOT/deploy.log"
 fi
 
-# Limpar backups antigos (manter apenas os últimos 5)
-echo "🧹 Limpando backups antigos..."
-ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
-ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+# LIMPEZA FINAL DE BACKUPS (DUPLA VERIFICAÇÃO)
+echo "🧹 Verificação final de backups..."
+cleanup_old_backups
 
 echo "✅ Deploy concluído com zero downtime!"
 EOF
@@ -749,11 +835,11 @@ cleanup_old_backups() {
 
 # Verificar argumentos
 if [ "$1" = "auto" ]; then
-    # Limpeza automática (manter 5 backups de cada tipo)
+    # Limpeza automática (manter 2 backups de cada tipo)
     echo "$(date): Iniciando limpeza automática de backups" >> "$PROJECT_ROOT/cleanup.log"
-    cleanup_old_backups 5 "api_backup_*"
-    cleanup_old_backups 5 "frontend_backup_*"
-    cleanup_old_backups 5 "*_rollback_backup_*"
+    cleanup_old_backups 2 "api_backup_*"
+    cleanup_old_backups 2 "frontend_backup_*"
+    cleanup_old_backups 2 "*_rollback_backup_*"
     echo "$(date): Limpeza automática de backups concluída" >> "$PROJECT_ROOT/cleanup.log"
     exit 0
 fi
@@ -775,12 +861,12 @@ if [ "$1" = "all" ]; then
     exit 0
 fi
 
-# Limpeza padrão (manter 3 backups de cada tipo)
-echo "🧹 Limpeza padrão de backups (manter 3 de cada tipo)..."
+# Limpeza padrão (manter 2 backups de cada tipo)
+echo "🧹 Limpeza padrão de backups (manter 2 de cada tipo)..."
 echo "$(date): Iniciando limpeza padrão de backups" >> "$PROJECT_ROOT/cleanup.log"
-cleanup_old_backups 3 "api_backup_*"
-cleanup_old_backups 3 "frontend_backup_*"
-cleanup_old_backups 3 "*_rollback_backup_*"
+cleanup_old_backups 2 "api_backup_*"
+cleanup_old_backups 2 "frontend_backup_*"
+cleanup_old_backups 2 "*_rollback_backup_*"
 echo "$(date): Limpeza padrão de backups concluída" >> "$PROJECT_ROOT/cleanup.log"
 
 echo "✅ Limpeza concluída!"

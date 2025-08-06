@@ -23,8 +23,19 @@ class ServiceService
     public function createService(array $data): Service
     {
         return DB::transaction(function () use ($data) {
-            $client = $this->clientRepository->find($data['client_id']);
-            $vehicle = $this->vehicleRepository->find($data['vehicle_id']);
+            $clientId = $data['client_id'] ?? null;
+            $vehicleId = $data['vehicle_id'] ?? null;
+
+            if (!$clientId) {
+                throw new \InvalidArgumentException('ID do cliente é obrigatório');
+            }
+
+            if (!$vehicleId) {
+                throw new \InvalidArgumentException('ID do veículo é obrigatório');
+            }
+
+            $client = $this->clientRepository->find($clientId);
+            $vehicle = $this->vehicleRepository->find($vehicleId);
 
             if (!$client) {
                 throw new \InvalidArgumentException('Cliente não encontrado');
@@ -46,9 +57,9 @@ class ServiceService
         });
     }
 
-    public function updateServiceStatus(int $serviceId, string $status): bool
+    public function updateServiceStatus(int $serviceId, string $status, ?string $notes = null): bool
     {
-        $result = $this->serviceRepository->updateServiceStatus($serviceId, $status);
+        $result = $this->serviceRepository->updateServiceStatus($serviceId, $status, $notes);
 
         if ($result) {
             $service = $this->serviceRepository->find($serviceId);
@@ -108,6 +119,21 @@ class ServiceService
         );
     }
 
+    public function getServicesByVehicle(int $vehicleId): Collection
+    {
+        return $this->serviceRepository->getByVehicle($vehicleId);
+    }
+
+    public function getServicesByTechnician(int $technicianId): Collection
+    {
+        return $this->serviceRepository->getByTechnician($technicianId);
+    }
+
+    public function findByServiceNumber(string $serviceNumber): ?Service
+    {
+        return $this->serviceRepository->findByServiceNumber($serviceNumber);
+    }
+
     public function searchServices(array $filters): LengthAwarePaginator
     {
         return $this->serviceRepository->searchByFilters($filters);
@@ -116,6 +142,11 @@ class ServiceService
     public function findService(int $id): ?Service
     {
         return $this->serviceRepository->find($id);
+    }
+
+    public function findServiceWithRelations(int $id): ?Service
+    {
+        return $this->serviceRepository->findWithRelations($id);
     }
 
     public function updateService(int $id, array $data): ?Service
@@ -145,7 +176,7 @@ class ServiceService
         return $this->createService($data);
     }
 
-    public function updateStatus(int $serviceId, string $status, ?string $notes = null): Service
+    public function updateStatus(int $serviceId, int $statusId, ?string $notes = null): Service
     {
         $service = $this->serviceRepository->find($serviceId);
 
@@ -153,26 +184,21 @@ class ServiceService
             throw new \InvalidArgumentException('Serviço não encontrado');
         }
 
-        $updateData = [];
+        $updateData = ['service_status_id' => $statusId];
 
         if ($notes) {
             $updateData['notes'] = $notes;
         }
 
-        // Atualizar status
-        $this->serviceRepository->updateServiceStatus($serviceId, $status);
-
-        // Atualizar notas se fornecidas
-        if (!empty($updateData)) {
-            $this->serviceRepository->update($serviceId, $updateData);
-        }
+        // Atualizar status e notas
+        $this->serviceRepository->update($serviceId, $updateData);
 
         $this->clearServiceCaches($service);
 
         return $this->serviceRepository->find($serviceId);
     }
 
-    public function getDashboardMetrics(int $serviceCenterId = null, string $period = 'today'): array
+    public function getDashboardMetrics(?int $serviceCenterId, string $period = 'today'): array
     {
         $cacheKey = "dashboard_metrics_{$serviceCenterId}_{$period}";
 
@@ -267,25 +293,23 @@ class ServiceService
         return $stats;
     }
 
-    private function clearServiceCaches(?Service $service): void
+    private function clearServiceCaches(Service $service): void
     {
-        if (!$service) {
-            return;
-        }
+        // Clear specific service cache
+        Cache::forget("service_details_{$service->id}");
 
-        // Clear general caches
-        Cache::forget("services_center_{$service->service_center_id}");
+        // Clear related caches
         Cache::forget("client_services_{$service->client_id}");
+        Cache::forget("vehicle_services_{$service->vehicle_id}");
 
-        // Clear dashboard metrics
-        Cache::forget("dashboard_metrics_{$service->service_center_id}_today");
-        Cache::forget("dashboard_metrics_{$service->service_center_id}_week");
-        Cache::forget("dashboard_metrics_{$service->service_center_id}_month");
+        // Clear dashboard stats cache
+        Cache::forget("dashboard_stats_{$service->service_center_id}");
+        Cache::forget("dashboard_stats");
 
-        // Clear date range caches (could be optimized)
-        $today = now()->toDateString();
-        $yesterday = now()->subDay()->toDateString();
-        Cache::forget("services_range_{$yesterday}_{$today}");
+        // Clear technician stats cache
+        if ($service->technician_id) {
+            Cache::forget("technician_stats_{$service->technician_id}");
+        }
     }
 
     /**

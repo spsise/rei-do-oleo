@@ -37,6 +37,32 @@ class TechnicianSearchResource extends JsonResource
                     'status' => $service->serviceStatus?->name ?? 'pending',
                     'total_amount' => $service->total_amount ? (float) $service->total_amount : 0,
                     'created_at' => $service->created_at ? $service->created_at->format('Y-m-d\TH:i:s') : '',
+                    'scheduled_at' => $service->scheduled_at ? $service->scheduled_at->format('Y-m-d\TH:i') : null,
+                    'mileage_at_service' => $service->mileage_at_service ? (int) $service->mileage_at_service : null,
+                    'estimated_duration' => $service->estimated_duration ? (int) $service->estimated_duration : null,
+                    'observations' => $service->observations ?? '',
+                    'notes' => $service->internal_notes ?? '',
+                    'items' => $service->serviceItems->map(function ($item) {
+                        return [
+                            'id' => (int) $item->id,
+                            'product_id' => (int) $item->product_id,
+                            'quantity' => (int) $item->quantity,
+                            'unit_price' => (float) $item->unit_price,
+                            'total_price' => (float) $item->total_price,
+                            'notes' => $item->notes ?? '',
+                            'product' => $item->product ? [
+                                'id' => (int) $item->product->id,
+                                'name' => $item->product->name ?? '',
+                                'sku' => $item->product->sku ?? '',
+                                'price' => (float) $item->product->price ?? 0,
+                                'stock_quantity' => (int) $item->product->current_stock ?? 0,
+                                'category' => $item->product->category ? [
+                                    'id' => (int) $item->product->category->id,
+                                    'name' => $item->product->category->name ?? '',
+                                ] : null,
+                            ] : null,
+                        ];
+                    }),
                 ];
             }),
             'found_by' => $this['found_by'],

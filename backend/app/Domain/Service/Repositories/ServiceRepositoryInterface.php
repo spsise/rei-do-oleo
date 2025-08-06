@@ -12,7 +12,7 @@ interface ServiceRepositoryInterface
 
     public function addServiceItems(Service $service, array $items): void;
 
-    public function updateServiceStatus(int $serviceId, string $status): bool;
+    public function updateServiceStatus(int $serviceId, string $status, ?string $notes = null): bool;
 
     public function getServicesByDateRange(string $startDate, string $endDate): Collection;
 
@@ -25,6 +25,8 @@ interface ServiceRepositoryInterface
     public function searchByFilters(array $filters): LengthAwarePaginator;
 
     public function find(int $id): ?Service;
+
+    public function findWithRelations(int $id): ?Service;
 
     public function create(array $data): Service;
 
@@ -48,4 +50,6 @@ interface ServiceRepositoryInterface
     public function getByTechnician(int $technicianId): Collection;
 
     public function findByServiceNumber(string $serviceNumber): ?Service;
+
+    public function getDashboardStats(?int $serviceCenterId = null): array;
 }

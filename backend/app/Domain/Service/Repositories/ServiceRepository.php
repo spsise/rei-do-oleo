@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
+use Illuminate\Support\Facades\Cache;
 
 class ServiceRepository implements ServiceRepositoryInterface
 {
@@ -43,7 +44,8 @@ class ServiceRepository implements ServiceRepositoryInterface
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'total_price' => $item['quantity'] * $item['unit_price'],
+                'discount' => $item['discount'] ?? 0,
+                'total_price' => $item['quantity'] * $item['unit_price'] * (1 - ($item['discount'] ?? 0) / 100),
                 'notes' => $item['notes'] ?? null,
             ]);
         }
@@ -52,7 +54,7 @@ class ServiceRepository implements ServiceRepositoryInterface
         $service->calculateTotals();
     }
 
-    public function updateServiceStatus(int $serviceId, string $status): bool
+    public function updateServiceStatus(int $serviceId, string $status, ?string $notes = null): bool
     {
         $service = Service::find($serviceId);
         $serviceStatus = ServiceStatus::findByName($status);
@@ -62,6 +64,11 @@ class ServiceRepository implements ServiceRepositoryInterface
         }
 
         $updateData = ['service_status_id' => $serviceStatus->id];
+
+        // Add notes if provided
+        if ($notes) {
+            $updateData['notes'] = $notes;
+        }
 
         // Update timestamps based on status
         switch ($status) {
@@ -192,16 +199,46 @@ class ServiceRepository implements ServiceRepositoryInterface
 
     public function find(int $id): ?Service
     {
-        return Service::with([
-            'client',
-            'vehicle',
-            'serviceCenter',
-            'serviceStatus',
-            'paymentMethod',
-            'technician',
-            'attendant',
+        // Usar cache para detalhes de serviço
+        $cacheKey = "service_details_{$id}";
+
+        return Cache::remember($cacheKey, 300, function () use ($id) {
+            // Otimizar eager loading - carregar apenas o necessário
+            $service = Service::with([
+                'client:id,name,phone01,cpf,cnpj',
+                'vehicle:id,license_plate,brand,model,year',
+                'serviceCenter:id,name,code',
+                'serviceStatus:id,name,color',
+                'paymentMethod:id,name',
+                'technician:id,name',
+                'attendant:id,name',
+                'serviceItems.product.category'
+            ])->find($id);
+
+            // Se não encontrar, retornar null
+            if (!$service) {
+                return null;
+            }
+
+            return $service;
+        });
+    }
+
+    public function findWithRelations(int $id): ?Service
+    {
+        // Load service with all necessary relationships for API response
+        $service = Service::with([
+            'client:id,name,phone01,cpf,cnpj',
+            'vehicle:id,license_plate,brand,model,year',
+            'serviceCenter:id,name,code',
+            'serviceStatus:id,name,color',
+            'paymentMethod:id,name',
+            'technician:id,name',
+            'attendant:id,name',
             'serviceItems.product.category'
         ])->find($id);
+
+        return $service;
     }
 
     public function create(array $data): Service
@@ -218,7 +255,13 @@ class ServiceRepository implements ServiceRepositoryInterface
         }
 
         return DB::transaction(function () use ($service, $data) {
-            $service->update($data);
+            // Filtrar apenas campos que realmente mudaram
+            $changedData = $this->filterChangedFields($service, $data);
+
+            // Só atualizar se há mudanças
+            if (!empty($changedData)) {
+                $service->update($changedData);
+            }
 
             // Update service items if provided
             if (isset($data['items']) && is_array($data['items'])) {
@@ -239,6 +282,41 @@ class ServiceRepository implements ServiceRepositoryInterface
         });
     }
 
+    /**
+     * Filtra apenas os campos que realmente mudaram
+     */
+    private function filterChangedFields(Service $service, array $data): array
+    {
+        $changedFields = [];
+
+        foreach ($data as $field => $value) {
+            // Pular campos especiais como 'items'
+            if ($field === 'items') {
+                continue;
+            }
+
+            // skip null or undefined values
+            if ($value === null || $value === 'undefined') {
+                continue;
+            }
+
+            $currentValue = $service->getAttribute($field);
+
+            // Normalizar tipos para comparação
+            if (is_numeric($currentValue) && is_numeric($value)) {
+                $currentValue = (int) $currentValue;
+                $value = (int) $value;
+            }
+
+            // Comparar valores
+            if ($currentValue != $value) {
+                $changedFields[$field] = $value;
+            }
+        }
+
+        return $changedFields;
+    }
+
     public function delete(int $id): bool
     {
         $service = Service::find($id);
@@ -254,7 +332,7 @@ class ServiceRepository implements ServiceRepositoryInterface
     public function getRecentByClient(int $clientId, int $limit = 5): Collection
     {
         return Service::where('client_id', $clientId)
-            ->with(['client', 'vehicle', 'serviceStatus'])
+            ->with(['client', 'vehicle', 'serviceStatus', 'serviceItems.product.category'])
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
@@ -314,7 +392,37 @@ class ServiceRepository implements ServiceRepositoryInterface
     public function findByServiceNumber(string $serviceNumber): ?Service
     {
         return Service::where('service_number', $serviceNumber)
-            ->with(['client', 'vehicle', 'serviceStatus', 'technician', 'attendant'])
+            ->with([
+                'client',
+                'vehicle',
+                'serviceCenter',
+                'serviceStatus',
+                'technician',
+                'attendant',
+                'serviceItems.product'
+            ])
             ->first();
+    }
+
+    public function getDashboardStats(?int $serviceCenterId = null): array
+    {
+        $query = Service::query();
+
+        if ($serviceCenterId) {
+            $query->where('service_center_id', $serviceCenterId);
+        }
+
+        $services = $query->with(['serviceStatus'])->get();
+
+        return [
+            'total_services' => $services->count(),
+            'services_in_progress' => $services->where('serviceStatus.name', 'in_progress')->count(),
+            'services_completed' => $services->where('serviceStatus.name', 'completed')->count(),
+            'services_cancelled' => $services->where('serviceStatus.name', 'cancelled')->count(),
+            'total_revenue' => $services->where('serviceStatus.name', 'completed')->sum('final_amount'),
+            'average_service_duration' => $services->whereNotNull('started_at')->whereNotNull('completed_at')->avg(function ($service) {
+                return $service->started_at->diffInMinutes($service->completed_at);
+            }) ?? 0,
+        ];
     }
 }

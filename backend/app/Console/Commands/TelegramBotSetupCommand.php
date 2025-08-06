@@ -1,0 +1,304 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class TelegramBotSetupCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'telegram:bot-setup
+                            {--set-webhook : Set webhook URL}
+                            {--delete-webhook : Delete webhook}
+                            {--get-info : Get webhook info}
+                            {--test : Test bot functionality}
+                            {--webhook-url= : Webhook URL to set}';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Setup and manage Telegram bot webhook';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        $botToken = config('services.telegram.bot_token');
+        $recipients = config('services.telegram.recipients', []);
+
+        if (!$botToken) {
+            $this->error('❌ Telegram bot token not configured');
+            $this->info('Please set TELEGRAM_BOT_TOKEN in your .env file');
+            return 1;
+        }
+
+        $apiUrl = "https://api.telegram.org/bot{$botToken}";
+
+        $this->info('🤖 Telegram Bot Setup');
+        $this->info('==================');
+        $this->info("Bot Token: " . substr($botToken, 0, 10) . '...');
+        $this->info("Recipients: " . implode(', ', $recipients));
+        $this->info('');
+
+        // Validate token first
+        $this->validateToken($apiUrl);
+
+        // Handle different options
+        if ($this->option('set-webhook')) {
+            $this->setWebhook($apiUrl);
+        } elseif ($this->option('delete-webhook')) {
+            $this->deleteWebhook($apiUrl);
+        } elseif ($this->option('get-info')) {
+            $this->getWebhookInfo($apiUrl);
+        } elseif ($this->option('test')) {
+            $this->testBot($apiUrl, $recipients);
+        } else {
+            $this->showInstructions();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Validate bot token
+     */
+    private function validateToken(string $apiUrl): void
+    {
+        $this->info('🔍 Validating bot token...');
+
+        try {
+            $response = Http::get("{$apiUrl}/getMe");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $this->info("✅ Bot validated successfully");
+                $this->info("Bot Name: {$data['result']['first_name']}");
+                $this->info("Bot Username: @{$data['result']['username']}");
+                $this->info("Bot ID: {$data['result']['id']}");
+                $this->info('');
+            } else {
+                $this->error("❌ Invalid bot token");
+                $this->error("Error: " . ($response->json()['description'] ?? 'Unknown error'));
+                exit(1);
+            }
+
+        } catch (\Exception $e) {
+            $this->error("❌ Error validating token: " . $e->getMessage());
+            exit(1);
+        }
+    }
+
+    /**
+     * Set webhook
+     */
+    private function setWebhook(string $apiUrl): void
+    {
+        $webhookUrl = $this->option('webhook-url');
+
+        if (!$webhookUrl) {
+            $webhookUrl = $this->ask('Enter webhook URL (e.g., https://api-hom.virtualt.com.br/api/telegram/webhook)');
+        }
+
+        if (!$webhookUrl) {
+            $this->error('❌ Webhook URL is required');
+            return;
+        }
+
+        $this->info("🔗 Setting webhook to: {$webhookUrl}");
+
+        try {
+            $response = Http::post("{$apiUrl}/setWebhook", [
+                'url' => $webhookUrl
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if ($data['ok']) {
+                    $this->info("✅ Webhook set successfully");
+
+                    // Verificar se há informações adicionais na resposta
+                    if (isset($data['result']) && is_array($data['result'])) {
+                        if (isset($data['result']['url'])) {
+                            $this->info("Webhook URL: {$data['result']['url']}");
+                        }
+                        if (isset($data['result']['pending_update_count'])) {
+                            $this->info("Pending updates: {$data['result']['pending_update_count']}");
+                        }
+                    }
+                } else {
+                    $this->error("❌ Failed to set webhook");
+                    $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+                }
+            } else {
+                $this->error("❌ HTTP error: " . $response->status());
+                $this->error("Response: " . $response->body());
+            }
+
+        } catch (\Exception $e) {
+            $this->error("❌ Error setting webhook: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete webhook
+     */
+    private function deleteWebhook(string $apiUrl): void
+    {
+        $this->info('🗑️ Deleting webhook...');
+
+        try {
+            $response = Http::post("{$apiUrl}/deleteWebhook");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if ($data['ok']) {
+                    $this->info("✅ Webhook deleted successfully");
+                } else {
+                    $this->error("❌ Failed to delete webhook");
+                    $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+                }
+            } else {
+                $this->error("❌ HTTP error: " . $response->status());
+            }
+
+        } catch (\Exception $e) {
+            $this->error("❌ Error deleting webhook: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get webhook info
+     */
+    private function getWebhookInfo(string $apiUrl): void
+    {
+        $this->info('📋 Getting webhook info...');
+
+        try {
+            $response = Http::get("{$apiUrl}/getWebhookInfo");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if ($data['ok']) {
+                    $webhookInfo = $data['result'];
+
+                    $this->info("✅ Webhook info retrieved");
+                    $this->info("URL: " . ($webhookInfo['url'] ?? 'Not set'));
+                    $this->info("Pending updates: {$webhookInfo['pending_update_count']}");
+                    $this->info("Last error date: " . ($webhookInfo['last_error_date'] ?? 'None'));
+                    $this->info("Last error message: " . ($webhookInfo['last_error_message'] ?? 'None'));
+                    $this->info("Max connections: {$webhookInfo['max_connections']}");
+                } else {
+                    $this->error("❌ Failed to get webhook info");
+                    $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+                }
+            } else {
+                $this->error("❌ HTTP error: " . $response->status());
+            }
+
+        } catch (\Exception $e) {
+            $this->error("❌ Error getting webhook info: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test bot functionality
+     */
+    private function testBot(string $apiUrl, array $recipients): void
+    {
+        if (empty($recipients)) {
+            $this->error('❌ No recipients configured');
+            $this->info('Please set TELEGRAM_RECIPIENTS in your .env file');
+            return;
+        }
+
+        $this->info('🧪 Testing bot functionality...');
+
+        $testMessage = "🧪 *Teste do Bot*\n\n" .
+                      "Este é um teste do bot de relatórios do Rei do Óleo.\n" .
+                      "Se você recebeu esta mensagem, o bot está funcionando!\n\n" .
+                      "Use `/help` para ver os comandos disponíveis.\n\n" .
+                      "⏰ Teste realizado em: " . now()->format('d/m/Y H:i:s');
+
+        $results = [];
+        foreach ($recipients as $recipient) {
+            $this->info("📤 Sending test message to: {$recipient}");
+
+            try {
+                $response = Http::post("{$apiUrl}/sendMessage", [
+                    'chat_id' => $recipient,
+                    'text' => $testMessage,
+                    'parse_mode' => 'Markdown'
+                ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if ($data['ok']) {
+                        $this->info("✅ Message sent successfully to {$recipient}");
+                        $results[$recipient] = ['success' => true];
+                    } else {
+                        $this->error("❌ Failed to send message to {$recipient}");
+                        $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+                        $results[$recipient] = ['success' => false, 'error' => $data['description'] ?? 'Unknown error'];
+                    }
+                } else {
+                    $this->error("❌ HTTP error sending to {$recipient}: " . $response->status());
+                    $results[$recipient] = ['success' => false, 'error' => 'HTTP error'];
+                }
+
+            } catch (\Exception $e) {
+                $this->error("❌ Exception sending to {$recipient}: " . $e->getMessage());
+                $results[$recipient] = ['success' => false, 'error' => $e->getMessage()];
+            }
+        }
+
+        $successCount = count(array_filter($results, fn($r) => $r['success']));
+        $this->info('');
+        $this->info("📊 Test Results:");
+        $this->info("✅ Successful: {$successCount}");
+        $this->info("❌ Failed: " . (count($results) - $successCount));
+        $this->info("📋 Total: " . count($results));
+    }
+
+    /**
+     * Show instructions
+     */
+    private function showInstructions(): void
+    {
+        $this->info('📖 How to use this command:');
+        $this->info('');
+        $this->info('1. Set webhook:');
+        $this->info('   php artisan telegram:bot-setup --set-webhook --webhook-url=https://api-hom.virtualt.com.br/api/telegram/webhook');
+        $this->info('');
+        $this->info('2. Get webhook info:');
+        $this->info('   php artisan telegram:bot-setup --get-info');
+        $this->info('');
+        $this->info('3. Delete webhook:');
+        $this->info('   php artisan telegram:bot-setup --delete-webhook');
+        $this->info('');
+        $this->info('4. Test bot:');
+        $this->info('   php artisan telegram:bot-setup --test');
+        $this->info('');
+        $this->info('🔧 Configuration required:');
+        $this->info('• TELEGRAM_BOT_TOKEN in .env file');
+        $this->info('• TELEGRAM_RECIPIENTS in .env file (comma-separated chat IDs)');
+        $this->info('');
+        $this->info('💡 To get chat IDs:');
+        $this->info('1. Start a conversation with your bot');
+        $this->info('2. Send a message to the bot');
+        $this->info('3. Run: php artisan telegram:debug --get-updates');
+        $this->info('4. Copy the chat_id and update your .env file');
+        $this->info('');
+    }
+}

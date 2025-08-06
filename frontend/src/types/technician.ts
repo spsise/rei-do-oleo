@@ -26,6 +26,12 @@ export interface TechnicianService {
   status: string;
   total_amount: number;
   created_at: string;
+  scheduled_at?: string;
+  mileage_at_service?: number;
+  estimated_duration?: number;
+  notes?: string;
+  observations?: string;
+  items?: TechnicianServiceItem[];
 }
 
 export interface TechnicianSearchResult {
@@ -35,11 +41,54 @@ export interface TechnicianSearchResult {
   found_by: string;
 }
 
+// Tipos para produtos
+export interface TechnicianProduct {
+  id: number;
+  name: string;
+  description?: string;
+  sku: string;
+  price: number;
+  stock_quantity: number;
+  category?: {
+    id: number;
+    name: string;
+  };
+}
+
+// Tipos para itens de serviço
+export interface TechnicianServiceItem {
+  id?: string | number;
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  notes?: string;
+  product?: TechnicianProduct;
+}
+
 export interface CreateTechnicianServiceData {
   client_id: number;
   vehicle_id: number;
+  service_center_id?: number;
+  technician_id?: number;
+  attendant_id?: number;
+  service_number?: string;
   description: string;
   estimated_duration: number;
-  priority: 'low' | 'medium' | 'high';
+  scheduled_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  service_status_id?: number;
+  payment_method_id?: number;
+  mileage_at_service?: number;
+  // Campos financeiros completos
+  labor_cost?: number;
+  items_total?: number;
+  total_amount?: number;
+  discount_amount?: number;
+  final_amount?: number;
+  observations?: string;
   notes?: string;
+  active?: boolean;
+  items?: TechnicianServiceItem[];
 }
