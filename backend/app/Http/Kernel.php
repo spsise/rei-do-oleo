@@ -17,6 +17,7 @@ class Kernel extends HttpKernel
         \Illuminate\Http\Middleware\HandleCors::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        \App\Http\Middleware\RequestLoggingMiddleware::class,
     ];
 
     /**
@@ -60,6 +61,7 @@ class Kernel extends HttpKernel
         'sensitive.data' => \App\Http\Middleware\CheckSensitiveDataPermission::class,
         'performance.monitor' => \App\Http\Middleware\PerformanceMonitor::class,
         'service.update.monitor' => \App\Http\Middleware\ServiceUpdateMonitor::class,
+        'telegram.webhook.logging' => \App\Http\Middleware\TelegramWebhookLoggingMiddleware::class,
 
     ];
 }
