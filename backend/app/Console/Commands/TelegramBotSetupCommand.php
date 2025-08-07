@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Contracts\LoggingServiceInterface;
 
 class TelegramBotSetupCommand extends Command
 {
@@ -26,6 +26,15 @@ class TelegramBotSetupCommand extends Command
      * @var string
      */
     protected $description = 'Setup and manage Telegram bot webhook';
+
+    /**
+     * Execute the console command.
+     */
+    public function __construct(
+        private LoggingServiceInterface $loggingService
+    ) {
+        parent::__construct();
+    }
 
     /**
      * Execute the console command.
@@ -85,9 +94,28 @@ class TelegramBotSetupCommand extends Command
                 $this->info("Bot Username: @{$data['result']['username']}");
                 $this->info("Bot ID: {$data['result']['id']}");
                 $this->info('');
+
+                // Log successful validation
+                $this->loggingService->logTelegramEvent('bot_validated', [
+                    'bot_name' => $data['result']['first_name'],
+                    'bot_username' => $data['result']['username'],
+                    'bot_id' => $data['result']['id']
+                ], 'info', [
+                    'command' => 'telegram:bot-setup',
+                    'operation' => 'validate_token'
+                ]);
             } else {
                 $this->error("❌ Invalid bot token");
                 $this->error("Error: " . ($response->json()['description'] ?? 'Unknown error'));
+
+                // Log validation error
+                $this->loggingService->logTelegramEvent('bot_validation_failed', [
+                    'error' => $response->json()['description'] ?? 'Unknown error'
+                ], 'error', [
+                    'command' => 'telegram:bot-setup',
+                    'operation' => 'validate_token'
+                ]);
+
                 exit(1);
             }
 
@@ -135,9 +163,27 @@ class TelegramBotSetupCommand extends Command
                             $this->info("Pending updates: {$data['result']['pending_update_count']}");
                         }
                     }
+
+                    // Log successful webhook setup
+                    $this->loggingService->logTelegramEvent('webhook_set', [
+                        'webhook_url' => $webhookUrl,
+                        'result' => $data['result'] ?? []
+                    ], 'info', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'set_webhook'
+                    ]);
                 } else {
                     $this->error("❌ Failed to set webhook");
                     $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+
+                    // Log webhook setup error
+                    $this->loggingService->logTelegramEvent('webhook_set_failed', [
+                        'webhook_url' => $webhookUrl,
+                        'error' => $data['description'] ?? 'Unknown error'
+                    ], 'error', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'set_webhook'
+                    ]);
                 }
             } else {
                 $this->error("❌ HTTP error: " . $response->status());
@@ -164,9 +210,25 @@ class TelegramBotSetupCommand extends Command
 
                 if ($data['ok']) {
                     $this->info("✅ Webhook deleted successfully");
+
+                    // Log successful webhook deletion
+                    $this->loggingService->logTelegramEvent('webhook_deleted', [
+                        'result' => $data['result'] ?? []
+                    ], 'info', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'delete_webhook'
+                    ]);
                 } else {
                     $this->error("❌ Failed to delete webhook");
                     $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+
+                    // Log webhook deletion error
+                    $this->loggingService->logTelegramEvent('webhook_delete_failed', [
+                        'error' => $data['description'] ?? 'Unknown error'
+                    ], 'error', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'delete_webhook'
+                    ]);
                 }
             } else {
                 $this->error("❌ HTTP error: " . $response->status());
@@ -193,12 +255,20 @@ class TelegramBotSetupCommand extends Command
                 if ($data['ok']) {
                     $webhookInfo = $data['result'];
 
+                    // Debug: Log the complete webhook info for troubleshooting
+                    $this->loggingService->logTelegramEvent('webhook_info_retrieved', [
+                        'webhook_info' => $webhookInfo
+                    ], 'info', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'get_webhook_info'
+                    ]);
+
                     $this->info("✅ Webhook info retrieved");
                     $this->info("URL: " . ($webhookInfo['url'] ?? 'Not set'));
-                    $this->info("Pending updates: {$webhookInfo['pending_update_count']}");
+                    $this->info("Pending updates: " . ($webhookInfo['pending_update_count'] ?? '0'));
                     $this->info("Last error date: " . ($webhookInfo['last_error_date'] ?? 'None'));
                     $this->info("Last error message: " . ($webhookInfo['last_error_message'] ?? 'None'));
-                    $this->info("Max connections: {$webhookInfo['max_connections']}");
+                    $this->info("Max connections: " . ($webhookInfo['max_connections'] ?? 'Not set'));
                 } else {
                     $this->error("❌ Failed to get webhook info");
                     $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
@@ -207,8 +277,17 @@ class TelegramBotSetupCommand extends Command
                 $this->error("❌ HTTP error: " . $response->status());
             }
 
-        } catch (\Exception $e) {
+                } catch (\Exception $e) {
             $this->error("❌ Error getting webhook info: " . $e->getMessage());
+
+            // Log additional debug information
+            $this->loggingService->logTelegramEvent('webhook_info_error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 'error', [
+                'command' => 'telegram:bot-setup',
+                'operation' => 'get_webhook_info'
+            ]);
         }
     }
 
@@ -247,10 +326,28 @@ class TelegramBotSetupCommand extends Command
                     if ($data['ok']) {
                         $this->info("✅ Message sent successfully to {$recipient}");
                         $results[$recipient] = ['success' => true];
+
+                        // Log successful message send
+                        $this->loggingService->logTelegramEvent('test_message_sent', [
+                            'recipient' => $recipient,
+                            'message_id' => $data['result']['message_id'] ?? null
+                        ], 'info', [
+                            'command' => 'telegram:bot-setup',
+                            'operation' => 'test_bot'
+                        ]);
                     } else {
                         $this->error("❌ Failed to send message to {$recipient}");
                         $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
                         $results[$recipient] = ['success' => false, 'error' => $data['description'] ?? 'Unknown error'];
+
+                        // Log failed message send
+                        $this->loggingService->logTelegramEvent('test_message_failed', [
+                            'recipient' => $recipient,
+                            'error' => $data['description'] ?? 'Unknown error'
+                        ], 'error', [
+                            'command' => 'telegram:bot-setup',
+                            'operation' => 'test_bot'
+                        ]);
                     }
                 } else {
                     $this->error("❌ HTTP error sending to {$recipient}: " . $response->status());
