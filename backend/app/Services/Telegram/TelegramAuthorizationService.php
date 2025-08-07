@@ -10,7 +10,16 @@ class TelegramAuthorizationService
     public function isAuthorizedUser(int $chatId): bool
     {
         $authorizedUsers = config('services.telegram.recipients', []);
-        return in_array($chatId, $authorizedUsers);
+
+        // Convert to array if it's a string
+        if (is_string($authorizedUsers)) {
+            $authorizedUsers = explode(',', $authorizedUsers);
+        }
+
+        // Convert chat ID to string for comparison
+        $chatIdStr = (string) $chatId;
+
+        return in_array($chatIdStr, $authorizedUsers);
     }
 
     /**

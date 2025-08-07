@@ -24,6 +24,10 @@ class TelegramServiceProvider extends ServiceProvider
         $this->app->singleton(TelegramAuthorizationService::class);
         $this->app->singleton(TelegramMenuBuilder::class);
         $this->app->singleton(TelegramLoggingService::class);
+        $this->app->singleton(\App\Services\TelegramBotService::class);
+        $this->app->singleton(\App\Services\TelegramWebhookService::class);
+        $this->app->singleton(\App\Repositories\TelegramRepository::class);
+        $this->app->singleton(\App\Services\Channels\TelegramChannel::class);
 
         // Register report generators
         $this->app->singleton(GeneralReportGenerator::class);
