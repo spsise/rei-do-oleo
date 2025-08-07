@@ -177,7 +177,7 @@ class ActivityLoggingService implements LoggingServiceInterface
      */
     public function logTelegramEvent(string $event, array $data, string $level = 'info', array $context = []): void
     {
-        if (!$this->shouldLog('telegram')) {
+        if (!$this->shouldLog('telegram_event')) {
             return;
         }
 

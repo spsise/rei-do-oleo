@@ -56,6 +56,8 @@ return [
 
         // System Events
         'exceptions' => env('LOG_EXCEPTIONS', true),
+
+        'telegram_event' => env('LOG_TELEGRAM_EVENT', true),
     ],
 
     /*
