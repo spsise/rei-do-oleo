@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use App\Contracts\LoggingServiceInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Log;
 
 class RequestLoggingMiddleware
 {
@@ -22,16 +23,24 @@ class RequestLoggingMiddleware
     {
         // Log Telegram webhook requests before any processing
         if ($request->is('api/telegram/webhook')) {
-            $this->loggingService->logTelegramEvent('telegram_webhook_global_logging', [
-                'method' => $request->method(),
-                'url' => $request->fullUrl(),
-                'headers' => $request->headers->all(),
-                'raw_body' => $request->getContent(),
-                'all_data' => $request->all(),
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'timestamp' => now()->toISOString(),
-            ], 'info');
+            try {
+                $this->loggingService->logTelegramEvent('telegram_webhook_global_logging', [
+                    'method' => $request->method(),
+                    'url' => $request->fullUrl(),
+                    'headers' => $request->headers->all(),
+                    'raw_body' => $request->getContent(),
+                    'all_data' => $request->all(),
+                    'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'timestamp' => now()->toISOString(),
+                    ], 'info');
+            } catch (\Exception $e) {
+                Log::error('RequestLoggingMiddleware::logTelegramEvent failed', [
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
+            }
         }
 
         try {
