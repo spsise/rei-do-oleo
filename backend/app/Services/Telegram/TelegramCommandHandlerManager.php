@@ -23,7 +23,11 @@ class TelegramCommandHandlerManager
 
     public function __construct(
         private TelegramMenuBuilder $menuBuilder,
-        private TelegramChannel $telegramChannel
+        private TelegramChannel $telegramChannel,
+        private SpeechToTextService $speechService,
+        private GeneralReportGenerator $generalReportGenerator,
+        private ServicesReportGenerator $servicesReportGenerator,
+        private ProductsReportGenerator $productsReportGenerator
     ) {
         $this->registerCommandHandlers();
         $this->registerReportGenerators();
@@ -43,7 +47,7 @@ class TelegramCommandHandlerManager
 
         // Add voice command handler
         $this->commandHandlers[] = new VoiceCommandHandler(
-            app(SpeechToTextService::class),
+            $this->speechService,
             $this->telegramChannel,
             $this->menuBuilder
         );
@@ -55,9 +59,9 @@ class TelegramCommandHandlerManager
     private function registerReportGenerators(): void
     {
         $this->reportGenerators = [
-            'general' => app(GeneralReportGenerator::class),
-            'services' => app(ServicesReportGenerator::class),
-            'products' => app(ProductsReportGenerator::class),
+            'general' => $this->generalReportGenerator,
+            'services' => $this->servicesReportGenerator,
+            'products' => $this->productsReportGenerator,
         ];
     }
 

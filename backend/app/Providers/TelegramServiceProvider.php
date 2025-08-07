@@ -11,6 +11,11 @@ use App\Services\Telegram\Reports\GeneralReportGenerator;
 use App\Services\Telegram\Reports\ServicesReportGenerator;
 use App\Services\Telegram\Reports\ProductsReportGenerator;
 use App\Services\TelegramLoggingService;
+use App\Services\TelegramBotService;
+use App\Services\TelegramWebhookService;
+use App\Services\SpeechToTextService;
+use App\Services\Channels\TelegramChannel;
+use App\Repositories\TelegramRepository;
 
 class TelegramServiceProvider extends ServiceProvider
 {
@@ -24,10 +29,10 @@ class TelegramServiceProvider extends ServiceProvider
         $this->app->singleton(TelegramAuthorizationService::class);
         $this->app->singleton(TelegramMenuBuilder::class);
         $this->app->singleton(TelegramLoggingService::class);
-        $this->app->singleton(\App\Services\TelegramBotService::class);
-        $this->app->singleton(\App\Services\TelegramWebhookService::class);
-        $this->app->singleton(\App\Repositories\TelegramRepository::class);
-        $this->app->singleton(\App\Services\Channels\TelegramChannel::class);
+        $this->app->singleton(TelegramBotService::class);
+        $this->app->singleton(TelegramWebhookService::class);
+        $this->app->singleton(TelegramRepository::class);
+        $this->app->singleton(TelegramChannel::class);
 
         // Register report generators
         $this->app->singleton(GeneralReportGenerator::class);
@@ -35,25 +40,13 @@ class TelegramServiceProvider extends ServiceProvider
         $this->app->singleton(ProductsReportGenerator::class);
 
         // Register command handler manager
-        $this->app->singleton(TelegramCommandHandlerManager::class, function ($app) {
-            return new TelegramCommandHandlerManager(
-                $app->make(TelegramMenuBuilder::class),
-                $app->make(\App\Services\Channels\TelegramChannel::class)
-            );
-        });
+        $this->app->singleton(TelegramCommandHandlerManager::class);
 
         // Register speech-to-text service
-        $this->app->singleton(\App\Services\SpeechToTextService::class);
+        $this->app->singleton(SpeechToTextService::class);
 
-        // Register TelegramMessageProcessorService with explicit dependencies
-        $this->app->singleton(\App\Services\TelegramMessageProcessorService::class, function ($app) {
-            return new \App\Services\TelegramMessageProcessorService(
-                $app->make(\App\Services\TelegramBotService::class),
-                $app->make(\App\Services\Channels\TelegramChannel::class),
-                $app->make(\App\Services\SpeechToTextService::class),
-                $app->make(\App\Services\ActivityLoggingService::class)
-            );
-        });
+        // Register TelegramMessageProcessorService
+        $this->app->singleton(\App\Services\TelegramMessageProcessorService::class);
     }
 
     /**
