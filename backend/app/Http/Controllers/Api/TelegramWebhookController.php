@@ -27,15 +27,6 @@ class TelegramWebhookController extends Controller
     public function handle(TelegramWebhookRequest $request): JsonResponse
     {
         try {
-            $this->loggingService->logTelegramEvent('telegram_webhook_received', [
-                'request' => $request->all(),
-                'chat_id' => $request->input('message.chat.id'),
-                'user_id' => $request->input('message.from.id'),
-                'message_id' => $request->input('message.message_id'),
-                'message_text' => $request->input('message.text'),
-                'message_date' => $request->input('message.date'),
-                'message_from' => $request->input('message.from'),
-            ], 'info');
             $payload = $request->validated();
 
             // Validate payload structure

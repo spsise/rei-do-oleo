@@ -20,6 +20,20 @@ class RequestLoggingMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Log Telegram webhook requests before any processing
+        if ($request->is('api/telegram/webhook')) {
+            $this->loggingService->logTelegramEvent('telegram_webhook_global_logging', [
+                'method' => $request->method(),
+                'url' => $request->fullUrl(),
+                'headers' => $request->headers->all(),
+                'raw_body' => $request->getContent(),
+                'all_data' => $request->all(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toISOString(),
+            ], 'info');
+        }
+
         try {
             return $next($request);
         } catch (\Exception $e) {

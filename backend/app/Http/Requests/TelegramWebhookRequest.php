@@ -3,9 +3,16 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Contracts\LoggingServiceInterface;
 
 class TelegramWebhookRequest extends FormRequest
 {
+    public function __construct(
+        private LoggingServiceInterface $loggingService
+    ) {
+        parent::__construct();
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -50,5 +57,43 @@ class TelegramWebhookRequest extends FormRequest
             'callback_query.data.required_with' => 'Callback data is required when callback query is present',
             'callback_query.message.chat.id.required_with' => 'Chat ID is required when callback query is present',
         ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     *
+     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @return void
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
+    {
+        throw new \Illuminate\Validation\ValidationException($validator, response()->json([
+            'status' => 'error',
+            'message' => 'Validation failed',
+            'errors' => $validator->errors(),
+            'code' => 422
+        ], 422));
+    }
+
+    /**
+     * Determine if the request expects JSON.
+     *
+     * @return bool
+     */
+    public function expectsJson(): bool
+    {
+        return true; // Always expect JSON for webhook requests
+    }
+
+    /**
+     * Determine if the request is asking for JSON.
+     *
+     * @return bool
+     */
+    public function wantsJson(): bool
+    {
+        return true; // Always want JSON for webhook requests
     }
 }

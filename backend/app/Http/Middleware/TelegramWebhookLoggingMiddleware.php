@@ -20,17 +20,18 @@ class TelegramWebhookLoggingMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        try {
-            return $next($request);
-        } catch (\Exception $e) {
-            $this->loggingService->logException($e, [
-                'middleware' => 'TelegramWebhookLoggingMiddleware',
-                'method' => $request->method(),
-                'url' => $request->fullUrl(),
-                'request_data' => $request->all(),
-            ]);
+        // Log the raw request before any validation
+        $this->loggingService->logTelegramEvent('telegram_webhook_raw_received', [
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'headers' => $request->headers->all(),
+            'raw_body' => $request->getContent(),
+            'all_data' => $request->all(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+        ], 'info');
 
-            throw $e;
-        }
+        return $next($request);
     }
 }
