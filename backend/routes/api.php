@@ -355,8 +355,7 @@ Route::prefix('unified-notifications')->group(function () {
 // =============================================================================
 Route::prefix('telegram')->group(function () {
     // Webhook handling
-    Route::post('/webhook', [TelegramWebhookController::class, 'handle'])
-        ->middleware('telegram.webhook.logging');                         // POST /api/telegram/webhook
+    Route::post('/webhook', [TelegramWebhookController::class, 'handle']);                         // POST /api/telegram/webhook
 
     // Webhook management
     Route::post('/set-webhook', [TelegramWebhookController::class, 'setWebhook']);                  // POST /api/telegram/set-webhook
