@@ -30,17 +30,22 @@ class TelegramBotSetupCommand extends Command
     /**
      * Execute the console command.
      */
-    public function __construct(
-        private LoggingServiceInterface $loggingService
-    ) {
+    public function __construct()
+    {
         parent::__construct();
     }
 
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(LoggingServiceInterface $loggingService)
     {
+        // Debug: Test if LoggingService is injected correctly
+        $loggingService->logTelegramEvent('command_started', [
+            'command' => 'telegram:bot-setup',
+            'options' => $this->options()
+        ], 'info');
+
         $botToken = config('services.telegram.bot_token');
         $recipients = config('services.telegram.recipients', []);
 
@@ -59,17 +64,17 @@ class TelegramBotSetupCommand extends Command
         $this->info('');
 
         // Validate token first
-        $this->validateToken($apiUrl);
+        $this->validateToken($apiUrl, $loggingService);
 
         // Handle different options
         if ($this->option('set-webhook')) {
-            $this->setWebhook($apiUrl);
+            $this->setWebhook($apiUrl, $loggingService);
         } elseif ($this->option('delete-webhook')) {
-            $this->deleteWebhook($apiUrl);
+            $this->deleteWebhook($apiUrl, $loggingService);
         } elseif ($this->option('get-info')) {
-            $this->getWebhookInfo($apiUrl);
+            $this->getWebhookInfo($apiUrl, $loggingService);
         } elseif ($this->option('test')) {
-            $this->testBot($apiUrl, $recipients);
+            $this->testBot($apiUrl, $recipients, $loggingService);
         } else {
             $this->showInstructions();
         }
@@ -80,7 +85,7 @@ class TelegramBotSetupCommand extends Command
     /**
      * Validate bot token
      */
-    private function validateToken(string $apiUrl): void
+    private function validateToken(string $apiUrl, LoggingServiceInterface $loggingService): void
     {
         $this->info('🔍 Validating bot token...');
 
@@ -96,7 +101,7 @@ class TelegramBotSetupCommand extends Command
                 $this->info('');
 
                 // Log successful validation
-                $this->loggingService->logTelegramEvent('bot_validated', [
+                $loggingService->logTelegramEvent('bot_validated', [
                     'bot_name' => $data['result']['first_name'],
                     'bot_username' => $data['result']['username'],
                     'bot_id' => $data['result']['id']
@@ -109,7 +114,7 @@ class TelegramBotSetupCommand extends Command
                 $this->error("Error: " . ($response->json()['description'] ?? 'Unknown error'));
 
                 // Log validation error
-                $this->loggingService->logTelegramEvent('bot_validation_failed', [
+                $loggingService->logTelegramEvent('bot_validation_failed', [
                     'error' => $response->json()['description'] ?? 'Unknown error'
                 ], 'error', [
                     'command' => 'telegram:bot-setup',
@@ -128,7 +133,7 @@ class TelegramBotSetupCommand extends Command
     /**
      * Set webhook
      */
-    private function setWebhook(string $apiUrl): void
+    private function setWebhook(string $apiUrl, LoggingServiceInterface $loggingService): void
     {
         $webhookUrl = $this->option('webhook-url');
 
@@ -164,8 +169,8 @@ class TelegramBotSetupCommand extends Command
                         }
                     }
 
-                    // Log successful webhook setup
-                    $this->loggingService->logTelegramEvent('webhook_set', [
+                                        // Log successful webhook setup
+                    $loggingService->logTelegramEvent('webhook_set', [
                         'webhook_url' => $webhookUrl,
                         'result' => $data['result'] ?? []
                     ], 'info', [
@@ -177,7 +182,7 @@ class TelegramBotSetupCommand extends Command
                     $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
 
                     // Log webhook setup error
-                    $this->loggingService->logTelegramEvent('webhook_set_failed', [
+                    $loggingService->logTelegramEvent('webhook_set_failed', [
                         'webhook_url' => $webhookUrl,
                         'error' => $data['description'] ?? 'Unknown error'
                     ], 'error', [
@@ -198,7 +203,7 @@ class TelegramBotSetupCommand extends Command
     /**
      * Delete webhook
      */
-    private function deleteWebhook(string $apiUrl): void
+    private function deleteWebhook(string $apiUrl, LoggingServiceInterface $loggingService): void
     {
         $this->info('🗑️ Deleting webhook...');
 
@@ -211,8 +216,8 @@ class TelegramBotSetupCommand extends Command
                 if ($data['ok']) {
                     $this->info("✅ Webhook deleted successfully");
 
-                    // Log successful webhook deletion
-                    $this->loggingService->logTelegramEvent('webhook_deleted', [
+                                        // Log successful webhook deletion
+                    $loggingService->logTelegramEvent('webhook_deleted', [
                         'result' => $data['result'] ?? []
                     ], 'info', [
                         'command' => 'telegram:bot-setup',
@@ -223,7 +228,7 @@ class TelegramBotSetupCommand extends Command
                     $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
 
                     // Log webhook deletion error
-                    $this->loggingService->logTelegramEvent('webhook_delete_failed', [
+                    $loggingService->logTelegramEvent('webhook_delete_failed', [
                         'error' => $data['description'] ?? 'Unknown error'
                     ], 'error', [
                         'command' => 'telegram:bot-setup',
@@ -242,7 +247,7 @@ class TelegramBotSetupCommand extends Command
     /**
      * Get webhook info
      */
-    private function getWebhookInfo(string $apiUrl): void
+    private function getWebhookInfo(string $apiUrl, LoggingServiceInterface $loggingService): void
     {
         $this->info('📋 Getting webhook info...');
 
@@ -256,7 +261,7 @@ class TelegramBotSetupCommand extends Command
                     $webhookInfo = $data['result'];
 
                     // Debug: Log the complete webhook info for troubleshooting
-                    $this->loggingService->logTelegramEvent('webhook_info_retrieved', [
+                    $loggingService->logTelegramEvent('webhook_info_retrieved', [
                         'webhook_info' => $webhookInfo
                     ], 'info', [
                         'command' => 'telegram:bot-setup',
@@ -280,21 +285,21 @@ class TelegramBotSetupCommand extends Command
                 } catch (\Exception $e) {
             $this->error("❌ Error getting webhook info: " . $e->getMessage());
 
-            // Log additional debug information
-            $this->loggingService->logTelegramEvent('webhook_info_error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ], 'error', [
-                'command' => 'telegram:bot-setup',
-                'operation' => 'get_webhook_info'
-            ]);
+                            // Log additional debug information
+                $loggingService->logTelegramEvent('webhook_info_error', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ], 'error', [
+                    'command' => 'telegram:bot-setup',
+                    'operation' => 'get_webhook_info'
+                ]);
         }
     }
 
     /**
      * Test bot functionality
      */
-    private function testBot(string $apiUrl, array $recipients): void
+    private function testBot(string $apiUrl, array $recipients, LoggingServiceInterface $loggingService): void
     {
         if (empty($recipients)) {
             $this->error('❌ No recipients configured');
@@ -327,8 +332,8 @@ class TelegramBotSetupCommand extends Command
                         $this->info("✅ Message sent successfully to {$recipient}");
                         $results[$recipient] = ['success' => true];
 
-                        // Log successful message send
-                        $this->loggingService->logTelegramEvent('test_message_sent', [
+                                                // Log successful message send
+                        $loggingService->logTelegramEvent('test_message_sent', [
                             'recipient' => $recipient,
                             'message_id' => $data['result']['message_id'] ?? null
                         ], 'info', [
@@ -341,7 +346,7 @@ class TelegramBotSetupCommand extends Command
                         $results[$recipient] = ['success' => false, 'error' => $data['description'] ?? 'Unknown error'];
 
                         // Log failed message send
-                        $this->loggingService->logTelegramEvent('test_message_failed', [
+                        $loggingService->logTelegramEvent('test_message_failed', [
                             'recipient' => $recipient,
                             'error' => $data['description'] ?? 'Unknown error'
                         ], 'error', [
