@@ -47,7 +47,7 @@ class TelegramServiceProvider extends ServiceProvider
                 $app->make(\App\Services\TelegramBotService::class),
                 $app->make(\App\Services\Channels\TelegramChannel::class),
                 $app->make(\App\Services\SpeechToTextService::class),
-                $app->make(\App\Services\TelegramLoggingService::class)
+                $app->make(\App\Services\ActivityLoggingService::class)
             );
         });
     }

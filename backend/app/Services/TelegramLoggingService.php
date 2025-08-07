@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\LoggingServiceInterface;
 use App\Repositories\TelegramRepository;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class TelegramLoggingService
+class TelegramLoggingService implements LoggingServiceInterface
 {
     public function __construct(
         private TelegramRepository $telegramRepository
@@ -227,5 +229,77 @@ class TelegramLoggingService
 
         // Store in repository for analytics
         // $this->telegramRepository->storeVoiceProcessingLog($message, $result); // TODO: Implement in repository
+    }
+
+    // Interface LoggingServiceInterface methods
+
+    public function logApiRequest(Request $request, array $context = []): void
+    {
+        Log::info('API Request', array_merge([
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ], $context));
+    }
+
+    public function logApiResponse(int $statusCode, array $response, float $duration, array $context = []): void
+    {
+        Log::info('API Response', array_merge([
+            'status_code' => $statusCode,
+            'duration_ms' => round($duration * 1000, 2),
+            'response_size' => strlen(json_encode($response)),
+        ], $context));
+    }
+
+    public function logBusinessOperation(string $operation, array $data, string $status = 'success', array $context = []): void
+    {
+        $logMethod = $status === 'success' ? 'info' : 'warning';
+        Log::$logMethod('Business Operation: ' . $operation, array_merge($data, $context));
+    }
+
+    public function logSecurityEvent(string $event, array $data, string $level = 'warning', array $context = []): void
+    {
+        Log::warning('Security Event: ' . $event, array_merge($data, $context));
+    }
+
+    public function logPerformance(string $operation, float $duration, array $metrics = [], array $context = []): void
+    {
+        Log::info('Performance: ' . $operation, array_merge([
+            'duration_ms' => round($duration * 1000, 2),
+        ], $metrics, $context));
+    }
+
+    public function logAudit(string $action, string $model, int $modelId, array $changes = [], array $context = []): void
+    {
+        Log::info('Audit: ' . $action, array_merge([
+            'model' => $model,
+            'model_id' => $modelId,
+            'changes' => $changes,
+        ], $context));
+    }
+
+    public function logTelegramEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        Log::$level('Telegram Event: ' . $event, array_merge($data, $context));
+    }
+
+    public function logWhatsAppEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        Log::$level('WhatsApp Event: ' . $event, array_merge($data, $context));
+    }
+
+    public function logException(\Throwable $exception, array $context = []): void
+    {
+        Log::error('Exception: ' . $exception->getMessage(), array_merge([
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString(),
+        ], $context));
+    }
+
+    public function getLogStats(): array
+    {
+        return $this->getWebhookStats();
     }
 }
