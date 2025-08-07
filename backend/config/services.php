@@ -47,7 +47,7 @@ return [
     'telegram' => [
         'enabled' => env('TELEGRAM_ENABLED', false),
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
-        'recipients' => explode(',', env('TELEGRAM_RECIPIENTS', '')),
+        'recipients' => array_filter(explode(',', env('TELEGRAM_RECIPIENTS', ''))),
     ],
 
     /*
