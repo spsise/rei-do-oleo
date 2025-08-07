@@ -10,8 +10,8 @@ class TelegramMessageProcessorService
     public function __construct(
         private TelegramBotService $telegramBotService,
         private TelegramChannel $telegramChannel,
-        private SpeechToTextService $speechService,
-        private LoggingServiceInterface $loggingService
+        private LoggingServiceInterface $loggingService,
+        private ?SpeechToTextService $speechService = null
     ) {}
 
     /**
@@ -92,6 +92,16 @@ class TelegramMessageProcessorService
             $chatId = $message['chat']['id'];
             $voice = $message['voice'];
 
+            // Check if speech service is available
+            if (!$this->speechService) {
+                $this->telegramChannel->sendTextMessage(
+                    "❌ Serviço de reconhecimento de voz não está disponível. Envie uma mensagem de texto.",
+                    (string) $chatId
+                );
+
+                return $this->createErrorResult('Speech-to-text service not available');
+            }
+
             // Send processing message
             $this->telegramChannel->sendTextMessage(
                 "🎤 Processando mensagem de voz...",
@@ -105,14 +115,36 @@ class TelegramMessageProcessorService
                 return $this->createErrorResult('Failed to download voice file');
             }
 
-            // Convert voice to text
-            $text = $this->speechService->convertVoiceToText($voiceFilePath);
+            // Convert voice to text with error handling
+            try {
+                $text = $this->speechService->convertVoiceToText($voiceFilePath);
+            } catch (\Exception $speechException) {
+                $this->loggingService->logException($speechException, [
+                    'operation' => 'speech_to_text_conversion',
+                    'chat_id' => $chatId,
+                    'file_path' => $voiceFilePath
+                ]);
+
+                // Send error message to user
+                $this->telegramChannel->sendTextMessage(
+                    "❌ Erro ao processar mensagem de voz. Tente novamente ou envie uma mensagem de texto.",
+                    (string) $chatId
+                );
+
+                return $this->createErrorResult('Speech-to-text conversion failed');
+            }
 
             if (!$text) {
                 $this->loggingService->logException(new \Exception('Failed to convert voice to text'), [
                     'chat_id' => $chatId,
                     'file_path' => $voiceFilePath
                 ]);
+
+                // Send error message to user
+                $this->telegramChannel->sendTextMessage(
+                    "❌ Não foi possível reconhecer o texto da mensagem de voz. Tente novamente.",
+                    (string) $chatId
+                );
 
                 return $this->createErrorResult('Failed to convert voice to text');
             }
@@ -129,8 +161,19 @@ class TelegramMessageProcessorService
             );
 
             // Clean and parse voice command specifically
-            $commandParser = app(\App\Services\Telegram\TelegramCommandParser::class);
-            $parsedCommand = $commandParser->parseVoiceCommand($text);
+            try {
+                $commandParser = app(\App\Services\Telegram\TelegramCommandParser::class);
+                $parsedCommand = $commandParser->parseVoiceCommand($text);
+            } catch (\Exception $parserException) {
+                $this->loggingService->logException($parserException, [
+                    'operation' => 'voice_command_parsing',
+                    'chat_id' => $chatId,
+                    'recognized_text' => $text
+                ]);
+
+                // Continue with basic text processing
+                $parsedCommand = ['type' => 'unknown', 'params' => []];
+            }
 
             // Create synthetic message with recognized text
             $syntheticMessage = [

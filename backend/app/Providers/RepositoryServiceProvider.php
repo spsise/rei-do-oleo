@@ -23,6 +23,8 @@ use App\Domain\Service\Repositories\ServiceCenterRepositoryInterface;
 use App\Domain\Service\Repositories\ServiceCenterRepository;
 use App\Domain\Service\Repositories\ServiceItemRepositoryInterface;
 use App\Domain\Service\Repositories\ServiceItemRepository;
+use App\Domain\Service\Repositories\ServiceTemplateRepositoryInterface;
+use App\Domain\Service\Repositories\ServiceTemplateRepository;
 
 // User Domain
 use App\Domain\User\Repositories\UserRepositoryInterface;
@@ -47,6 +49,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(ServiceRepositoryInterface::class, ServiceRepository::class);
         $this->app->bind(ServiceCenterRepositoryInterface::class, ServiceCenterRepository::class);
         $this->app->bind(ServiceItemRepositoryInterface::class, ServiceItemRepository::class);
+        $this->app->bind(ServiceTemplateRepositoryInterface::class, ServiceTemplateRepository::class);
 
         // User Domain Repositories
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);

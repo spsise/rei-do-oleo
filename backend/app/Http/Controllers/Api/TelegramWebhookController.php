@@ -26,6 +26,8 @@ class TelegramWebhookController extends Controller
      */
     public function handle(TelegramWebhookRequest $request): JsonResponse
     {
+        $startTime = microtime(true);
+
         try {
             $payload = $request->validated();
 
@@ -38,8 +40,10 @@ class TelegramWebhookController extends Controller
                     ->setStatusCode(200);
             }
 
-            // Process the webhook payload
-            $result = $this->messageProcessor->processWebhookPayload($payload);
+            // Process the webhook payload with timeout protection
+            $result = $this->processWithTimeout(function () use ($payload) {
+                return $this->messageProcessor->processWebhookPayload($payload);
+            }, 25); // 25 seconds timeout
 
             if ($result['status'] === 'ignored') {
                 return TelegramWebhookResource::ignored($result['message'])
@@ -53,12 +57,20 @@ class TelegramWebhookController extends Controller
                     ->setStatusCode(500);
             }
 
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $this->loggingService->logTelegramEvent('webhook_processed_successfully', [
+                'processing_time_ms' => round($duration, 2),
+                'chat_id' => $request->input('message.chat.id'),
+                'user_id' => $request->input('message.from.id'),
+            ], 'info');
+
             return TelegramWebhookResource::success($result['message'], $result)
                 ->response()
                 ->setStatusCode(200);
 
         } catch (\Exception $e) {
-            $duration = (microtime(true) - microtime(true)) * 1000;
+            $duration = (microtime(true) - $startTime) * 1000;
 
             $this->loggingService->logException($e, [
                 'operation' => 'telegram_webhook_processing',
@@ -71,6 +83,39 @@ class TelegramWebhookController extends Controller
                 ->response()
                 ->setStatusCode(500);
         }
+    }
+
+    /**
+     * Process with timeout protection
+     */
+    private function processWithTimeout(callable $callback, int $timeoutSeconds): array
+    {
+        $result = null;
+        $exception = null;
+
+        // Set up signal handler for timeout
+        if (function_exists('pcntl_signal')) {
+            pcntl_signal(SIGALRM, function () {
+                throw new \Exception('Processing timeout');
+            });
+            pcntl_alarm($timeoutSeconds);
+        }
+
+        try {
+            $result = $callback();
+        } catch (\Exception $e) {
+            $exception = $e;
+        } finally {
+            if (function_exists('pcntl_alarm')) {
+                pcntl_alarm(0); // Cancel alarm
+            }
+        }
+
+        if ($exception) {
+            throw $exception;
+        }
+
+        return $result;
     }
 
     /**

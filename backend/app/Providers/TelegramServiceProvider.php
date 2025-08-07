@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Log;
 use App\Services\Telegram\TelegramCommandParser;
 use App\Services\Telegram\TelegramCommandHandlerManager;
 use App\Services\Telegram\TelegramAuthorizationService;
@@ -45,8 +46,29 @@ class TelegramServiceProvider extends ServiceProvider
         // Register speech-to-text service
         $this->app->singleton(SpeechToTextService::class);
 
-        // Register TelegramMessageProcessorService
-        $this->app->singleton(\App\Services\TelegramMessageProcessorService::class);
+        // Register TelegramMessageProcessorService with conditional dependencies
+        $this->app->singleton(\App\Services\TelegramMessageProcessorService::class, function ($app) {
+            $speechService = null;
+
+            try {
+                // Try to resolve SpeechToTextService, but don't fail if it's not available
+                if (class_exists(SpeechToTextService::class)) {
+                    $speechService = $app->make(SpeechToTextService::class);
+                }
+            } catch (\Exception $e) {
+                // Log the error but continue without speech service
+                Log::warning('SpeechToTextService not available for TelegramMessageProcessorService', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            return new \App\Services\TelegramMessageProcessorService(
+                $app->make(\App\Services\TelegramBotService::class),
+                $app->make(\App\Services\Channels\TelegramChannel::class),
+                $app->make(\App\Contracts\LoggingServiceInterface::class),
+                $speechService
+            );
+        });
     }
 
     /**
