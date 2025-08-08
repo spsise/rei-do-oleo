@@ -353,7 +353,7 @@ Route::prefix('unified-notifications')->group(function () {
 // =============================================================================
 // TELEGRAM BOT ROUTES
 // =============================================================================
-Route::prefix('telegram')->middleware(['telegram.webhook.logging'])->group(function () {
+Route::prefix('telegram')->group(function () {
     // Webhook handling
     Route::post('/webhook', [TelegramWebhookController::class, 'handle']);                         // POST /api/telegram/webhook
 

@@ -14,7 +14,7 @@ class TelegramChannel implements NotificationChannelInterface
 
     public function __construct()
     {
-        $this->botToken = config('services.telegram.bot_token');
+        $this->botToken = config('services.telegram.bot_token', '');
         $this->apiUrl = "https://api.telegram.org/bot{$this->botToken}";
         $this->recipients = config('services.telegram.recipients', []);
     }
