@@ -354,13 +354,9 @@ Route::prefix('unified-notifications')->group(function () {
 // TELEGRAM BOT ROUTES
 // =============================================================================
 
-// Webhook handling - Rota isolada para evitar middlewares globais
-Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])
-    //->middleware('telegram.webhook.exception')
-    ->withoutMiddleware(['api.response', 'throttle']);
-
 Route::prefix('telegram')->group(function () {
     // Webhook management
+    Route::post('/webhook', [TelegramWebhookController::class, 'handle']);                  // POST /api/telegram/webhook
     Route::post('/set-webhook', [TelegramWebhookController::class, 'setWebhook']);                  // POST /api/telegram/set-webhook
     Route::get('/webhook-info', [TelegramWebhookController::class, 'getWebhookInfo']);              // GET /api/telegram/webhook-info
     Route::delete('/webhook', [TelegramWebhookController::class, 'deleteWebhook']);                 // DELETE /api/telegram/webhook

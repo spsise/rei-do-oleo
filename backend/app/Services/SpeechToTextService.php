@@ -5,15 +5,18 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use App\Contracts\LoggingServiceInterface;
 
 class SpeechToTextService
 {
     private string $apiKey;
     private string $apiUrl;
     private string $provider;
+    private LoggingServiceInterface $loggingService;
 
-    public function __construct()
+    public function __construct(LoggingServiceInterface $loggingService)
     {
+        $this->loggingService = $loggingService;
         $this->provider = config('services.speech.provider', 'vosk');
         $this->apiKey = config("services.{$this->provider}.api_key") ?? '';
         $this->apiUrl = config("services.{$this->provider}.speech_url") ?? '';
@@ -26,7 +29,9 @@ class SpeechToTextService
     {
         try {
             if (!file_exists($voiceFilePath)) {
-                Log::error('Voice file not found', ['path' => $voiceFilePath]);
+                $this->loggingService->logTelegramEvent('voice_file_not_found', [
+                    'path' => $voiceFilePath
+                ], 'error');
                 return null;
             }
 
@@ -35,7 +40,9 @@ class SpeechToTextService
             $cachedResult = Cache::get($cacheKey);
 
             if ($cachedResult) {
-                Log::info('Voice to text result from cache', ['file' => $voiceFilePath]);
+                $this->loggingService->logTelegramEvent('voice_to_text_cache_hit', [
+                    'file' => $voiceFilePath
+                ]);
                 return $cachedResult;
             }
 
@@ -55,7 +62,7 @@ class SpeechToTextService
                 // Cache result for 1 hour
                 Cache::put($cacheKey, $text, 3600);
 
-                Log::info('Voice to text conversion successful', [
+                $this->loggingService->logTelegramEvent('voice_to_text_conversion_success', [
                     'file' => $voiceFilePath,
                     'provider' => $this->provider,
                     'text_length' => strlen($text)
@@ -65,8 +72,8 @@ class SpeechToTextService
             return $text;
 
         } catch (\Exception $e) {
-            Log::error('Voice to text conversion error', [
-                'error' => $e->getMessage(),
+            $this->loggingService->logException($e, [
+                'context' => 'voice_to_text_conversion',
                 'file' => $voiceFilePath,
                 'provider' => $this->provider
             ]);
@@ -297,7 +304,19 @@ class SpeechToTextService
             $apiKey = config('services.huggingface.api_key');
 
             if (!$apiUrl) {
-                Log::error('Hugging Face API URL not configured');
+                $this->loggingService->logTelegramEvent('huggingface_api_url_missing', [
+                    'provider' => 'huggingface',
+                    'config_path' => 'services.huggingface.api_url'
+                ], 'error');
+                return null;
+            }
+
+            if (!$apiKey) {
+                $this->loggingService->logTelegramEvent('huggingface_api_key_missing', [
+                    'provider' => 'huggingface',
+                    'config_path' => 'services.huggingface.api_key',
+                    'note' => 'API key is required for Hugging Face inference API'
+                ], 'warning');
                 return null;
             }
 
@@ -312,13 +331,37 @@ class SpeechToTextService
 
             if ($response->successful()) {
                 $data = $response->json();
-                return $data['text'] ?? null;
+                $text = $data['text'] ?? null;
+
+                if ($text) {
+                    $this->loggingService->logTelegramEvent('huggingface_conversion_success', [
+                        'text_length' => strlen($text),
+                        'text_preview' => substr($text, 0, 100)
+                    ]);
+                } else {
+                    $this->loggingService->logTelegramEvent('huggingface_response_missing_text', [
+                        'response_data' => $data
+                    ], 'warning');
+                }
+
+                return $text;
             }
+
+            // Log error response
+            $this->loggingService->logTelegramEvent('huggingface_api_error_response', [
+                'status_code' => $response->status(),
+                'response_body' => $response->body(),
+                'headers' => $response->headers()
+            ], 'error');
 
             return null;
 
         } catch (\Exception $e) {
-            Log::error('Hugging Face conversion error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'huggingface_conversion',
+                'provider' => 'huggingface',
+                'file_path' => $voiceFilePath
+            ]);
             return null;
         }
     }
@@ -433,10 +476,26 @@ class SpeechToTextService
     public function testConnection(): array
     {
         try {
+            $this->loggingService->logTelegramEvent('speech_service_test_started', [
+                'provider' => $this->provider,
+                'timestamp' => now()->toISOString()
+            ]);
+
             // Check if provider is configured
             $status = $this->getProviderStatus($this->provider);
 
+            $this->loggingService->logTelegramEvent('provider_status_check', [
+                'provider' => $this->provider,
+                'configured' => $status['configured'],
+                'status_details' => $status
+            ]);
+
             if (!$status['configured']) {
+                $this->loggingService->logTelegramEvent('provider_not_configured', [
+                    'provider' => $this->provider,
+                    'status' => $status
+                ], 'error');
+
                 return [
                     'success' => false,
                     'error' => 'Provider not configured',
@@ -447,7 +506,19 @@ class SpeechToTextService
             // Create a simple test audio file or use existing one
             $testFile = storage_path('app/temp/test_voice.ogg');
 
+            $this->loggingService->logTelegramEvent('test_file_check', [
+                'test_file_path' => $testFile,
+                'file_exists' => file_exists($testFile),
+                'file_size' => file_exists($testFile) ? filesize($testFile) : 'N/A'
+            ]);
+
             if (!file_exists($testFile)) {
+                $this->loggingService->logTelegramEvent('test_file_not_found', [
+                    'test_file_path' => $testFile,
+                    'storage_path' => storage_path('app/temp/'),
+                    'directory_contents' => scandir(storage_path('app/temp/'))
+                ], 'error');
+
                 return [
                     'success' => false,
                     'error' => 'Test file not found',
@@ -455,15 +526,34 @@ class SpeechToTextService
                 ];
             }
 
+            $this->loggingService->logTelegramEvent('voice_conversion_test_started', [
+                'test_file' => $testFile,
+                'provider' => $this->provider
+            ]);
+
             $result = $this->convertVoiceToText($testFile);
 
+            $success = !empty($result);
+
+            $this->loggingService->logTelegramEvent('voice_conversion_test_completed', [
+                'success' => $success,
+                'provider' => $this->provider,
+                'result_length' => $result ? strlen($result) : 0,
+                'result_preview' => $result ? substr($result, 0, 100) : 'No result'
+            ]);
+
             return [
-                'success' => !empty($result),
+                'success' => $success,
                 'provider' => $this->provider,
                 'test_result' => $result ?? 'No result'
             ];
 
         } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'speech_service_test_connection',
+                'provider' => $this->provider
+            ]);
+
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
