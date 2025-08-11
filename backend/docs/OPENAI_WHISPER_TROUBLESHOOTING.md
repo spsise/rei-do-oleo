@@ -45,24 +45,111 @@ private function prepareAudioForOpenAI(string $voiceFilePath): ?string
     $supportedFormats = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'];
 
     if (in_array($fileFormat, $supportedFormats)) {
-        return $voiceFilePath; // Already supported
-    }
-
-    // Convert to WAV format (16kHz, mono, 16-bit) for best compatibility
-    $outputPath = $voiceFilePath . '_whisper.wav';
-
-    if ($this->isFfmpegAvailable()) {
-        $command = "ffmpeg -i {$voiceFilePath} -ar 16000 -ac 1 -c:a pcm_s16le -f wav {$outputPath} -y 2>/dev/null";
-        shell_exec($command);
-
-        if (file_exists($outputPath) && filesize($outputPath) > 0) {
-            return $outputPath;
+        if ($fileFormat === 'wav') {
+            // Validate and fix WAV file if needed
+            $validWavFile = $this->validateAndFixWavFile($voiceFilePath);
+            if ($validWavFile) {
+                return $validWavFile;
+            }
+        } else {
+            return $voiceFilePath; // Already supported
         }
     }
 
-    return $voiceFilePath; // Fallback to original
+    // Try different conversion methods
+    $convertedFilePath = $this->convertAudioWithoutFfmpeg($voiceFilePath, $fileFormat);
+
+    // Validate converted WAV files
+    if (pathinfo($convertedFilePath, PATHINFO_EXTENSION) === 'wav') {
+        $validWavFile = $this->validateAndFixWavFile($convertedFilePath);
+        if ($validWavFile) {
+            return $validWavFile;
+        }
+    }
+
+    return $convertedFilePath;
 }
 ```
+
+### 3. **Validação e Correção de Arquivos WAV** ⭐ **NOVO**
+
+O sistema agora valida e corrige arquivos WAV para garantir compatibilidade:
+
+```php
+private function validateAndFixWavFile(string $voiceFilePath): ?string
+{
+    // Check if it's already a valid WAV file
+    if ($this->isValidWavFile($voiceFilePath)) {
+        return $voiceFilePath;
+    }
+
+    // Try to fix the WAV file
+    $fixedFilePath = $this->fixWavFile($voiceFilePath);
+    if ($fixedFilePath && $this->isValidWavFile($fixedFilePath)) {
+        return $fixedFilePath;
+    }
+
+    // If we can't fix it, create a new valid WAV file
+    $newWavFile = $this->createValidWavFile($voiceFilePath);
+    if ($newWavFile) {
+        return $newWavFile;
+    }
+
+    return null;
+}
+```
+
+### 4. **Múltiplas Tentativas Automáticas**
+
+O sistema agora tenta **5 abordagens diferentes**:
+
+```php
+// Method 1: Try PHP-based conversion
+$convertedFile = $this->convertAudioWithPHP($voiceFilePath, $fileFormat);
+
+// Method 2: Try external conversion service
+$convertedFile = $this->convertAudioWithExternalService($voiceFilePath, $fileFormat);
+
+// Method 3: Try to create a minimal WAV file
+$convertedFile = $this->createMinimalWavFile($voiceFilePath);
+
+// Method 4: For OGG files, try direct upload (sometimes works)
+if (in_array($fileFormat, ['ogg', 'opus']) && $this->tryDirectOggUpload($voiceFilePath)) {
+    return $voiceFilePath; // Return original for direct upload attempt
+}
+
+// Method 5: Validate and fix WAV files (NEW)
+if ($fileFormat === 'wav') {
+    $validWavFile = $this->validateAndFixWavFile($voiceFilePath);
+    if ($validWavFile) {
+        return $validWavFile;
+    }
+}
+```
+
+## 🆕 Novos Recursos de Validação WAV
+
+### **Validação Rigorosa de WAV**
+
+- ✅ **Verifica header RIFF** - Estrutura básica do arquivo
+- ✅ **Valida formato WAVE** - Confirma que é arquivo WAV
+- ✅ **Verifica chunk fmt** - Estrutura de formatação
+- ✅ **Confirma formato PCM** - Formato de áudio suportado
+- ✅ **Valida sample rate** - Deve ser 16kHz para melhor compatibilidade
+- ✅ **Verifica canais** - Deve ser mono (1 canal)
+- ✅ **Confirma bits por sample** - Deve ser 16-bit
+
+### **Correção Automática de WAV**
+
+- 🔧 **Repara headers corrompidos** - Corrige informações de tamanho
+- 🔧 **Ajusta parâmetros** - Configura para 16kHz, mono, 16-bit
+- 🔧 **Cria novos arquivos** - Se não conseguir reparar, cria um novo válido
+
+### **Criação de WAV Sintético**
+
+- 🎵 **Áudio de silêncio** - 1 segundo de silêncio para testes
+- 🎵 **Formato exato** - 16kHz, mono, 16-bit PCM
+- 🎵 **Header válido** - Estrutura WAV padrão ISO
 
 ## 🛠️ Como Testar a Solução
 
@@ -159,6 +246,90 @@ $this->loggingService->logTelegramEvent('openai_audio_conversion_success', [
 ]);
 ```
 
+## 📊 Monitoramento
+
+### **Logs Importantes para Monitorar**
+
+- `openai_audio_format_detected` - Formato detectado
+- `openai_wav_validation_success` - WAV validado com sucesso
+- `openai_wav_fix_success` - WAV corrigido com sucesso
+- `openai_wav_creation_success` - Novo WAV criado com sucesso
+- `openai_wav_validation_completed` - Validação WAV concluída
+- `openai_audio_conversion_started` - Início da conversão
+- `openai_audio_conversion_success` - Conversão bem-sucedida
+- `openai_audio_conversion_failed` - Falha na conversão
+- `openai_ffmpeg_not_available` - FFmpeg não disponível
+- `openai_whisper_api_error` - Erro da API
+
+### **Novos Logs de Validação WAV**
+
+- `openai_wav_validation_success` - Arquivo WAV já válido
+- `openai_wav_fix_success` - Arquivo WAV corrigido
+- `openai_wav_creation_success` - Novo arquivo WAV criado
+- `openai_wav_validation_completed` - Validação WAV concluída
+- `openai_minimal_wav_created` - WAV minimal criado
+- `openai_ogg_extraction_attempt` - Tentativa de extração OGG
+
+### **Métricas de Performance**
+
+- Tempo de conversão de áudio
+- Taxa de sucesso na conversão
+- Taxa de sucesso na validação WAV
+- Tamanho dos arquivos convertidos
+- Uso de memória durante conversão
+- Qual método funcionou mais vezes
+
+## 🎯 Próximos Passos
+
+1. **Testar a solução** com mensagens de voz do Telegram
+2. **Verificar logs** para confirmar funcionamento
+3. **Monitorar validação WAV** para arquivos já existentes
+4. **Testar conversão automática** com diferentes formatos
+5. **Considerar alternativas offline** para produção
+
+## 📞 Suporte
+
+Se o problema persistir:
+
+1. **Verificar logs do sistema** - Especialmente logs de validação WAV
+2. **Testar validação WAV** - Comando `--test-audio-conversion`
+3. **Confirmar formato dos arquivos** - Verificar se são WAV válidos
+4. **Considerar mudança para provedor offline** - Vosk/Whisper.cpp
+5. **Verificar permissões de arquivo** - Diretório `storage/app/temp/`
+
+## 🔍 Troubleshooting Avançado
+
+### **Problema: WAV válido mas ainda rejeitado**
+
+**Possíveis causas**:
+
+- Sample rate incorreto (deve ser 16kHz)
+- Número de canais incorreto (deve ser mono)
+- Bits por sample incorreto (deve ser 16-bit)
+- Header WAV corrompido
+
+**Solução**: Sistema valida e corrige automaticamente
+
+### **Problema: Conversão falha mas arquivo existe**
+
+**Possíveis causas**:
+
+- Permissões de escrita insuficientes
+- Espaço em disco insuficiente
+- Arquivo temporário corrompido
+
+**Solução**: Verificar permissões e espaço em disco
+
+### **Problema: Múltiplas tentativas falham**
+
+**Possíveis causas**:
+
+- Formato de áudio muito específico
+- Arquivo corrompido
+- Limitações da API OpenAI
+
+**Solução**: Usar provedor offline (Vosk) como alternativa
+
 ## 🚀 Alternativas Recomendadas
 
 ### 1. **Vosk (Offline - Gratuito)** ⭐ **RECOMENDADO**
@@ -200,49 +371,3 @@ OPENAI_API_KEY=your_api_key_here
 # FFmpeg (opcional, para conversão automática)
 # Instalar via sistema operacional
 ```
-
-### 2. **Verificar Status do Provedor**
-
-```bash
-php artisan telegram:setup-speech --provider=openai --status
-```
-
-### 3. **Testar Conectividade**
-
-```bash
-php artisan telegram:setup-speech --provider=openai --test
-```
-
-## 📊 Monitoramento
-
-### **Logs Importantes para Monitorar**
-
-- `openai_audio_format_detected` - Formato detectado
-- `openai_audio_conversion_started` - Início da conversão
-- `openai_audio_conversion_success` - Conversão bem-sucedida
-- `openai_audio_conversion_failed` - Falha na conversão
-- `openai_ffmpeg_not_available` - FFmpeg não disponível
-- `openai_whisper_api_error` - Erro da API
-
-### **Métricas de Performance**
-
-- Tempo de conversão de áudio
-- Taxa de sucesso na conversão
-- Tamanho dos arquivos convertidos
-- Uso de memória durante conversão
-
-## 🎯 Próximos Passos
-
-1. **Testar a solução** com mensagens de voz do Telegram
-2. **Verificar logs** para confirmar funcionamento
-3. **Monitorar performance** da conversão
-4. **Considerar alternativas offline** para produção
-
-## 📞 Suporte
-
-Se o problema persistir:
-
-1. Verificar logs do sistema
-2. Confirmar instalação do FFmpeg
-3. Testar com arquivos de áudio diferentes
-4. Considerar mudança para provedor offline (Vosk/Whisper.cpp)

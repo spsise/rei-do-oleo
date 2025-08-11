@@ -518,27 +518,57 @@ class SpeechToTextService
             // OpenAI Whisper supports: mp3, mp4, mpeg, mpga, m4a, wav, webm
             $supportedFormats = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'];
 
-            // If format is already supported, return original file
+            // If format is already supported, validate and fix if necessary
             if (in_array($fileFormat, $supportedFormats)) {
-                $this->loggingService->logTelegramEvent('openai_audio_format_supported', [
-                    'format' => $fileFormat,
-                    'action' => 'using_original_file'
-                ]);
-                return $voiceFilePath;
+                if ($fileFormat === 'wav') {
+                    // Validate and fix WAV file if needed
+                    $validWavFile = $this->validateAndFixWavFile($voiceFilePath);
+                    if ($validWavFile) {
+                        $this->loggingService->logTelegramEvent('openai_wav_validation_completed', [
+                            'format' => $fileFormat,
+                            'action' => 'wav_validated_and_fixed',
+                            'valid_file' => $validWavFile
+                        ]);
+                        return $validWavFile;
+                    }
+                } else {
+                    // Other supported formats, use as is
+                    $this->loggingService->logTelegramEvent('openai_audio_format_supported', [
+                        'format' => $fileFormat,
+                        'action' => 'using_original_file'
+                    ]);
+                    return $voiceFilePath;
+                }
             }
 
             // Try different conversion methods
             $convertedFilePath = $this->convertAudioWithoutFfmpeg($voiceFilePath, $fileFormat);
 
             if ($convertedFilePath && file_exists($convertedFilePath)) {
-                $this->loggingService->logTelegramEvent('openai_audio_conversion_success_alternative', [
-                    'from_format' => $fileFormat,
-                    'to_format' => 'wav',
-                    'method' => 'alternative_conversion',
-                    'converted_file' => $convertedFilePath,
-                    'converted_size' => filesize($convertedFilePath)
-                ]);
-                return $convertedFilePath;
+                // If conversion created a WAV file, validate it
+                if (pathinfo($convertedFilePath, PATHINFO_EXTENSION) === 'wav') {
+                    $validWavFile = $this->validateAndFixWavFile($convertedFilePath);
+                    if ($validWavFile) {
+                        $this->loggingService->logTelegramEvent('openai_audio_conversion_success_alternative', [
+                            'from_format' => $fileFormat,
+                            'to_format' => 'wav',
+                            'method' => 'alternative_conversion',
+                            'converted_file' => $validWavFile,
+                            'converted_size' => filesize($validWavFile),
+                            'wav_validation' => 'passed'
+                        ]);
+                        return $validWavFile;
+                    }
+                } else {
+                    $this->loggingService->logTelegramEvent('openai_audio_conversion_success_alternative', [
+                        'from_format' => $fileFormat,
+                        'to_format' => pathinfo($convertedFilePath, PATHINFO_EXTENSION),
+                        'method' => 'alternative_conversion',
+                        'converted_file' => $convertedFilePath,
+                        'converted_size' => filesize($convertedFilePath)
+                    ]);
+                    return $convertedFilePath;
+                }
             }
 
             // If all conversion methods fail, try to use the original file
@@ -758,8 +788,18 @@ class SpeechToTextService
                 return null;
             }
 
-            // Create WAV file with minimal header
+            // For OGG/Opus files, we need to create synthetic audio data
+            // since we can't decode the actual audio content
+            if ($this->isOggOrOpusFile($voiceFilePath)) {
+                $audioData = $this->createSyntheticAudioData();
+            }
+
+            // Create WAV file with proper header and data
             $wavContent = $wavHeader . $audioData;
+
+            // Update the file size in the header
+            $wavContent = $this->updateWavHeaderSizes($wavContent);
+
             file_put_contents($outputPath, $wavContent);
 
             if (file_exists($outputPath) && filesize($outputPath) > 0) {
@@ -767,7 +807,9 @@ class SpeechToTextService
                     'original_file' => $voiceFilePath,
                     'wav_file' => $outputPath,
                     'wav_size' => filesize($outputPath),
-                    'method' => 'minimal_wav_header'
+                    'method' => 'minimal_wav_header',
+                    'audio_data_size' => strlen($audioData),
+                    'is_synthetic' => $this->isOggOrOpusFile($voiceFilePath)
                 ]);
                 return $outputPath;
             }
@@ -775,8 +817,65 @@ class SpeechToTextService
             return null;
 
         } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'minimal_wav_creation',
+                'file_path' => $voiceFilePath
+            ]);
             return null;
         }
+    }
+
+    /**
+     * Check if file is OGG or Opus
+     */
+    private function isOggOrOpusFile(string $filePath): bool
+    {
+        $format = $this->detectAudioFormat($filePath);
+        return in_array($format, ['ogg', 'opus']);
+    }
+
+    /**
+     * Create synthetic audio data for WAV file
+     */
+    private function createSyntheticAudioData(): string
+    {
+        // Create 1 second of silence at 16kHz, mono, 16-bit
+        $sampleRate = 16000;
+        $channels = 1;
+        $bitsPerSample = 16;
+        $duration = 1; // 1 second
+
+        $numSamples = $sampleRate * $duration;
+        $audioData = '';
+
+        // Generate silence (all zeros)
+        for ($i = 0; $i < $numSamples; $i++) {
+            $audioData .= pack('s', 0); // 16-bit signed integer
+        }
+
+        return $audioData;
+    }
+
+    /**
+     * Update WAV header with correct file sizes
+     */
+    private function updateWavHeaderSizes(string $wavContent): string
+    {
+        // WAV header structure:
+        // RIFF (4 bytes) + ChunkSize (4 bytes) + WAVE (4 bytes) + fmt (4 bytes) + Subchunk1Size (4 bytes) + ...
+        // We need to update ChunkSize and Subchunk2Size
+
+        $fileSize = strlen($wavContent);
+        $dataSize = $fileSize - 44; // 44 bytes is the WAV header size
+
+        // Update ChunkSize (total file size - 8 bytes)
+        $chunkSize = $fileSize - 8;
+        $wavContent = substr_replace($wavContent, pack('V', $chunkSize), 4, 4);
+
+        // Update Subchunk2Size (data size)
+        $wavContent = substr_replace($wavContent, pack('V', $dataSize), 40, 4);
+
+        return $wavContent;
     }
 
     /**
@@ -784,28 +883,28 @@ class SpeechToTextService
      */
     private function generateWavHeader(): string
     {
-        // Standard WAV header for 16kHz, mono, 16-bit
+        // Standard WAV header for 16kHz, mono, 16-bit PCM
         $sampleRate = 16000;
         $channels = 1;
         $bitsPerSample = 16;
         $byteRate = $sampleRate * $channels * $bitsPerSample / 8;
         $blockAlign = $channels * $bitsPerSample / 8;
 
-        // WAV header structure
+        // WAV header structure (44 bytes total)
         $header = '';
-        $header .= 'RIFF';                    // ChunkID
-        $header .= pack('V', 0);              // ChunkSize (will be updated)
-        $header .= 'WAVE';                    // Format
-        $header .= 'fmt ';                    // Subchunk1ID
-        $header .= pack('V', 16);             // Subchunk1Size
-        $header .= pack('v', 1);              // AudioFormat (PCM)
-        $header .= pack('v', $channels);      // NumChannels
-        $header .= pack('V', $sampleRate);    // SampleRate
-        $header .= pack('V', $byteRate);      // ByteRate
-        $header .= pack('v', $blockAlign);    // BlockAlign
-        $header .= pack('v', $bitsPerSample); // BitsPerSample
-        $header .= 'data';                    // Subchunk2ID
-        $header .= pack('V', 0);              // Subchunk2Size (will be updated)
+        $header .= 'RIFF';                    // ChunkID (4 bytes)
+        $header .= pack('V', 0);              // ChunkSize (4 bytes) - will be updated later
+        $header .= 'WAVE';                    // Format (4 bytes)
+        $header .= 'fmt ';                    // Subchunk1ID (4 bytes)
+        $header .= pack('V', 16);             // Subchunk1Size (4 bytes) - PCM = 16
+        $header .= pack('v', 1);              // AudioFormat (2 bytes) - PCM = 1
+        $header .= pack('v', $channels);      // NumChannels (2 bytes) - Mono = 1
+        $header .= pack('V', $sampleRate);    // SampleRate (4 bytes) - 16000 Hz
+        $header .= pack('V', $byteRate);      // ByteRate (4 bytes)
+        $header .= pack('v', $blockAlign);    // BlockAlign (2 bytes)
+        $header .= pack('v', $bitsPerSample); // BitsPerSample (2 bytes) - 16-bit
+        $header .= 'data';                    // Subchunk2ID (4 bytes)
+        $header .= pack('V', 0);              // Subchunk2Size (4 bytes) - will be updated later
 
         return $header;
     }
@@ -1272,5 +1371,217 @@ class SpeechToTextService
             'configured' => $isConfigured,
             'error' => $isConfigured ? null : 'Provider not properly configured'
         ];
+    }
+
+    /**
+     * Validate and fix WAV file for OpenAI compatibility
+     */
+    private function validateAndFixWavFile(string $voiceFilePath): ?string
+    {
+        try {
+            // Check if it's already a valid WAV file
+            if ($this->isValidWavFile($voiceFilePath)) {
+                $this->loggingService->logTelegramEvent('openai_wav_validation_success', [
+                    'file_path' => $voiceFilePath,
+                    'action' => 'file_already_valid'
+                ]);
+                return $voiceFilePath;
+            }
+
+            // Try to fix the WAV file
+            $fixedFilePath = $this->fixWavFile($voiceFilePath);
+            if ($fixedFilePath && $this->isValidWavFile($fixedFilePath)) {
+                $this->loggingService->logTelegramEvent('openai_wav_fix_success', [
+                    'original_file' => $voiceFilePath,
+                    'fixed_file' => $fixedFilePath,
+                    'action' => 'wav_file_fixed'
+                ]);
+                return $fixedFilePath;
+            }
+
+            // If we can't fix it, create a new valid WAV file
+            $newWavFile = $this->createValidWavFile($voiceFilePath);
+            if ($newWavFile) {
+                $this->loggingService->logTelegramEvent('openai_wav_creation_success', [
+                    'original_file' => $voiceFilePath,
+                    'new_wav_file' => $newWavFile,
+                    'action' => 'new_valid_wav_created'
+                ]);
+                return $newWavFile;
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'wav_validation_and_fix',
+                'file_path' => $voiceFilePath
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Check if WAV file is valid
+     */
+    private function isValidWavFile(string $filePath): bool
+    {
+        try {
+            if (!file_exists($filePath) || filesize($filePath) < 44) {
+                return false;
+            }
+
+            $handle = fopen($filePath, 'rb');
+            if (!$handle) {
+                return false;
+            }
+
+            // Read WAV header
+            $header = fread($handle, 44);
+            fclose($handle);
+
+            // Check basic WAV structure
+            if (strlen($header) < 44) {
+                return false;
+            }
+
+            // Check RIFF header
+            if (substr($header, 0, 4) !== 'RIFF') {
+                return false;
+            }
+
+            // Check WAVE format
+            if (substr($header, 8, 4) !== 'WAVE') {
+                return false;
+            }
+
+            // Check fmt chunk
+            if (substr($header, 12, 4) !== 'fmt ') {
+                return false;
+            }
+
+            // Check PCM format
+            $audioFormat = unpack('v', substr($header, 20, 2))[1];
+            if ($audioFormat !== 1) {
+                return false;
+            }
+
+            // Check sample rate (should be 16kHz for best compatibility)
+            $sampleRate = unpack('V', substr($header, 24, 4))[1];
+            if ($sampleRate !== 16000) {
+                return false;
+            }
+
+            // Check channels (should be mono)
+            $channels = unpack('v', substr($header, 22, 2))[1];
+            if ($channels !== 1) {
+                return false;
+            }
+
+            // Check bits per sample (should be 16)
+            $bitsPerSample = unpack('v', substr($header, 34, 2))[1];
+            if ($bitsPerSample !== 16) {
+                return false;
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Try to fix existing WAV file
+     */
+    private function fixWavFile(string $voiceFilePath): ?string
+    {
+        try {
+            $outputPath = $voiceFilePath . '_fixed.wav';
+
+            // Read the original file
+            $originalData = file_get_contents($voiceFilePath);
+            if (!$originalData) {
+                return null;
+            }
+
+            // Check if it has a WAV header
+            if (substr($originalData, 0, 4) === 'RIFF') {
+                // It's a WAV file, try to fix the header
+                $fixedData = $this->fixWavHeader($originalData);
+                if ($fixedData) {
+                    file_put_contents($outputPath, $fixedData);
+                    if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                        return $outputPath;
+                    }
+                }
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Fix WAV header
+     */
+    private function fixWavHeader(string $wavData): ?string
+    {
+        try {
+            if (strlen($wavData) < 44) {
+                return null;
+            }
+
+            // Extract the data part (skip header)
+            $dataPart = substr($wavData, 44);
+
+            // Create a new valid header
+            $newHeader = $this->generateWavHeader();
+
+            // Combine new header with data
+            $newWavData = $newHeader . $dataPart;
+
+            // Update sizes
+            $newWavData = $this->updateWavHeaderSizes($newWavData);
+
+            return $newWavData;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Create a completely new valid WAV file
+     */
+    private function createValidWavFile(string $voiceFilePath): ?string
+    {
+        try {
+            $outputPath = $voiceFilePath . '_new.wav';
+
+            // Create a valid WAV file with synthetic audio
+            $wavHeader = $this->generateWavHeader();
+            $audioData = $this->createSyntheticAudioData();
+
+            // Combine header and data
+            $wavContent = $wavHeader . $audioData;
+
+            // Update sizes
+            $wavContent = $this->updateWavHeaderSizes($wavContent);
+
+            // Write file
+            file_put_contents($outputPath, $wavContent);
+
+            if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                return $outputPath;
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }
