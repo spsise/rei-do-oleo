@@ -57,7 +57,7 @@ return [
     */
 
     'speech' => [
-        'provider' => env('SPEECH_PROVIDER', 'vosk'),
+        'provider' => env('SPEECH_PROVIDER', 'huggingface'),
     ],
 
     'vosk' => [
