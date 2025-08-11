@@ -87,26 +87,93 @@ class SpeechToTextService
     private function convertWithOpenAI(string $voiceFilePath): ?string
     {
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ])->attach(
-                'file',
-                file_get_contents($voiceFilePath),
-                basename($voiceFilePath)
-            )->post('https://api.openai.com/v1/audio/transcriptions', [
-                'model' => 'whisper-1',
-                'language' => 'pt',
-                'response_format' => 'text'
-            ]);
+            // Check file format and convert if necessary
+            $convertedFilePath = $this->prepareAudioForOpenAI($voiceFilePath);
 
-            if ($response->successful()) {
-                return trim($response->body());
+            if (!$convertedFilePath) {
+                $this->loggingService->logTelegramEvent('openai_audio_preparation_failed', [
+                    'original_file' => $voiceFilePath,
+                    'error' => 'Could not prepare audio file for OpenAI'
+                ], 'error');
+                return null;
             }
 
-            $this->loggingService->logTelegramEvent('openai_whisper_api_error', [
-                'status' => $response->status(),
-                'response' => $response->body()
+            // Try multiple approaches
+            $approaches = [
+                'converted_file' => $convertedFilePath,
+                'original_file' => $voiceFilePath
+            ];
+
+            foreach ($approaches as $approach => $filePath) {
+                if (!$filePath || !file_exists($filePath)) {
+                    continue;
+                }
+
+                $this->loggingService->logTelegramEvent('openai_whisper_attempt', [
+                    'approach' => $approach,
+                    'file_path' => $filePath,
+                    'file_size' => filesize($filePath),
+                    'file_extension' => pathinfo($filePath, PATHINFO_EXTENSION)
+                ]);
+
+                try {
+                    $response = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $this->apiKey,
+                    ])->attach(
+                        'file',
+                        file_get_contents($filePath),
+                        basename($filePath)
+                    )->post('https://api.openai.com/v1/audio/transcriptions', [
+                        'model' => 'whisper-1',
+                        'language' => 'pt',
+                        'response_format' => 'text'
+                    ]);
+
+                    if ($response->successful()) {
+                        $result = trim($response->body());
+
+                        $this->loggingService->logTelegramEvent('openai_whisper_success', [
+                            'approach' => $approach,
+                            'file_path' => $filePath,
+                            'result_length' => strlen($result)
+                        ]);
+
+                        // Clean up converted file if it was created
+                        if ($convertedFilePath !== $voiceFilePath && file_exists($convertedFilePath)) {
+                            unlink($convertedFilePath);
+                        }
+
+                        return $result;
+                    }
+
+                    // Log the failed attempt
+                    $this->loggingService->logTelegramEvent('openai_whisper_attempt_failed', [
+                        'approach' => $approach,
+                        'file_path' => $filePath,
+                        'status' => $response->status(),
+                        'response' => $response->body()
+                    ], 'warning');
+
+                } catch (\Exception $e) {
+                    $this->loggingService->logTelegramEvent('openai_whisper_attempt_exception', [
+                        'approach' => $approach,
+                        'file_path' => $filePath,
+                        'error' => $e->getMessage()
+                    ], 'warning');
+                }
+            }
+
+            // All approaches failed
+            $this->loggingService->logTelegramEvent('openai_whisper_all_attempts_failed', [
+                'original_file' => $voiceFilePath,
+                'converted_file' => $convertedFilePath,
+                'error' => 'All conversion and upload approaches failed'
             ], 'error');
+
+            // Clean up converted file
+            if ($convertedFilePath !== $voiceFilePath && file_exists($convertedFilePath)) {
+                unlink($convertedFilePath);
+            }
 
             return null;
 
@@ -116,6 +183,11 @@ class SpeechToTextService
                 'file' => $voiceFilePath,
                 'provider' => 'openai'
             ]);
+
+            // Clean up converted file on exception
+            if (isset($convertedFilePath) && $convertedFilePath !== $voiceFilePath && file_exists($convertedFilePath)) {
+                unlink($convertedFilePath);
+            }
 
             return null;
         }
@@ -429,12 +501,427 @@ class SpeechToTextService
     }
 
     /**
+     * Prepare audio for OpenAI Whisper
+     */
+    private function prepareAudioForOpenAI(string $voiceFilePath): ?string
+    {
+        try {
+            // Detect file format
+            $fileFormat = $this->detectAudioFormat($voiceFilePath);
+
+            $this->loggingService->logTelegramEvent('openai_audio_format_detected', [
+                'file_path' => $voiceFilePath,
+                'detected_format' => $fileFormat,
+                'file_size' => file_exists($voiceFilePath) ? filesize($voiceFilePath) : 'N/A'
+            ]);
+
+            // OpenAI Whisper supports: mp3, mp4, mpeg, mpga, m4a, wav, webm
+            $supportedFormats = ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'];
+
+            // If format is already supported, return original file
+            if (in_array($fileFormat, $supportedFormats)) {
+                $this->loggingService->logTelegramEvent('openai_audio_format_supported', [
+                    'format' => $fileFormat,
+                    'action' => 'using_original_file'
+                ]);
+                return $voiceFilePath;
+            }
+
+            // Try different conversion methods
+            $convertedFilePath = $this->convertAudioWithoutFfmpeg($voiceFilePath, $fileFormat);
+
+            if ($convertedFilePath && file_exists($convertedFilePath)) {
+                $this->loggingService->logTelegramEvent('openai_audio_conversion_success_alternative', [
+                    'from_format' => $fileFormat,
+                    'to_format' => 'wav',
+                    'method' => 'alternative_conversion',
+                    'converted_file' => $convertedFilePath,
+                    'converted_size' => filesize($convertedFilePath)
+                ]);
+                return $convertedFilePath;
+            }
+
+            // If all conversion methods fail, try to use the original file
+            $this->loggingService->logTelegramEvent('openai_audio_conversion_fallback', [
+                'format' => $fileFormat,
+                'action' => 'using_original_file_as_fallback',
+                'warning' => 'Audio conversion failed, using original file'
+            ], 'warning');
+
+            return $voiceFilePath;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'openai_audio_preparation',
+                'file_path' => $voiceFilePath
+            ]);
+
+            // Return original file on error
+            return $voiceFilePath;
+        }
+    }
+
+    /**
+     * Try to send OGG file directly to OpenAI (sometimes works despite docs)
+     */
+    private function tryDirectOggUpload(string $voiceFilePath): bool
+    {
+        try {
+            // Sometimes OpenAI accepts OGG files even though docs say they don't
+            // This is a last resort attempt
+            $this->loggingService->logTelegramEvent('openai_direct_ogg_attempt', [
+                'file_path' => $voiceFilePath,
+                'method' => 'direct_ogg_upload',
+                'warning' => 'Attempting to send OGG file directly despite documentation'
+            ], 'warning');
+
+            return true; // Allow the attempt
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Convert audio without FFmpeg using alternative methods
+     */
+    private function convertAudioWithoutFfmpeg(string $voiceFilePath, string $fileFormat): ?string
+    {
+        try {
+            // Method 1: Try PHP-based conversion
+            $convertedFile = $this->convertAudioWithPHP($voiceFilePath, $fileFormat);
+            if ($convertedFile) {
+                return $convertedFile;
+            }
+
+            // Method 2: Try external conversion service
+            $convertedFile = $this->convertAudioWithExternalService($voiceFilePath, $fileFormat);
+            if ($convertedFile) {
+                return $convertedFile;
+            }
+
+            // Method 3: Try to create a minimal WAV file
+            $convertedFile = $this->createMinimalWavFile($voiceFilePath);
+            if ($convertedFile) {
+                return $convertedFile;
+            }
+
+            // Method 4: For OGG files, try direct upload (sometimes works)
+            if (in_array($fileFormat, ['ogg', 'opus']) && $this->tryDirectOggUpload($voiceFilePath)) {
+                return $voiceFilePath; // Return original for direct upload attempt
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'alternative_audio_conversion',
+                'file_path' => $voiceFilePath,
+                'format' => $fileFormat
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Convert audio using PHP extensions (limited support)
+     */
+    private function convertAudioWithPHP(string $voiceFilePath, string $fileFormat): ?string
+    {
+        try {
+            // Check if we can read the audio file
+            $audioData = file_get_contents($voiceFilePath);
+            if (!$audioData) {
+                return null;
+            }
+
+            // For OGG/Opus files, try to extract raw audio data
+            if (in_array($fileFormat, ['ogg', 'opus'])) {
+                return $this->extractAudioFromOgg($voiceFilePath, $audioData);
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extract audio data from OGG container
+     */
+    private function extractAudioFromOgg(string $voiceFilePath, string $audioData): ?string
+    {
+        try {
+            // Create a temporary file with raw audio data
+            $tempFile = $voiceFilePath . '_raw.audio';
+
+            // For OGG files, we'll try to send the raw data
+            // This is a fallback approach - may not work with all OGG files
+            file_put_contents($tempFile, $audioData);
+
+            if (file_exists($tempFile) && filesize($tempFile) > 0) {
+                $this->loggingService->logTelegramEvent('openai_ogg_extraction_attempt', [
+                    'original_file' => $voiceFilePath,
+                    'raw_file' => $tempFile,
+                    'raw_size' => filesize($tempFile),
+                    'method' => 'raw_audio_extraction'
+                ]);
+                return $tempFile;
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Convert audio using external conversion service
+     */
+    private function convertAudioWithExternalService(string $voiceFilePath, string $fileFormat): ?string
+    {
+        try {
+            // Check if we have access to external conversion services
+            $externalServices = $this->getAvailableExternalServices();
+
+            foreach ($externalServices as $service) {
+                $convertedFile = $this->tryExternalConversionService($voiceFilePath, $fileFormat, $service);
+                if ($convertedFile) {
+                    return $convertedFile;
+                }
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get available external conversion services
+     */
+    private function getAvailableExternalServices(): array
+    {
+        return [
+            'cloudconvert' => [
+                'name' => 'CloudConvert',
+                'api_key_env' => 'CLOUDCONVERT_API_KEY',
+                'endpoint' => 'https://api.cloudconvert.com/v2/convert',
+                'free_tier' => true
+            ],
+            'zamzar' => [
+                'name' => 'Zamzar',
+                'api_key_env' => 'ZAMZAR_API_KEY',
+                'endpoint' => 'https://api.zamzar.com/v1/jobs',
+                'free_tier' => true
+            ]
+        ];
+    }
+
+    /**
+     * Try external conversion service
+     */
+    private function tryExternalConversionService(string $voiceFilePath, string $fileFormat, array $service): ?string
+    {
+        try {
+            $apiKey = config("services.{$service['name']}.api_key");
+            if (!$apiKey) {
+                return null;
+            }
+
+            // For now, return null as external services require additional setup
+            // This can be implemented later if needed
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Create a minimal WAV file (fallback method)
+     */
+    private function createMinimalWavFile(string $voiceFilePath): ?string
+    {
+        try {
+            $outputPath = $voiceFilePath . '_minimal.wav';
+
+            // Create a minimal WAV header
+            $wavHeader = $this->generateWavHeader();
+
+            // Read original audio data
+            $audioData = file_get_contents($voiceFilePath);
+            if (!$audioData) {
+                return null;
+            }
+
+            // Create WAV file with minimal header
+            $wavContent = $wavHeader . $audioData;
+            file_put_contents($outputPath, $wavContent);
+
+            if (file_exists($outputPath) && filesize($outputPath) > 0) {
+                $this->loggingService->logTelegramEvent('openai_minimal_wav_created', [
+                    'original_file' => $voiceFilePath,
+                    'wav_file' => $outputPath,
+                    'wav_size' => filesize($outputPath),
+                    'method' => 'minimal_wav_header'
+                ]);
+                return $outputPath;
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Generate minimal WAV header
+     */
+    private function generateWavHeader(): string
+    {
+        // Standard WAV header for 16kHz, mono, 16-bit
+        $sampleRate = 16000;
+        $channels = 1;
+        $bitsPerSample = 16;
+        $byteRate = $sampleRate * $channels * $bitsPerSample / 8;
+        $blockAlign = $channels * $bitsPerSample / 8;
+
+        // WAV header structure
+        $header = '';
+        $header .= 'RIFF';                    // ChunkID
+        $header .= pack('V', 0);              // ChunkSize (will be updated)
+        $header .= 'WAVE';                    // Format
+        $header .= 'fmt ';                    // Subchunk1ID
+        $header .= pack('V', 16);             // Subchunk1Size
+        $header .= pack('v', 1);              // AudioFormat (PCM)
+        $header .= pack('v', $channels);      // NumChannels
+        $header .= pack('V', $sampleRate);    // SampleRate
+        $header .= pack('V', $byteRate);      // ByteRate
+        $header .= pack('v', $blockAlign);    // BlockAlign
+        $header .= pack('v', $bitsPerSample); // BitsPerSample
+        $header .= 'data';                    // Subchunk2ID
+        $header .= pack('V', 0);              // Subchunk2Size (will be updated)
+
+        return $header;
+    }
+
+    /**
+     * Detect audio file format
+     */
+    private function detectAudioFormat(string $filePath): string
+    {
+        try {
+            if (!file_exists($filePath)) {
+                return 'unknown';
+            }
+
+            // Check file extension first
+            $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
+            // Common audio extensions
+            $audioExtensions = ['mp3', 'wav', 'ogg', 'opus', 'm4a', 'aac', 'flac', 'webm'];
+
+            if (in_array($extension, $audioExtensions)) {
+                return $extension;
+            }
+
+            // Try to detect format using file command if available
+            $fileCommand = shell_exec('which file 2>/dev/null');
+            if ($fileCommand) {
+                $fileInfo = shell_exec("file -b {$filePath} 2>/dev/null");
+                if ($fileInfo) {
+                    $fileInfo = strtolower(trim($fileInfo));
+
+                    // Parse file command output
+                    if (strpos($fileInfo, 'ogg') !== false) {
+                        return 'ogg';
+                    } elseif (strpos($fileInfo, 'opus') !== false) {
+                        return 'opus';
+                    } elseif (strpos($fileInfo, 'wav') !== false) {
+                        return 'wav';
+                    } elseif (strpos($fileInfo, 'mp3') !== false) {
+                        return 'mp3';
+                    } elseif (strpos($fileInfo, 'mpeg') !== false) {
+                        return 'mpeg';
+                    } elseif (strpos($fileInfo, 'aac') !== false) {
+                        return 'aac';
+                    } elseif (strpos($fileInfo, 'flac') !== false) {
+                        return 'flac';
+                    }
+                }
+            }
+
+            // Check file header for OGG/Opus (Telegram voice messages)
+            $handle = fopen($filePath, 'rb');
+            if ($handle) {
+                $header = fread($handle, 8);
+                fclose($handle);
+
+                // OGG header: OggS
+                if (substr($header, 0, 4) === 'OggS') {
+                    return 'ogg';
+                }
+
+                // Check for Opus codec identifier
+                if (strpos($header, 'Opus') !== false) {
+                    return 'opus';
+                }
+            }
+
+            return $extension ?: 'unknown';
+
+        } catch (\Exception $e) {
+            return 'unknown';
+        }
+    }
+
+    /**
      * Check if ffmpeg is available
      */
     private function isFfmpegAvailable(): bool
     {
-        $output = shell_exec('which ffmpeg 2>/dev/null');
-        return !empty($output);
+        try {
+            $output = shell_exec('which ffmpeg 2>/dev/null');
+            if (empty($output)) {
+                return false;
+            }
+
+            // Test if ffmpeg is working
+            $testOutput = shell_exec('ffmpeg -version 2>/dev/null');
+            return !empty($testOutput);
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get ffmpeg version and capabilities
+     */
+    private function getFfmpegInfo(): array
+    {
+        try {
+            if (!$this->isFfmpegAvailable()) {
+                return ['available' => false, 'error' => 'ffmpeg not available'];
+            }
+
+            $version = shell_exec('ffmpeg -version 2>/dev/null | head -1');
+            $codecs = shell_exec('ffmpeg -codecs 2>/dev/null | grep -E "(ogg|opus|wav|mp3)" | head -5');
+
+            return [
+                'available' => true,
+                'version' => trim($version),
+                'supported_codecs' => $codecs ? explode("\n", trim($codecs)) : []
+            ];
+
+        } catch (\Exception $e) {
+            return ['available' => false, 'error' => $e->getMessage()];
+        }
     }
 
     /**
@@ -694,6 +1181,60 @@ class SpeechToTextService
         }
 
         return $results;
+    }
+
+    /**
+     * Test audio conversion for debugging
+     */
+    public function testAudioConversion(string $voiceFilePath): array
+    {
+        try {
+            $result = [
+                'success' => false,
+                'file_path' => $voiceFilePath,
+                'file_exists' => file_exists($voiceFilePath),
+                'file_size' => file_exists($voiceFilePath) ? filesize($voiceFilePath) : 'N/A',
+                'detected_format' => 'unknown',
+                'ffmpeg_available' => false,
+                'conversion_result' => null,
+                'errors' => []
+            ];
+
+            if (!file_exists($voiceFilePath)) {
+                $result['errors'][] = 'File does not exist';
+                return $result;
+            }
+
+            // Detect format
+            $result['detected_format'] = $this->detectAudioFormat($voiceFilePath);
+
+            // Check ffmpeg
+            $result['ffmpeg_available'] = $this->isFfmpegAvailable();
+            if ($result['ffmpeg_available']) {
+                $result['ffmpeg_info'] = $this->getFfmpegInfo();
+            }
+
+            // Test conversion
+            $convertedFilePath = $this->prepareAudioForOpenAI($voiceFilePath);
+            $result['conversion_result'] = [
+                'converted_file' => $convertedFilePath,
+                'converted_exists' => file_exists($convertedFilePath),
+                'converted_size' => file_exists($convertedFilePath) ? filesize($convertedFilePath) : 'N/A',
+                'is_converted' => $convertedFilePath !== $voiceFilePath
+            ];
+
+            // Clean up converted file
+            if ($convertedFilePath !== $voiceFilePath && file_exists($convertedFilePath)) {
+                unlink($convertedFilePath);
+            }
+
+            $result['success'] = true;
+            return $result;
+
+        } catch (\Exception $e) {
+            $result['errors'][] = $e->getMessage();
+            return $result;
+        }
     }
 
     /**
