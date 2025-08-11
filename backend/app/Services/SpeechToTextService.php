@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Contracts\LoggingServiceInterface;
 
@@ -104,15 +103,20 @@ class SpeechToTextService
                 return trim($response->body());
             }
 
-            Log::error('OpenAI Whisper API error', [
+            $this->loggingService->logTelegramEvent('openai_whisper_api_error', [
                 'status' => $response->status(),
                 'response' => $response->body()
-            ]);
+            ], 'error');
 
             return null;
 
         } catch (\Exception $e) {
-            Log::error('OpenAI Whisper error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'openai_whisper_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'openai'
+            ]);
+
             return null;
         }
     }
@@ -149,7 +153,12 @@ class SpeechToTextService
             return null;
 
         } catch (\Exception $e) {
-            Log::error('Google Speech-to-Text error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'google_speech_to_text_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'google'
+            ]);
+
             return null;
         }
     }
@@ -176,7 +185,12 @@ class SpeechToTextService
             return null;
 
         } catch (\Exception $e) {
-            Log::error('Azure Speech Services error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'azure_speech_services_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'azure'
+            ]);
+
             return null;
         }
     }
@@ -192,12 +206,16 @@ class SpeechToTextService
 
             // Check if Vosk binary is available
             if (!file_exists($voskPath)) {
-                Log::error('Vosk binary not found at: ' . $voskPath);
+                $this->loggingService->logTelegramEvent('vosk_binary_not_found', [
+                    'path' => $voskPath
+                ], 'error');
                 return null;
             }
 
             if (!is_dir($modelPath)) {
-                Log::error('Vosk model not found at: ' . $modelPath);
+                $this->loggingService->logTelegramEvent('vosk_model_not_found', [
+                    'path' => $modelPath
+                ], 'error');
                 return null;
             }
 
@@ -214,7 +232,12 @@ class SpeechToTextService
             return trim($output);
 
         } catch (\Exception $e) {
-            Log::error('Vosk conversion error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'vosk_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'vosk'
+            ]);
+
             return null;
         }
     }
@@ -229,12 +252,16 @@ class SpeechToTextService
             $modelPath = config('services.whisper_cpp.model_path');
 
             if (!file_exists($whisperPath)) {
-                Log::error('Whisper.cpp not found at: ' . $whisperPath);
+                $this->loggingService->logTelegramEvent('whisper_cpp_not_found', [
+                    'path' => $whisperPath
+                ], 'error');
                 return null;
             }
 
             if (!file_exists($modelPath)) {
-                Log::error('Whisper.cpp model not found at: ' . $modelPath);
+                $this->loggingService->logTelegramEvent('whisper_cpp_model_not_found', [
+                    'path' => $modelPath
+                ], 'error');
                 return null;
             }
 
@@ -253,7 +280,12 @@ class SpeechToTextService
             return null;
 
         } catch (\Exception $e) {
-            Log::error('Whisper.cpp conversion error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'whisper_cpp_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'whisper_cpp'
+            ]);
+
             return null;
         }
     }
@@ -268,7 +300,9 @@ class SpeechToTextService
             $scorerPath = config('services.deepspeech.scorer_path');
 
             if (!file_exists($modelPath)) {
-                Log::error('DeepSpeech model not found at: ' . $modelPath);
+                $this->loggingService->logTelegramEvent('deepspeech_model_not_found', [
+                    'path' => $modelPath
+                ], 'error');
                 return null;
             }
 
@@ -289,7 +323,11 @@ class SpeechToTextService
             return null;
 
         } catch (\Exception $e) {
-            Log::error('DeepSpeech conversion error', ['error' => $e->getMessage()]);
+            $this->loggingService->logException($e, [
+                'context' => 'deepspeech_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'deepspeech'
+            ]);
             return null;
         }
     }
@@ -504,7 +542,7 @@ class SpeechToTextService
             }
 
             // Create a simple test audio file or use existing one
-            $testFile = storage_path('app/temp/test_voice.ogg');
+            $testFile = storage_path('app/temp/test_audio_real.wav');
             $tempDir = dirname($testFile);
 
             // Ensure temp directory exists
