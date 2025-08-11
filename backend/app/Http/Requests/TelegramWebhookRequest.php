@@ -60,24 +60,6 @@ class TelegramWebhookRequest extends FormRequest
     }
 
     /**
-     * Handle a failed validation attempt.
-     *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
-     * @return void
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
-    {
-        throw new \Illuminate\Validation\ValidationException($validator, response()->json([
-            'status' => 'error',
-            'message' => 'Validation failed',
-            'errors' => $validator->errors(),
-            'code' => 422
-        ], 422));
-    }
-
-    /**
      * Determine if the request expects JSON.
      *
      * @return bool

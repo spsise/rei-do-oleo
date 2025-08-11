@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global Middleware
         $middleware->alias([
             'api.response' => \App\Http\Middleware\ApiResponse::class,
+            'telegram.webhook.exception' => \App\Http\Middleware\TelegramWebhookExceptionHandler::class,
         ]);
 
         // Rate Limiting
