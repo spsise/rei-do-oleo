@@ -356,7 +356,7 @@ Route::prefix('unified-notifications')->group(function () {
 
 // Webhook handling - Rota isolada para evitar middlewares globais
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])
-    ->middleware('telegram.webhook.exception')
+    //->middleware('telegram.webhook.exception')
     ->withoutMiddleware(['api.response', 'throttle']);
 
 Route::prefix('telegram')->group(function () {
