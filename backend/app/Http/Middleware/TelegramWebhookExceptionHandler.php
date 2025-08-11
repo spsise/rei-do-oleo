@@ -42,7 +42,7 @@ class TelegramWebhookExceptionHandler
                 'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
-            ], 200); // Use 200 instead of 422 to avoid Telegram retries
+            ], 200)->header('Content-Type', 'application/json');
         } catch (\Exception $e) {
             // Extract chat_id from the request if available
             $chatId = $this->extractChatId($request);
@@ -62,7 +62,7 @@ class TelegramWebhookExceptionHandler
             return response()->json([
                 'status' => 'error',
                 'message' => 'Internal server error'
-            ], 200); // Use 200 instead of 500 to avoid Telegram retries
+            ], 200)->header('Content-Type', 'application/json');
         }
     }
 
