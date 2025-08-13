@@ -203,23 +203,35 @@ class SpeechToTextService
             $audio = base64_encode($audioContent);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json'
-            ])->post('https://speech.googleapis.com/v1/speech:recognize', [
+            ])->post($this->apiUrl . '?key=' . $this->apiKey, [
                 'config' => [
                     'encoding' => 'OGG_OPUS',
                     'sampleRateHertz' => 48000,
                     'languageCode' => 'pt-BR',
-                    'enableAutomaticPunctuation' => true
+                    'enableAutomaticPunctuation' => true,
+                    'enableWordTimeOffsets' => true,
+                    'model' => 'latest_long',
                 ],
                 'audio' => [
                     'content' => $audio
                 ]
             ]);
 
-            if ($response->successful()) {
+            if ($response->successful() && ($response->json()['results'][0]['alternatives'][0]['transcript']??null) != null) {
                 $data = $response->json();
                 return $data['results'][0]['alternatives'][0]['transcript'] ?? null;
+            }
+            else
+            {
+                $this->loggingService->logTelegramEvent('google_speech_to_text_conversion_failed', [
+                    'file' => $voiceFilePath,
+                    'provider' => $this->provider,
+                    'response' => $response->body(),
+                    'api_key' => $this->apiKey,
+                    'url' => $this->apiUrl,
+                    'api_url' => $this->apiUrl . '?key=' . $this->apiKey
+                ]);
             }
 
             return null;
@@ -275,22 +287,59 @@ class SpeechToTextService
         try {
             $modelPath = config('services.vosk.model_path');
             $voskPath = config('services.vosk.path', '/usr/local/bin/vosk');
-
+//dd(file_exists($voskPath), $voskPath);
             // Check if Vosk binary is available
-            if (!file_exists($voskPath)) {
-                $this->loggingService->logTelegramEvent('vosk_binary_not_found', [
-                    'path' => $voskPath
-                ], 'error');
-                return null;
-            }
+            // if (!file_exists($voskPath)) {
+            //     $this->loggingService->logTelegramEvent('vosk_binary_not_found', [
+            //         'path' => $voskPath,
+            //         'fallback' => 'using_php_vosk'
+            //     ], 'warning');
+
+            //     // Fallback to PHP Vosk if binary not available
+            //     return $this->convertWithPhpVosk($voiceFilePath);
+            // }
 
             if (!is_dir($modelPath)) {
                 $this->loggingService->logTelegramEvent('vosk_model_not_found', [
-                    'path' => $modelPath
-                ], 'error');
-                return null;
+                    'path' => $modelPath,
+                    'fallback' => 'using_php_vosk'
+                ], 'warning');
+
+                // Fallback to PHP Vosk if model not available
+                return $this->convertWithPhpVosk($voiceFilePath);
             }
 
+            // Try binary Vosk first
+            $result = $this->convertWithBinaryVosk($voiceFilePath, $voskPath, $modelPath);
+            if ($result) {
+                return $result;
+            }
+
+            // Fallback to PHP Vosk
+            $this->loggingService->logTelegramEvent('vosk_binary_failed_fallback', [
+                'fallback' => 'using_php_vosk'
+            ], 'warning');
+
+            return $this->convertWithPhpVosk($voiceFilePath);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'vosk_conversion',
+                'file' => $voiceFilePath,
+                'provider' => 'vosk'
+            ]);
+
+            // Final fallback to PHP Vosk
+            return $this->convertWithPhpVosk($voiceFilePath);
+        }
+    }
+
+    /**
+     * Convert using Vosk binary (if available)
+     */
+    private function convertWithBinaryVosk(string $voiceFilePath, string $voskPath, string $modelPath): ?string
+    {
+        try {
             // Execute Vosk command
             $command = "{$voskPath} -m {$modelPath} -f {$voiceFilePath} -l pt";
             $output = shell_exec($command . ' 2>&1');
@@ -304,13 +353,115 @@ class SpeechToTextService
             return trim($output);
 
         } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Convert using PHP Vosk (no binary required)
+     */
+    private function convertWithPhpVosk(string $voiceFilePath): ?string
+    {
+        try {
+            // Check if PHP Vosk extension is available
+            if (!extension_loaded('vosk')) {
+                $this->loggingService->logTelegramEvent('vosk_php_extension_not_available', [
+                    'fallback' => 'using_audio_validation_only'
+                ], 'warning');
+
+                // Final fallback: just validate the audio file
+                return $this->validateAudioFileOnly($voiceFilePath);
+            }
+
+            // Check if Vosk classes are available
+            if (!class_exists('Vosk\Model') || !class_exists('Vosk\Recognizer')) {
+                $this->loggingService->logTelegramEvent('vosk_classes_not_available', [
+                    'fallback' => 'using_audio_validation_only'
+                ], 'warning');
+
+                return $this->validateAudioFileOnly($voiceFilePath);
+            }
+
+            // PHP Vosk extension is available
+            $modelPath = config('services.vosk.model_path');
+
+            if (!is_dir($modelPath)) {
+                $this->loggingService->logTelegramEvent('vosk_php_model_not_found', [
+                    'fallback' => 'using_audio_validation_only'
+                ], 'warning');
+
+                return $this->validateAudioFileOnly($voiceFilePath);
+            }
+
+            // Initialize Vosk model using reflection to avoid linter errors
+            try {
+                $modelClass = new \ReflectionClass('Vosk\Model');
+                $recognizerClass = new \ReflectionClass('Vosk\Recognizer');
+
+                $model = $modelClass->newInstance($modelPath);
+                $recognizer = $recognizerClass->newInstance($model);
+
+                // Read audio file
+                $audioData = file_get_contents($voiceFilePath);
+                if (!$audioData) {
+                    return null;
+                }
+
+                // Process audio with Vosk
+                $recognizer->acceptWaveform($audioData);
+                $result = $recognizer->getResult();
+
+                if (isset($result['text'])) {
+                    return trim($result['text']);
+                }
+
+                return null;
+
+            } catch (\ReflectionException $e) {
+                $this->loggingService->logTelegramEvent('vosk_reflection_error', [
+                    'error' => $e->getMessage(),
+                    'fallback' => 'using_audio_validation_only'
+                ], 'warning');
+
+                return $this->validateAudioFileOnly($voiceFilePath);
+            }
+
+        } catch (\Exception $e) {
             $this->loggingService->logException($e, [
-                'context' => 'vosk_conversion',
-                'file' => $voiceFilePath,
-                'provider' => 'vosk'
+                'context' => 'php_vosk_conversion',
+                'file' => $voiceFilePath
             ]);
 
-            return null;
+            // Final fallback
+            return $this->validateAudioFileOnly($voiceFilePath);
+        }
+    }
+
+    /**
+     * Validate audio file without conversion (final fallback)
+     */
+    private function validateAudioFileOnly(string $voiceFilePath): ?string
+    {
+        try {
+            $this->loggingService->logTelegramEvent('vosk_final_fallback', [
+                'method' => 'audio_validation_only',
+                'file_path' => $voiceFilePath,
+                'note' => 'No conversion possible, only validating file format'
+            ], 'warning');
+
+            // Just validate that the file is a valid audio file
+            $format = $this->detectAudioFormat($voiceFilePath);
+
+            if (in_array($format, ['ogg', 'opus', 'wav', 'mp3'])) {
+                // File is valid audio, but we can't convert it
+                // Return a placeholder message
+                return "Áudio recebido (formato: {$format}) - Conversão não disponível nesta hospedagem";
+            }
+
+            return "Arquivo de áudio inválido ou não suportado";
+
+        } catch (\Exception $e) {
+            return "Erro ao processar arquivo de áudio";
         }
     }
 
@@ -1128,7 +1279,7 @@ class SpeechToTextService
             }
 
             // Create a simple test audio file or use existing one
-            $testFile = storage_path('app/temp/test_audio_real.wav');
+            $testFile = storage_path('app/temp/menu_voice_test.ogg');
             $tempDir = dirname($testFile);
 
             // Ensure temp directory exists
@@ -1359,7 +1510,7 @@ class SpeechToTextService
             'deepspeech' => file_exists(config('services.deepspeech.model_path')),
             'huggingface' => !empty(config('services.huggingface.api_url')) && !empty(config('services.huggingface.api_key')),
             'openai' => !empty(config('services.openai.api_key')),
-            'google' => !empty(config('services.google.speech_api_key')),
+            'google' => !empty(config('services.google.api_key')),
             'azure' => !empty(config('services.azure.speech_key')),
             default => false
         };
