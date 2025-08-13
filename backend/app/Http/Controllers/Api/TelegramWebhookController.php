@@ -26,6 +26,9 @@ class TelegramWebhookController extends Controller
      */
     public function handle(TelegramWebhookRequest $request): JsonResponse
     {
+        $this->loggingService->logTelegramEvent('telegram_webhook_received', [
+            'request' => $request->all()
+        ], 'info');
         $startTime = microtime(true);
 
         try {
