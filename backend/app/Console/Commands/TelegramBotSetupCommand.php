@@ -16,9 +16,11 @@ class TelegramBotSetupCommand extends Command
     protected $signature = 'telegram:bot-setup
                             {--set-webhook : Set webhook URL}
                             {--delete-webhook : Delete webhook}
-                            {--get-info : Get webhook info}
+                            {--webhook-info : Get webhook info}
                             {--test : Test bot functionality}
-                            {--webhook-url= : Webhook URL to set}';
+                            {--webhook-url= : Webhook URL to set}
+                            {--with-audio-support : Set webhook with full audio support}
+                            {--all : Run all setup operations}';
 
     /**
      * The console command description.
@@ -67,13 +69,23 @@ class TelegramBotSetupCommand extends Command
         $this->validateToken($apiUrl, $loggingService);
 
         // Handle different options
-        if ($this->option('set-webhook')) {
+        if ($this->option('set-webhook') || $this->option('all')) {
             $this->setWebhook($apiUrl, $loggingService);
-        } elseif ($this->option('delete-webhook')) {
+        }
+
+        if ($this->option('with-audio-support')) {
+            $this->setWebhookWithAudioSupport($apiUrl, $loggingService);
+        }
+
+        if ($this->option('delete-webhook') || $this->option('all')) {
             $this->deleteWebhook($apiUrl, $loggingService);
-        } elseif ($this->option('get-info')) {
+        }
+
+        if ($this->option('webhook-info') || $this->option('all')) {
             $this->getWebhookInfo($apiUrl, $loggingService);
-        } elseif ($this->option('test')) {
+        }
+
+        if ($this->option('test')) {
             $this->testBot($apiUrl, $recipients, $loggingService);
         } else {
             $this->showInstructions();
@@ -150,7 +162,26 @@ class TelegramBotSetupCommand extends Command
 
         try {
             $response = Http::post("{$apiUrl}/setWebhook", [
-                'url' => $webhookUrl
+                'url' => $webhookUrl,
+                'allowed_updates' => [
+                    'message',
+                    'callback_query',
+                    'channel_post',
+                    'edited_message',
+                    'edited_channel_post',
+                    'inline_query',
+                    'chosen_inline_result',
+                    'shipping_query',
+                    'pre_checkout_query',
+                    'poll',
+                    'poll_answer',
+                    'my_chat_member',
+                    'chat_member',
+                    'chat_join_request'
+                ],
+                'drop_pending_updates' => true,
+                'secret_token' => config('services.telegram.webhook_secret', ''),
+                'max_connections' => 40
             ]);
 
             if ($response->successful()) {
@@ -371,6 +402,158 @@ class TelegramBotSetupCommand extends Command
         $this->info("✅ Successful: {$successCount}");
         $this->info("❌ Failed: " . (count($results) - $successCount));
         $this->info("📋 Total: " . count($results));
+    }
+
+    /**
+     * Set webhook with audio support
+     */
+    private function setWebhookWithAudioSupport(string $apiUrl, LoggingServiceInterface $loggingService): void
+    {
+        $webhookUrl = $this->option('webhook-url');
+
+        if (!$webhookUrl) {
+            $webhookUrl = $this->ask('Enter webhook URL (e.g., https://api-hom.virtualt.com.br/api/telegram/webhook)');
+        }
+
+        if (!$webhookUrl) {
+            $this->error('❌ Webhook URL is required');
+            return;
+        }
+
+        $this->info("🔗 Setting webhook with audio support to: {$webhookUrl}");
+
+        try {
+            // First, delete existing webhook
+            $this->info("🗑️ Deleting existing webhook...");
+            $deleteResponse = Http::post("{$apiUrl}/deleteWebhook");
+
+            if ($deleteResponse->successful()) {
+                $this->info("✅ Existing webhook deleted");
+            }
+
+            // Set new webhook with audio support
+            $response = Http::post("{$apiUrl}/setWebhook", [
+                'url' => $webhookUrl,
+                'allowed_updates' => [
+                    'message',
+                    'callback_query',
+                    'channel_post',
+                    'edited_message',
+                    'edited_channel_post',
+                    'inline_query',
+                    'chosen_inline_result',
+                    'shipping_query',
+                    'pre_checkout_query',
+                    'poll',
+                    'poll_answer',
+                    'my_chat_member',
+                    'chat_member',
+                    'chat_join_request'
+                ],
+                'drop_pending_updates' => true,
+                'secret_token' => config('services.telegram.webhook_secret', ''),
+                'max_connections' => 40
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if ($data['ok']) {
+                    $this->info("✅ Webhook with audio support set successfully");
+
+                    // Verificar se há informações adicionais na resposta
+                    if (isset($data['result']) && is_array($data['result'])) {
+                        if (isset($data['result']['url'])) {
+                            $this->info("Webhook URL: {$data['result']['url']}");
+                        }
+                        if (isset($data['result']['pending_update_count'])) {
+                            $this->info("Pending updates: {$data['result']['pending_update_count']}");
+                        }
+                        if (isset($data['result']['allowed_updates'])) {
+                            $this->info("Allowed updates: " . implode(', ', $data['result']['allowed_updates']));
+                        }
+                    }
+
+                    // Log successful webhook setup
+                    $loggingService->logTelegramEvent('webhook_set_with_audio_support', [
+                        'webhook_url' => $webhookUrl,
+                        'result' => $data['result'] ?? []
+                    ], 'info', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'set_webhook_with_audio'
+                    ]);
+
+                    // Test webhook with different message types
+                    $this->info("🧪 Testing webhook with different message types...");
+                    $this->testWebhookMessageTypes($apiUrl, $loggingService);
+
+                } else {
+                    $this->error("❌ Failed to set webhook with audio support");
+                    $this->error("Error: " . ($data['description'] ?? 'Unknown error'));
+
+                    // Log webhook setup error
+                    $loggingService->logTelegramEvent('webhook_set_with_audio_failed', [
+                        'webhook_url' => $webhookUrl,
+                        'error' => $data['description'] ?? 'Unknown error'
+                    ], 'error', [
+                        'command' => 'telegram:bot-setup',
+                        'operation' => 'set_webhook_with_audio'
+                    ]);
+                }
+            } else {
+                $this->error("❌ HTTP error: " . $response->status());
+                $this->error("Response: " . $response->body());
+            }
+
+        } catch (\Exception $e) {
+            $this->error("❌ Error setting webhook with audio support: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test webhook with different message types
+     */
+    private function testWebhookMessageTypes(string $apiUrl, LoggingServiceInterface $loggingService): void
+    {
+        $this->info("📝 Testing text message support...");
+
+        // Get bot info to test basic functionality
+        try {
+            $botInfoResponse = Http::get("{$apiUrl}/getMe");
+            if ($botInfoResponse->successful()) {
+                $botInfo = $botInfoResponse->json();
+                if ($botInfo['ok']) {
+                    $this->info("✅ Bot info retrieved successfully");
+                    $this->info("Bot: @{$botInfo['result']['username']} ({$botInfo['result']['first_name']})");
+                }
+            }
+        } catch (\Exception $e) {
+            $this->warn("⚠️ Could not retrieve bot info: " . $e->getMessage());
+        }
+
+        // Test webhook info
+        try {
+            $webhookInfoResponse = Http::get("{$apiUrl}/getWebhookInfo");
+            if ($webhookInfoResponse->successful()) {
+                $webhookInfo = $webhookInfoResponse->json();
+                if ($webhookInfo['ok']) {
+                    $this->info("✅ Webhook info retrieved successfully");
+                    $result = $webhookInfo['result'];
+
+                    if (isset($result['url'])) {
+                        $this->info("Webhook URL: {$result['url']}");
+                    }
+                    if (isset($result['allowed_updates']) && is_array($result['allowed_updates'])) {
+                        $this->info("Allowed updates: " . implode(', ', $result['allowed_updates']));
+                    }
+                    if (isset($result['max_connections'])) {
+                        $this->info("Max connections: {$result['max_connections']}");
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->warn("⚠️ Could not retrieve webhook info: " . $e->getMessage());
+        }
     }
 
     /**

@@ -211,8 +211,124 @@ class TelegramMessageProcessorService
      */
     private function processAudioMessage(array $message): array
     {
-        // Similar to voice processing but for audio files
-        return $this->processVoiceMessage($message);
+        try {
+            $chatId = $message['chat']['id'];
+            $audio = $message['audio'];
+
+            // Check if speech service is available
+            if (!$this->speechService) {
+                $this->telegramChannel->sendTextMessage(
+                    "❌ Serviço de reconhecimento de áudio não está disponível. Envie uma mensagem de texto.",
+                    (string) $chatId
+                );
+
+                return $this->createErrorResult('Speech-to-text service not available');
+            }
+
+            // Send processing message
+            $this->telegramChannel->sendTextMessage(
+                "🎵 Processando mensagem de áudio...",
+                (string) $chatId
+            );
+
+            // Download audio file
+            $audioFilePath = $this->downloadAudioFile($audio['file_id']);
+
+            if (!$audioFilePath) {
+                return $this->createErrorResult('Failed to download audio file');
+            }
+
+            // Convert audio to text with error handling
+            try {
+                $text = $this->speechService->convertVoiceToText($audioFilePath);
+            } catch (\Exception $speechException) {
+                $this->loggingService->logException($speechException, [
+                    'operation' => 'speech_to_text_conversion',
+                    'chat_id' => $chatId,
+                    'file_path' => $audioFilePath,
+                    'audio_info' => $audio
+                ]);
+
+                // Send error message to user
+                $this->telegramChannel->sendTextMessage(
+                    "❌ Erro ao processar mensagem de áudio. Tente novamente ou envie uma mensagem de texto.",
+                    (string) $chatId
+                );
+
+                return $this->createErrorResult('Speech-to-text conversion failed');
+            }
+
+            if (!$text) {
+                $this->loggingService->logException(new \Exception('Failed to convert audio to text'), [
+                    'chat_id' => $chatId,
+                    'file_path' => $audioFilePath,
+                    'audio_info' => $audio
+                ]);
+
+                // Send error message to user
+                $this->telegramChannel->sendTextMessage(
+                    "❌ Não foi possível reconhecer o texto da mensagem de áudio. Tente novamente.",
+                    (string) $chatId
+                );
+
+                return $this->createErrorResult('Failed to convert audio to text');
+            }
+
+            // Clean up audio file
+            if (file_exists($audioFilePath)) {
+                unlink($audioFilePath);
+            }
+
+            // Send recognized text to user
+            $this->telegramChannel->sendTextMessage(
+                "🎯 Texto reconhecido: *{$text}*",
+                (string) $chatId
+            );
+
+            // Clean and parse audio command specifically
+            try {
+                $commandParser = app(\App\Services\Telegram\TelegramCommandParser::class);
+                $parsedCommand = $commandParser->parseVoiceCommand($text);
+            } catch (\Exception $parserException) {
+                $this->loggingService->logException($parserException, [
+                    'operation' => 'audio_command_parsing',
+                    'chat_id' => $chatId,
+                    'recognized_text' => $text
+                ]);
+
+                // Continue with basic text processing
+                $parsedCommand = ['type' => 'unknown', 'params' => []];
+            }
+
+            // Create synthetic message with recognized text
+            $syntheticMessage = [
+                'chat' => $message['chat'],
+                'from' => $message['from'],
+                'text' => $text,
+                'audio_original' => $audio,
+                'is_audio_converted' => true,
+                'parsed_command' => $parsedCommand
+            ];
+
+            // Process as text message
+            $result = $this->telegramBotService->processMessage($syntheticMessage);
+            $result['status'] = 'success';
+            $result['message'] = 'Audio message processed';
+            $result['input_type'] = 'audio';
+            $result['original_audio'] = $audio;
+            $result['recognized_text'] = $text;
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'audio_message_processing',
+                'chat_id' => $message['chat']['id'] ?? null,
+                'message' => $message
+            ]);
+
+            return $this->createErrorResult('Audio processing failed: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -256,6 +372,54 @@ class TelegramMessageProcessorService
         } catch (\Exception $e) {
             $this->loggingService->logException($e, [
                 'operation' => 'voice_file_download',
+                'file_id' => $fileId
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Download audio file from Telegram
+     */
+    private function downloadAudioFile(string $fileId): ?string
+    {
+        try {
+            $fileInfo = $this->telegramChannel->getFile($fileId);
+
+            if (!$fileInfo['success']) {
+                return null;
+            }
+
+            $filePath = $fileInfo['file_path'];
+            $fileName = basename($filePath);
+            $localPath = storage_path("app/temp/audio_{$fileName}");
+
+            // Ensure temp directory exists
+            if (!is_dir(dirname($localPath))) {
+                mkdir(dirname($localPath), 0755, true);
+            }
+
+            // Download file
+            $fileUrl = "https://api.telegram.org/file/bot" . config('services.telegram.bot_token') . "/{$filePath}";
+            $fileContent = file_get_contents($fileUrl);
+
+            if ($fileContent === false) {
+                $this->loggingService->logException(new \Exception('Failed to download audio file'), [
+                    'file_id' => $fileId,
+                    'file_url' => $fileUrl
+                ]);
+
+                return null;
+            }
+
+            file_put_contents($localPath, $fileContent);
+
+            return $localPath;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'audio_file_download',
                 'file_id' => $fileId
             ]);
 

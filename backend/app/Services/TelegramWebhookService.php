@@ -310,6 +310,37 @@ class TelegramWebhookService
             ];
         }
 
+        // Check if it's a message and validate message structure
+        if (isset($payload['message'])) {
+            $message = $payload['message'];
+
+            // Check if message has required fields
+            if (!isset($message['chat']['id']) || !isset($message['from']['id'])) {
+                return [
+                    'valid' => false,
+                    'message' => 'Message missing required chat or user information'
+                ];
+            }
+
+            // Check if message has any content (text, voice, audio, photo, etc.)
+            $hasContent = isset($message['text']) ||
+                         isset($message['voice']) ||
+                         isset($message['audio']) ||
+                         isset($message['photo']) ||
+                         isset($message['document']) ||
+                         isset($message['video']) ||
+                         isset($message['sticker']) ||
+                         isset($message['location']) ||
+                         isset($message['contact']);
+
+            if (!$hasContent) {
+                return [
+                    'valid' => false,
+                    'message' => 'Message has no recognizable content'
+                ];
+            }
+        }
+
         return [
             'valid' => true,
             'type' => isset($payload['callback_query']) ? 'callback_query' : 'message'

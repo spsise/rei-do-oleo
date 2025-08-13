@@ -62,6 +62,7 @@ class Kernel extends HttpKernel
         'performance.monitor' => \App\Http\Middleware\PerformanceMonitor::class,
         'service.update.monitor' => \App\Http\Middleware\ServiceUpdateMonitor::class,
         'telegram.webhook.logging' => \App\Http\Middleware\TelegramWebhookLoggingMiddleware::class,
+        'telegram.webhook.secret' => \App\Http\Middleware\TelegramWebhookSecretMiddleware::class,
 
     ];
 }
