@@ -109,4 +109,145 @@ class TelegramWebhookRequest extends FormRequest
     {
         return true; // Always want JSON for webhook requests
     }
+
+    /**
+     * Handle a failed validation attempt.
+     *
+     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @return void
+     *
+     * @throws \Illuminate\Http\Exceptions\HttpResponseException
+     */
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator): void
+    {
+        // Log detalhes da validação falhada
+        $this->loggingService->logTelegramEvent('telegram_webhook_validation_failed', [
+            'error' => 'Webhook validation failed',
+            'validation_errors' => $validator->errors()->toArray(),
+            'request_data' => $this->all(),
+            'request_headers' => $this->headers->all(),
+            'ip' => $this->ip(),
+            'user_agent' => $this->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'validation_rules' => $this->rules(),
+            'failed_fields' => array_keys($validator->errors()->toArray()),
+            'request_size' => strlen($this->getContent()),
+            'content_type' => $this->header('Content-Type'),
+            'telegram_update_id' => $this->input('update_id'),
+            'message_type' => $this->getMessageType(),
+            'has_message' => $this->has('message'),
+            'has_callback_query' => $this->has('callback_query')
+        ], 'error');
+
+        // Chamar o método padrão do Laravel para lançar a exceção
+        parent::failedValidation($validator);
+    }
+
+    /**
+     * Get the message type from the request
+     */
+    private function getMessageType(): string
+    {
+        if ($this->has('callback_query')) {
+            return 'callback_query';
+        }
+
+        if ($this->has('message')) {
+            $message = $this->input('message', []);
+
+            if (isset($message['text'])) {
+                return 'text_message';
+            }
+            if (isset($message['voice'])) {
+                return 'voice_message';
+            }
+            if (isset($message['audio'])) {
+                return 'audio_message';
+            }
+            if (isset($message['photo'])) {
+                return 'photo_message';
+            }
+            if (isset($message['document'])) {
+                return 'document_message';
+            }
+            if (isset($message['video'])) {
+                return 'video_message';
+            }
+            if (isset($message['sticker'])) {
+                return 'sticker_message';
+            }
+            if (isset($message['location'])) {
+                return 'location_message';
+            }
+            if (isset($message['contact'])) {
+                return 'contact_message';
+            }
+
+            return 'unknown_message_type';
+        }
+
+        return 'no_message';
+    }
+
+    /**
+     * Log validation attempt for debugging
+     */
+    public function validateResolved(): void
+    {
+        // Log successful validation
+        $this->loggingService->logTelegramEvent('telegram_webhook_validation_success', [
+            'success' => 'Webhook validation passed successfully',
+            'message_type' => $this->getMessageType(),
+            'telegram_update_id' => $this->input('update_id'),
+            'has_message' => $this->has('message'),
+            'has_callback_query' => $this->has('callback_query'),
+            'message_content_types' => $this->getMessageContentTypes(),
+            'timestamp' => now()->toISOString()
+        ], 'info');
+
+        parent::validateResolved();
+    }
+
+    /**
+     * Get all content types present in the message
+     */
+    private function getMessageContentTypes(): array
+    {
+        if (!$this->has('message')) {
+            return [];
+        }
+
+        $message = $this->input('message', []);
+        $contentTypes = [];
+
+        if (isset($message['text'])) {
+            $contentTypes[] = 'text';
+        }
+        if (isset($message['voice'])) {
+            $contentTypes[] = 'voice';
+        }
+        if (isset($message['audio'])) {
+            $contentTypes[] = 'audio';
+        }
+        if (isset($message['photo'])) {
+            $contentTypes[] = 'photo';
+        }
+        if (isset($message['document'])) {
+            $contentTypes[] = 'document';
+        }
+        if (isset($message['video'])) {
+            $contentTypes[] = 'video';
+        }
+        if (isset($message['sticker'])) {
+            $contentTypes[] = 'sticker';
+        }
+        if (isset($message['location'])) {
+            $contentTypes[] = 'location';
+        }
+        if (isset($message['contact'])) {
+            $contentTypes[] = 'contact';
+        }
+
+        return $contentTypes;
+    }
 }

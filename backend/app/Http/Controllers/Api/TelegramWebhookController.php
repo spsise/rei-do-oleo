@@ -46,12 +46,29 @@ class TelegramWebhookController extends Controller
             }, 25); // 25 seconds timeout
 
             if ($result['status'] === 'ignored') {
+                $this->loggingService->logTelegramEvent('telegram_webhook_message_ignored', [
+                    'info' => 'Message was ignored during processing',
+                    'ignore_reason' => $result['message'],
+                    'payload' => $payload,
+                    'telegram_update_id' => $request->input('update_id'),
+                    'timestamp' => now()->toISOString()
+                ], 'info');
+
                 return TelegramWebhookResource::ignored($result['message'])
                     ->response()
                     ->setStatusCode(200);
             }
 
             if (!$result['success']) {
+                $this->loggingService->logTelegramEvent('telegram_webhook_processing_failed', [
+                    'error' => 'Message processing failed',
+                    'error_message' => $result['message'],
+                    'result' => $result,
+                    'payload' => $payload,
+                    'telegram_update_id' => $request->input('update_id'),
+                    'timestamp' => now()->toISOString()
+                ], 'error');
+
                 return TelegramWebhookResource::error($result['message'], $result)
                     ->response()
                     ->setStatusCode(500);

@@ -567,7 +567,7 @@ class TelegramBotSetupCommand extends Command
         $this->info('   php artisan telegram:bot-setup --set-webhook --webhook-url=https://api-hom.virtualt.com.br/api/telegram/webhook');
         $this->info('');
         $this->info('2. Get webhook info:');
-        $this->info('   php artisan telegram:bot-setup --get-info');
+        $this->info('   php artisan telegram:bot-setup --webhook-info');
         $this->info('');
         $this->info('3. Delete webhook:');
         $this->info('   php artisan telegram:bot-setup --delete-webhook');
