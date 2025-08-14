@@ -8,7 +8,7 @@ use App\Http\Requests\TelegramWebhookSetupRequest;
 use App\Http\Resources\TelegramWebhookResource;
 use App\Services\TelegramBotService;
 use App\Services\TelegramWebhookService;
-use App\Services\TelegramMessageProcessorService;
+use App\Services\Telegram\TelegramMessageProcessorService;
 use App\Contracts\LoggingServiceInterface;
 use Illuminate\Http\JsonResponse;
 
@@ -42,7 +42,7 @@ class TelegramWebhookController extends Controller
 
             // Process the webhook payload with timeout protection
             $result = $this->processWithTimeout(function () use ($payload) {
-                return $this->messageProcessor->processWebhookPayload($payload);
+                return $this->messageProcessor->processMessage($payload);
             }, 25); // 25 seconds timeout
 
             if ($result['status'] === 'ignored') {

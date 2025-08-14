@@ -179,5 +179,6 @@ return [
         App\Providers\WhatsAppServiceProvider::class,
         App\Providers\TelegramServiceProvider::class,
         App\Providers\LoggingServiceProvider::class,
+        App\Providers\TelegramCommandServiceProvider::class,
     ],
 ];
