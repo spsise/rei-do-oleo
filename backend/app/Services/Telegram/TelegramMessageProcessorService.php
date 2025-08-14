@@ -4,13 +4,19 @@ namespace App\Services\Telegram;
 
 use App\Services\Telegram\Commands\UnifiedCommandSystem;
 use App\Services\Telegram\Commands\CommandResult;
+use App\Services\Channels\TelegramChannel;
+use App\Services\SpeechToTextService;
+use App\Contracts\LoggingServiceInterface;
 use Illuminate\Support\Facades\Log;
 
 class TelegramMessageProcessorService
 {
     public function __construct(
         private UnifiedCommandSystem $commandSystem,
-        private TelegramAuthorizationService $authorizationService
+        private TelegramAuthorizationService $authorizationService,
+        private ?SpeechToTextService $speechService = null,
+        private ?TelegramChannel $telegramChannel = null,
+        private ?LoggingServiceInterface $loggingService = null
     ) {}
 
     public function processMessage(array $message): array
@@ -39,6 +45,8 @@ class TelegramMessageProcessorService
                     return $this->processTextMessage($message, $context);
                 case 'voice':
                     return $this->processVoiceMessage($message, $context);
+                case 'audio':
+                    return $this->processAudioMessage($message, $context);
                 case 'callback_query':
                     return $this->processCallbackQuery($message, $context);
                 default:
@@ -76,26 +84,115 @@ class TelegramMessageProcessorService
 
     private function processVoiceMessage(array $message, array $context): array
     {
-        $chatId = $context['chat_id'];
+        try {
+            $chatId = $context['chat_id'];
+            $voice = $message['voice'];
 
-        // Download and convert voice to text
-        $voiceText = $this->convertVoiceToText($message);
+            // Check if speech service is available
+            if (!$this->speechService) {
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Serviço de reconhecimento de voz não está disponível. Envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
 
-        if (empty($voiceText)) {
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            // Send processing message
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎤 Processando mensagem de voz...",
+                    (string) $chatId
+                );
+            }
+
+            // Download voice file
+            $voiceFilePath = $this->downloadVoiceFile($voice['file_id']);
+
+            if (!$voiceFilePath) {
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            // Convert voice to text with error handling
+            try {
+                $text = $this->speechService->convertVoiceToText($voiceFilePath);
+            } catch (\Exception $speechException) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException($speechException, [
+                        'operation' => 'speech_to_text_conversion',
+                        'chat_id' => $chatId,
+                        'file_path' => $voiceFilePath
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Erro ao processar mensagem de voz. Tente novamente ou envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            if (!$text) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to convert voice to text'), [
+                        'chat_id' => $chatId,
+                        'file_path' => $voiceFilePath
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Não foi possível reconhecer o texto da mensagem de voz. Tente novamente.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            // Clean up voice file
+            if (file_exists($voiceFilePath)) {
+                unlink($voiceFilePath);
+            }
+
+            // Send recognized text to user
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎯 Texto reconhecido: *{$text}*",
+                    (string) $chatId
+                );
+            }
+
+            // Update context for voice processing
+            $context['type'] = 'voice';
+            $context['original_voice'] = $text;
+
+            // Process converted text through unified system
+            $result = $this->commandSystem->processCommand($text, $context);
+
+            if ($result->isSuccess()) {
+                return $this->createSuccessResponse($chatId, $result);
+            } else {
+                return $this->createCommandNotFoundResponse($chatId, $result);
+            }
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'voice_message_processing',
+                    'chat_id' => $message['chat']['id'] ?? null,
+                    'message' => $message
+                ]);
+            }
+
             return $this->createVoiceConversionErrorResponse($chatId);
-        }
-
-        // Update context for voice processing
-        $context['type'] = 'voice';
-        $context['original_voice'] = $voiceText;
-
-        // Process converted text through unified system
-        $result = $this->commandSystem->processCommand($voiceText, $context);
-
-        if ($result->isSuccess()) {
-            return $this->createSuccessResponse($chatId, $result);
-        } else {
-            return $this->createCommandNotFoundResponse($chatId, $result);
         }
     }
 
@@ -126,6 +223,10 @@ class TelegramMessageProcessorService
 
         if (isset($message['voice'])) {
             return 'voice';
+        }
+
+        if (isset($message['audio'])) {
+            return 'audio';
         }
 
         if (isset($message['text'])) {
@@ -262,5 +363,247 @@ class TelegramMessageProcessorService
             'message' => 'Erro interno do sistema: ' . $error,
             'data' => []
         ];
+    }
+
+    private function createAudioConversionErrorResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'audio_conversion_error',
+            'message' => 'Erro ao converter mensagem de áudio.',
+            'data' => []
+        ];
+    }
+
+    /**
+     * Process audio message
+     */
+    private function processAudioMessage(array $message, array $context): array
+    {
+        try {
+            $chatId = $context['chat_id'];
+            $audio = $message['audio'];
+
+            // Check if speech service is available
+            if (!$this->speechService) {
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Serviço de reconhecimento de áudio não está disponível. Envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            // Send processing message
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎵 Processando mensagem de áudio...",
+                    (string) $chatId
+                );
+            }
+
+            // Download audio file
+            $audioFilePath = $this->downloadAudioFile($audio['file_id']);
+
+            if (!$audioFilePath) {
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            // Convert audio to text with error handling
+            try {
+                $text = $this->speechService->convertVoiceToText($audioFilePath);
+            } catch (\Exception $speechException) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException($speechException, [
+                        'operation' => 'speech_to_text_conversion',
+                        'chat_id' => $chatId,
+                        'file_path' => $audioFilePath,
+                        'audio_info' => $audio
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Erro ao processar mensagem de áudio. Tente novamente ou envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            if (!$text) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to convert audio to text'), [
+                        'chat_id' => $chatId,
+                        'file_path' => $audioFilePath,
+                        'audio_info' => $audio
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Não foi possível reconhecer o texto da mensagem de áudio. Tente novamente.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            // Clean up audio file
+            if (file_exists($audioFilePath)) {
+                unlink($audioFilePath);
+            }
+
+            // Send recognized text to user
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎯 Texto reconhecido: *{$text}*",
+                    (string) $chatId
+                );
+            }
+
+            // Update context for audio processing
+            $context['type'] = 'audio';
+            $context['original_audio'] = $text;
+
+            // Process converted text through unified system
+            $result = $this->commandSystem->processCommand($text, $context);
+
+            if ($result->isSuccess()) {
+                return $this->createSuccessResponse($chatId, $result);
+            } else {
+                return $this->createCommandNotFoundResponse($chatId, $result);
+            }
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'audio_message_processing',
+                    'chat_id' => $message['chat']['id'] ?? null,
+                    'message' => $message
+                ]);
+            }
+
+            return $this->createAudioConversionErrorResponse($chatId);
+        }
+    }
+
+    /**
+     * Download voice file from Telegram
+     */
+    private function downloadVoiceFile(string $fileId): ?string
+    {
+        try {
+            if (!$this->telegramChannel) {
+                return null;
+            }
+
+            $fileInfo = $this->telegramChannel->getFile($fileId);
+
+            if (!$fileInfo['success']) {
+                return null;
+            }
+
+            $filePath = $fileInfo['file_path'];
+            $fileName = basename($filePath);
+            $localPath = storage_path("app/temp/voice_{$fileName}");
+
+            // Ensure temp directory exists
+            if (!is_dir(dirname($localPath))) {
+                mkdir(dirname($localPath), 0755, true);
+            }
+
+            // Download file
+            $fileUrl = "https://api.telegram.org/file/bot" . config('services.telegram.bot_token') . "/{$filePath}";
+            $fileContent = file_get_contents($fileUrl);
+
+            if ($fileContent === false) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to download voice file'), [
+                        'file_id' => $fileId,
+                        'file_url' => $fileUrl
+                    ]);
+                }
+
+                return null;
+            }
+
+            file_put_contents($localPath, $fileContent);
+
+            return $localPath;
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'voice_file_download',
+                    'file_id' => $fileId
+                ]);
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Download audio file from Telegram
+     */
+    private function downloadAudioFile(string $fileId): ?string
+    {
+        try {
+            if (!$this->telegramChannel) {
+                return null;
+            }
+
+            $fileInfo = $this->telegramChannel->getFile($fileId);
+
+            if (!$fileInfo['success']) {
+                return null;
+            }
+
+            $filePath = $fileInfo['file_path'];
+            $fileName = basename($filePath);
+            $localPath = storage_path("app/temp/audio_{$fileName}");
+
+            // Ensure temp directory exists
+            if (!is_dir(dirname($localPath))) {
+                mkdir(dirname($localPath), 0755, true);
+            }
+
+            // Download file
+            $fileUrl = "https://api.telegram.org/file/bot" . config('services.telegram.bot_token') . "/{$filePath}";
+            $fileContent = file_get_contents($fileUrl);
+
+            if ($fileContent === false) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to download audio file'), [
+                        'file_id' => $fileId,
+                        'file_url' => $fileUrl
+                    ]);
+                }
+
+                return null;
+            }
+
+            file_put_contents($localPath, $fileContent);
+
+            return $localPath;
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'audio_file_download',
+                    'file_id' => $fileId
+                ]);
+            }
+
+            return null;
+        }
     }
 }
