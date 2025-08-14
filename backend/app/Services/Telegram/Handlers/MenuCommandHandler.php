@@ -36,9 +36,20 @@ class MenuCommandHandler implements TelegramCommandHandlerInterface
 
     public function canHandle(string $command): bool
     {
+        // Handle all menu-related commands including natural language
         $menuCommands = [
+            // Specific menu commands
             'services', 'products', 'dashboard', 'report',
-            'services_menu', 'products_menu', 'dashboard_menu', 'report_menu'
+            'services_menu', 'products_menu', 'dashboard_menu', 'report_menu',
+
+            // Natural language commands
+            'menu', 'main_menu', 'voltar', 'back', 'menu_principal',
+
+            // Portuguese natural language
+            'relatório', 'relatórios', 'serviços', 'produtos', 'dashboard',
+
+            // English natural language
+            'reports', 'services', 'products', 'status'
         ];
 
         return in_array(strtolower($command), $menuCommands);

@@ -28,12 +28,12 @@ class StartCommandHandler implements TelegramCommandHandlerInterface
 
     public function canHandle(string $command): bool
     {
-        $menuCommands = [
-            'start', 'help', 'menu', 'ajuda', 'comandos',
-            'opções', 'iniciar', 'begin', 'home', 'principal',
-            'main_menu', 'voltar', 'back', 'menu_principal'
+        // Only handle basic start commands, not specific menu navigation
+        $startCommands = [
+            'start', 'help', 'ajuda', 'comandos', 'opções',
+            'iniciar', 'begin', 'home', 'principal'
         ];
 
-        return in_array(strtolower($command), $menuCommands);
+        return in_array(strtolower($command), $startCommands);
     }
 }

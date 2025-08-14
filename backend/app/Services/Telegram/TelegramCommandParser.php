@@ -84,14 +84,22 @@ class TelegramCommandParser
     private function parseNaturalLanguage(string $text): array
     {
         // Handle basic commands first (highest priority)
-        if (preg_match('/(menu|ajuda|help|comandos|opções|iniciar|start|main_menu|voltar|back|home|principal)/i', $text)) {
+        if (preg_match('/(ajuda|help|comandos|opções|iniciar|start|begin|home|principal)/i', $text)) {
             return [
                 'type' => 'start',
                 'params' => []
             ];
         }
 
-        // Handle status/dashboard commands
+        // Handle menu navigation commands
+        if (preg_match('/(menu|main_menu|voltar|back|menu_principal)/i', $text)) {
+            return [
+                'type' => 'menu',
+                'params' => ['menu_type' => 'main']
+            ];
+        }
+
+        // Handle dashboard/status commands
         if (preg_match('/(dashboard|status|como|está|dashboard_menu).*(sistema|serviços|tudo)/i', $text) ||
             preg_match('/(dashboard|dashboard_menu)/i', $text)) {
             return [
@@ -101,7 +109,7 @@ class TelegramCommandParser
         }
 
         // Handle report commands with period (highest priority for reports)
-        if (preg_match('/(relatório|report).*(hoje|today|semana|week|mês|month)/i', $text)) {
+        if (preg_match('/(relatório|report|reports).*(hoje|today|semana|week|mês|month)/i', $text)) {
             return [
                 'type' => 'report',
                 'params' => $this->extractPeriodFromText($text)
@@ -126,7 +134,7 @@ class TelegramCommandParser
 
         // Handle general report commands (without period)
         if (str_contains($text, 'relatório') || str_contains($text, 'report') ||
-            str_contains($text, 'report_menu')) {
+            str_contains($text, 'reports') || str_contains($text, 'report_menu')) {
             return [
                 'type' => 'menu',
                 'params' => ['menu_type' => 'report']
