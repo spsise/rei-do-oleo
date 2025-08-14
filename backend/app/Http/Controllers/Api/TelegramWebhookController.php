@@ -45,46 +45,49 @@ class TelegramWebhookController extends Controller
                 return $this->messageProcessor->processMessage($payload);
             }, 25); // 25 seconds timeout
 
-            if ($result['status'] === 'ignored') {
-                $this->loggingService->logTelegramEvent('telegram_webhook_message_ignored', [
-                    'info' => 'Message was ignored during processing',
-                    'ignore_reason' => $result['message'],
-                    'payload' => $payload,
-                    'telegram_update_id' => $request->input('update_id'),
-                    'timestamp' => now()->toISOString()
-                ], 'info');
-
-                return TelegramWebhookResource::ignored($result['message'])
-                    ->response()
-                    ->setStatusCode(200);
-            }
-
-            if (!$result['success']) {
-                $this->loggingService->logTelegramEvent('telegram_webhook_processing_failed', [
-                    'error' => 'Message processing failed',
-                    'error_message' => $result['message'],
+            // Check if the result is valid and has the expected structure
+            if (!is_array($result) || !isset($result['success'])) {
+                $this->loggingService->logTelegramEvent('telegram_webhook_invalid_result', [
+                    'error' => 'Invalid result structure from message processor',
                     'result' => $result,
                     'payload' => $payload,
                     'telegram_update_id' => $request->input('update_id'),
                     'timestamp' => now()->toISOString()
                 ], 'error');
 
-                return TelegramWebhookResource::error($result['message'], $result)
+                return TelegramWebhookResource::error('Invalid processing result')
                     ->response()
                     ->setStatusCode(500);
             }
 
-            $duration = (microtime(true) - $startTime) * 1000;
+            // Check if the message was processed successfully
+            if ($result['success']) {
+                // $duration = (microtime(true) - $startTime) * 1000;
 
-            $this->loggingService->logTelegramEvent('webhook_processed_successfully', [
-                'processing_time_ms' => round($duration, 2),
-                'chat_id' => $request->input('message.chat.id'),
-                'user_id' => $request->input('message.from.id'),
-            ], 'info');
+                // $this->loggingService->logTelegramEvent('webhook_processed_successfully', [
+                //     'processing_time_ms' => round($duration, 2),
+                //     'chat_id' => $request->input('message.chat.id'),
+                //     'user_id' => $request->input('message.from.id'),
+                // ], 'info');
 
-            return TelegramWebhookResource::success($result['message'], $result)
+                return TelegramWebhookResource::success($result['message'] ?? 'Message processed successfully', $result)
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Handle unsuccessful processing
+            $this->loggingService->logTelegramEvent('telegram_webhook_processing_failed', [
+                'error' => 'Message processing failed',
+                'error_message' => $result['message'] ?? 'Unknown error',
+                'result' => $result,
+                'payload' => $payload,
+                'telegram_update_id' => $request->input('update_id'),
+                'timestamp' => now()->toISOString()
+            ], 'error');
+
+            return TelegramWebhookResource::error($result['message'] ?? 'Message processing failed', $result)
                 ->response()
-                ->setStatusCode(200);
+                ->setStatusCode(500);
 
         } catch (\Exception $e) {
             $duration = (microtime(true) - $startTime) * 1000;
@@ -130,6 +133,16 @@ class TelegramWebhookController extends Controller
 
         if ($exception) {
             throw $exception;
+        }
+
+        // Ensure we always return an array
+        if (!is_array($result)) {
+            return [
+                'success' => false,
+                'type' => 'invalid_result',
+                'message' => 'Invalid result from message processor',
+                'data' => []
+            ];
         }
 
         return $result;
