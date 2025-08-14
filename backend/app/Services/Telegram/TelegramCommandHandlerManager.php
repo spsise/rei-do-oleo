@@ -2,12 +2,13 @@
 
 namespace App\Services\Telegram;
 
-use App\Contracts\Telegram\TelegramCommandHandlerInterface;
 use App\Services\Telegram\Handlers\StartCommandHandler;
 use App\Services\Telegram\Handlers\ReportCommandHandler;
 use App\Services\Telegram\Handlers\StatusCommandHandler;
 use App\Services\Telegram\Handlers\VoiceCommandHandler;
 use App\Services\Telegram\Handlers\MenuCommandHandler;
+use App\Services\Telegram\Handlers\ServicesCommandHandler;
+use App\Services\Telegram\Handlers\ProductsCommandHandler;
 use App\Services\Telegram\Reports\GeneralReportGenerator;
 use App\Services\Telegram\Reports\ServicesReportGenerator;
 use App\Services\Telegram\Reports\ProductsReportGenerator;
@@ -40,9 +41,11 @@ class TelegramCommandHandlerManager
     {
         $this->commandHandlers = [
             new StartCommandHandler($this->menuBuilder),
-            new ReportCommandHandler($this->menuBuilder),
+            new ReportCommandHandler($this->menuBuilder, $this->generalReportGenerator),
             new StatusCommandHandler($this->telegramChannel),
             new MenuCommandHandler($this->menuBuilder),
+            new ServicesCommandHandler($this->servicesReportGenerator),
+            new ProductsCommandHandler($this->productsReportGenerator),
         ];
 
         // Add voice command handler

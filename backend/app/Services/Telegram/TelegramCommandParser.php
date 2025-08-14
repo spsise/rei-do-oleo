@@ -100,7 +100,31 @@ class TelegramCommandParser
             ];
         }
 
-        // Handle report commands
+        // Handle report commands with period (highest priority for reports)
+        if (preg_match('/(relatório|report).*(hoje|today|semana|week|mês|month)/i', $text)) {
+            return [
+                'type' => 'report',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
+        // Handle services commands with period
+        if (preg_match('/(serviços|services).*(hoje|today|semana|week|mês|month)/i', $text)) {
+            return [
+                'type' => 'services',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
+        // Handle products commands with period
+        if (preg_match('/(produtos|products).*(hoje|today|semana|week|mês|month)/i', $text)) {
+            return [
+                'type' => 'products',
+                'params' => $this->extractPeriodFromText($text)
+            ];
+        }
+
+        // Handle general report commands (without period)
         if (str_contains($text, 'relatório') || str_contains($text, 'report') ||
             str_contains($text, 'report_menu')) {
             return [
@@ -109,15 +133,7 @@ class TelegramCommandParser
             ];
         }
 
-        // Enhanced voice command patterns for reports
-        if (preg_match('/(enviar|quero|preciso|mostre|mostra).*(relatório|report)/i', $text)) {
-            return [
-                'type' => 'report',
-                'params' => $this->extractPeriodFromText($text)
-            ];
-        }
-
-        // Handle services commands
+        // Handle general services commands (without period)
         if (str_contains($text, 'serviços') || str_contains($text, 'services') ||
             str_contains($text, 'services_menu')) {
             return [
@@ -126,15 +142,7 @@ class TelegramCommandParser
             ];
         }
 
-        // Enhanced voice command patterns for services
-        if (preg_match('/(serviços|services).*(hoje|semana|mês|month)/i', $text)) {
-            return [
-                'type' => 'services',
-                'params' => $this->extractPeriodFromText($text)
-            ];
-        }
-
-        // Handle products commands
+        // Handle general products commands (without period)
         if (str_contains($text, 'produtos') || str_contains($text, 'products') ||
             str_contains($text, 'products_menu')) {
             return [
@@ -143,10 +151,10 @@ class TelegramCommandParser
             ];
         }
 
-        // Enhanced voice command patterns for products
-        if (preg_match('/(produtos|products).*(hoje|semana|mês|month)/i', $text)) {
+        // Enhanced voice command patterns for reports
+        if (preg_match('/(enviar|quero|preciso|mostre|mostra).*(relatório|report)/i', $text)) {
             return [
-                'type' => 'products',
+                'type' => 'report',
                 'params' => $this->extractPeriodFromText($text)
             ];
         }
