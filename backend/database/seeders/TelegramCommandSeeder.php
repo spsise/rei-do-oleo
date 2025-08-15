@@ -7,6 +7,7 @@ use App\Models\Telegram\TelegramCommand;
 
 class TelegramCommandSeeder extends Seeder
 {
+    //php artisan db:seed --class=TelegramCommandSeeder
     public function run(): void
     {
         $commands = [

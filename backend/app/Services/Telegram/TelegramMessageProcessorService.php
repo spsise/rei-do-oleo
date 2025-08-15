@@ -22,6 +22,28 @@ class TelegramMessageProcessorService
     public function processMessage(array $payload): array
     {
         try {
+            // Check for duplicate update_id to prevent processing the same webhook multiple times
+            $updateId = $payload['update_id'] ?? null;
+            if ($updateId && $this->isUpdateIdProcessed($updateId)) {
+                if ($this->loggingService) {
+                    $this->loggingService->logTelegramEvent('duplicate_webhook_ignored', [
+                        'update_id' => $updateId,
+                        'message' => 'Webhook with this update_id was already processed'
+                    ], 'info');
+                }
+
+                return [
+                    'success' => true,
+                    'status' => 'ignored',
+                    'message' => 'Duplicate webhook ignored',
+                    'update_id' => $updateId
+                ];
+            }
+
+            // Mark this update_id as being processed
+            if ($updateId) {
+                $this->markUpdateIdAsProcessed($updateId);
+            }
             // Check if it's a callback query (button click)
             if (isset($payload['callback_query'])) {
                 return $this->processCallbackQuery($payload['callback_query']);
@@ -671,5 +693,45 @@ class TelegramMessageProcessorService
             'status' => 'ignored',
             'message' => $message
         ];
+    }
+
+    /**
+     * Check if update_id was already processed
+     */
+    private function isUpdateIdProcessed(int $updateId): bool
+    {
+        try {
+            $cacheKey = "telegram_update_processed_{$updateId}";
+            return cache()->has($cacheKey);
+        } catch (\Exception $e) {
+            // If cache fails, log but don't block processing
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'check_duplicate_update_id',
+                    'update_id' => $updateId
+                ]);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Mark update_id as processed
+     */
+    private function markUpdateIdAsProcessed(int $updateId): void
+    {
+        try {
+            $cacheKey = "telegram_update_processed_{$updateId}";
+            // Cache for 1 hour to prevent duplicates
+            cache()->put($cacheKey, true, 3600);
+        } catch (\Exception $e) {
+            // If cache fails, log but don't block processing
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'mark_update_id_processed',
+                    'update_id' => $updateId
+                ]);
+            }
+        }
     }
 }
