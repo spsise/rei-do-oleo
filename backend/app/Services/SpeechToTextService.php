@@ -34,7 +34,6 @@ class SpeechToTextService
                 return null;
             }
 
-            // Check cache first with improved cache key
             $cacheKey = $this->generateCacheKey($voiceFilePath);
             $cachedResult = Cache::get($cacheKey);
 
@@ -59,7 +58,6 @@ class SpeechToTextService
                 }
             }
 
-            // Convert based on provider
             $text = match($this->provider) {
                 'vosk' => $this->convertWithVosk($voiceFilePath),
                 'whisper_cpp' => $this->convertWithWhisperCpp($voiceFilePath),
@@ -103,20 +101,20 @@ class SpeechToTextService
     {
         $fileHash = md5_file($voiceFilePath);
         $fileSize = filesize($voiceFilePath);
-        $fileModified = filemtime($voiceFilePath);
         $provider = $this->provider;
 
-        // Include more metadata in cache key to avoid conflicts
-        return "voice_to_text_{$provider}_{$fileHash}_{$fileSize}_{$fileModified}";
+        // Use stable cache key: provider + hash + size (without timestamp)
+        // This ensures the same audio file always gets the same cache key
+        return "voice_to_text_{$provider}_{$fileHash}_{$fileSize}";
     }
 
-    /**
+        /**
      * Check if cache is still valid
      */
     private function isCacheStillValid(string $cacheKey, string $voiceFilePath): bool
     {
         try {
-            // Check if file still exists and hasn't changed
+            // Check if file still exists
             if (!file_exists($voiceFilePath)) {
                 return false;
             }
@@ -127,19 +125,13 @@ class SpeechToTextService
                 return false;
             }
 
-            // Check if file has been modified since caching
-            $currentFileModified = filemtime($voiceFilePath);
-            if ($currentFileModified !== $cacheMetadata['file_modified']) {
-                return false;
-            }
-
-            // Check if file size has changed
+            // Check if file size matches (more reliable than timestamp)
             $currentFileSize = filesize($voiceFilePath);
             if ($currentFileSize !== $cacheMetadata['file_size']) {
                 return false;
             }
 
-            // Check if cache is not too old (additional TTL check)
+            // Check if cache is not too old (TTL check)
             $cacheAge = time() - $cacheMetadata['cached_at'];
             $maxAge = config('services.speech.cache_max_age', 1800); // 30 minutes default
 
@@ -164,9 +156,8 @@ class SpeechToTextService
             $cacheTTL = config('services.speech.cache_ttl', 1800); // 30 minutes default
             Cache::put($cacheKey, $text, $cacheTTL);
 
-            // Cache metadata for validation
+            // Cache metadata for validation (without file_modified timestamp)
             $metadata = [
-                'file_modified' => filemtime($voiceFilePath),
                 'file_size' => filesize($voiceFilePath),
                 'cached_at' => time(),
                 'provider' => $this->provider,
