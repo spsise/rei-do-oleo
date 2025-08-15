@@ -307,12 +307,21 @@ class TelegramMessageProcessorService
     private function createCommandNotFoundResponse(int $chatId, CommandResult $result): array
     {
         $data = $result->getData();
+        $fallbackMessage = $data['fallback_message'] ?? 'Comando não encontrado';
+
+        // Send the fallback message to the user in Telegram chat
+        if ($this->telegramChannel) {
+            $this->telegramChannel->sendTextMessage(
+                $fallbackMessage,
+                (string) $chatId
+            );
+        }
 
         return [
             'success' => false,
             'chat_id' => $chatId,
             'type' => 'command_not_found',
-            'message' => $data['fallback_message'] ?? 'Comando não encontrado',
+            'message' => $fallbackMessage,
             'suggestions' => $data['suggestions'] ?? [],
             'data' => $data
         ];

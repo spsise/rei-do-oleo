@@ -75,7 +75,24 @@ class TelegramWebhookController extends Controller
                     ->setStatusCode(200);
             }
 
-            // Handle unsuccessful processing
+            // Check if this is a normal response (not an error)
+            $isNormalResponse = isset($result['type']) && in_array($result['type'], [
+                'command_not_found',
+                'ignored',
+                'unauthorized',
+                'unsupported',
+                'empty_message',
+                'voice_conversion_error',
+                'audio_conversion_error'
+            ]);
+
+            if ($isNormalResponse) {
+                return TelegramWebhookResource::success($result['message'] ?? 'Message processed', $result)
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Handle actual errors (return 500)
             $this->loggingService->logTelegramEvent('telegram_webhook_processing_failed', [
                 'error' => 'Message processing failed',
                 'error_message' => $result['message'] ?? 'Unknown error',
