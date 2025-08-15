@@ -19,53 +19,64 @@ class TelegramMessageProcessorService
         private ?LoggingServiceInterface $loggingService = null
     ) {}
 
-    public function processMessage(array $message): array
+    public function processMessage(array $payload): array
     {
         try {
-            $chatId = $message['chat']['id'];
-            $messageType = $this->determineMessageType($message);
-
-            // Check authorization - temporarily disabled for development
-            // TODO: Implement proper authorization logic
-            // if (!$this->authorizationService->canAccess($chatId)) {
-            //     return $this->createUnauthorizedResponse($chatId);
-            // }
-
-            $context = [
-                'chat_id' => $chatId,
-                'user_id' => $message['from']['id'] ?? null,
-                'type' => $messageType,
-                'timestamp' => $message['date'] ?? time(),
-                'user_permissions' => $this->getUserPermissions($message)
-            ];
-
-            // Process based on message type
-            switch ($messageType) {
-                case 'text':
-                    return $this->processTextMessage($message, $context);
-                case 'voice':
-                    return $this->processVoiceMessage($message, $context);
-                case 'audio':
-                    return $this->processAudioMessage($message, $context);
-                case 'callback_query':
-                    return $this->processCallbackQuery($message, $context);
-                default:
-                    return $this->createUnsupportedMessageResponse($chatId);
+            // Check if it's a callback query (button click)
+            if (isset($payload['callback_query'])) {
+                return $this->processCallbackQuery($payload['callback_query']);
             }
 
-        } catch (\Exception $e) {
-            Log::error('Failed to process Telegram message', [
-                'message' => $message,
-                'error' => $e->getMessage()
-            ]);
+            // Verify if it's a message
+            if (!isset($payload['message'])) {
+                $result = [
+                    'success' => false,
+                    'status' => 'ignored',
+                    'message' => 'No message in payload'
+                ];
 
-            return $this->createErrorResponse($chatId ?? 0, $e->getMessage());
+                return $result;
+            }
+
+            $message = $payload['message'];
+
+            // Process different message types
+            if (isset($message['text'])) {
+                return $this->processTextMessage($message);
+            }
+
+            if (isset($message['voice'])) {
+                return $this->processVoiceMessage($message);
+            }
+
+            if (isset($message['audio'])) {
+                return $this->processAudioMessage($message);
+            }
+
+            return $this->createIgnoredResult('Unsupported message type');
+
+        } catch (\Exception $e) {
+            $result = [
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
+            ];
+
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'telegram_webhook_processing',
+                    'payload' => $payload
+                ]);
+            }
+
+            return $result;
         }
     }
 
-    private function processTextMessage(array $message, array $context): array
+    private function processTextMessage(array $message): array
     {
-        $chatId = $context['chat_id'];
+        $chatId = $message['chat']['id'];
         $text = $message['text'] ?? '';
 
         if (empty($text)) {
@@ -73,7 +84,7 @@ class TelegramMessageProcessorService
         }
 
         // Process command through unified system
-        $result = $this->commandSystem->processCommand($text, $context);
+        $result = $this->commandSystem->processCommand($text, $this->getContextFromMessage($message));
 
         if ($result->isSuccess()) {
             return $this->createSuccessResponse($chatId, $result);
@@ -82,10 +93,10 @@ class TelegramMessageProcessorService
         }
     }
 
-    private function processVoiceMessage(array $message, array $context): array
+    private function processVoiceMessage(array $message): array
     {
         try {
-            $chatId = $context['chat_id'];
+            $chatId = $message['chat']['id'];
             $voice = $message['voice'];
 
             // Check if speech service is available
@@ -171,6 +182,7 @@ class TelegramMessageProcessorService
             }
 
             // Update context for voice processing
+            $context = $this->getContextFromMessage($message);
             $context['type'] = 'voice';
             $context['original_voice'] = $text;
 
@@ -196,23 +208,34 @@ class TelegramMessageProcessorService
         }
     }
 
-    private function processCallbackQuery(array $message, array $context): array
+    private function processCallbackQuery(array $callbackQuery): array
     {
-        $chatId = $context['chat_id'];
-        $callbackData = $message['callback_query']['data'] ?? '';
+        $chatId = $callbackQuery['message']['chat']['id'] ?? $callbackQuery['callback_query']['message']['chat']['id'];
+        $callbackData = $callbackQuery['data'] ?? '';
 
         if (empty($callbackData)) {
             return $this->createEmptyCallbackResponse($chatId);
         }
 
         // Process callback through unified system
-        $result = $this->commandSystem->processCommand($callbackData, $context);
+        $result = $this->commandSystem->processCommand($callbackData, $this->getContextFromMessage($callbackQuery));
 
         if ($result->isSuccess()) {
             return $this->createSuccessResponse($chatId, $result);
         } else {
             return $this->createCallbackErrorResponse($chatId, $result);
         }
+    }
+
+    private function getContextFromMessage(array $message): array
+    {
+        return [
+            'chat_id' => $message['chat']['id'],
+            'user_id' => $message['from']['id'] ?? null,
+            'type' => $this->determineMessageType($message),
+            'timestamp' => $message['date'] ?? time(),
+            'user_permissions' => $this->getUserPermissions($message)
+        ];
     }
 
     private function determineMessageType(array $message): string
@@ -238,9 +261,16 @@ class TelegramMessageProcessorService
 
     private function getUserPermissions(array $message): array
     {
-        // Extract user permissions from message
-        // This would integrate with your existing permission system
-        $userId = $message['from']['id'] ?? null;
+        // Extract user permissions from message or callback query
+        $userId = null;
+
+        if (isset($message['from']['id'])) {
+            // Regular message
+            $userId = $message['from']['id'];
+        } elseif (isset($message['callback_query']['from']['id'])) {
+            // Callback query wrapped in payload
+            $userId = $message['callback_query']['from']['id'];
+        }
 
         if (!$userId) {
             return ['user'];
@@ -379,10 +409,10 @@ class TelegramMessageProcessorService
     /**
      * Process audio message
      */
-    private function processAudioMessage(array $message, array $context): array
+    private function processAudioMessage(array $message): array
     {
         try {
-            $chatId = $context['chat_id'];
+            $chatId = $message['chat']['id'];
             $audio = $message['audio'];
 
             // Check if speech service is available
@@ -470,6 +500,7 @@ class TelegramMessageProcessorService
             }
 
             // Update context for audio processing
+            $context = $this->getContextFromMessage($message);
             $context['type'] = 'audio';
             $context['original_audio'] = $text;
 
@@ -605,5 +636,14 @@ class TelegramMessageProcessorService
 
             return null;
         }
+    }
+
+    private function createIgnoredResult(string $message): array
+    {
+        return [
+            'success' => false,
+            'status' => 'ignored',
+            'message' => $message
+        ];
     }
 }
