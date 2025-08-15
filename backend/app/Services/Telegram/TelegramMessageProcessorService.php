@@ -210,7 +210,7 @@ class TelegramMessageProcessorService
 
     private function processCallbackQuery(array $callbackQuery): array
     {
-        $chatId = $callbackQuery['message']['chat']['id'] ?? $callbackQuery['callback_query']['message']['chat']['id'];
+        $chatId = $callbackQuery['message']['chat']['id'] ?? 0;
         $callbackData = $callbackQuery['data'] ?? '';
 
         if (empty($callbackData)) {
@@ -218,7 +218,7 @@ class TelegramMessageProcessorService
         }
 
         // Process callback through unified system
-        $result = $this->commandSystem->processCommand($callbackData, $this->getContextFromMessage($callbackQuery));
+        $result = $this->commandSystem->processCommand($callbackData, $this->getContextFromCallbackQuery($callbackQuery));
 
         if ($result->isSuccess()) {
             return $this->createSuccessResponse($chatId, $result);
@@ -229,12 +229,29 @@ class TelegramMessageProcessorService
 
     private function getContextFromMessage(array $message): array
     {
+        // Check if this is a callback query
+        if (isset($message['callback_query'])) {
+            return $this->getContextFromCallbackQuery($message['callback_query']);
+        }
+
+        // Regular message
         return [
             'chat_id' => $message['chat']['id'],
             'user_id' => $message['from']['id'] ?? null,
             'type' => $this->determineMessageType($message),
             'timestamp' => $message['date'] ?? time(),
             'user_permissions' => $this->getUserPermissions($message)
+        ];
+    }
+
+    private function getContextFromCallbackQuery(array $callbackQuery): array
+    {
+        return [
+            'chat_id' => $callbackQuery['message']['chat']['id'] ?? 0,
+            'user_id' => $callbackQuery['from']['id'] ?? null,
+            'type' => 'callback_query',
+            'timestamp' => $callbackQuery['date'] ?? time(),
+            'user_permissions' => $this->getUserPermissions($callbackQuery)
         ];
     }
 

@@ -63,10 +63,11 @@ class TelegramServiceProvider extends ServiceProvider
             }
 
             return new \App\Services\TelegramMessageProcessorService(
-                $app->make(\App\Services\TelegramBotService::class),
+                $app->make(\App\Services\Telegram\Commands\UnifiedCommandSystem::class),
+                $app->make(\App\Services\Telegram\TelegramAuthorizationService::class),
+                $speechService,
                 $app->make(\App\Services\Channels\TelegramChannel::class),
-                $app->make(\App\Contracts\LoggingServiceInterface::class),
-                $speechService
+                $app->make(\App\Contracts\LoggingServiceInterface::class)
             );
         });
     }
