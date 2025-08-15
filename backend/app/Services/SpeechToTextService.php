@@ -16,7 +16,7 @@ class SpeechToTextService
     public function __construct(LoggingServiceInterface $loggingService)
     {
         $this->loggingService = $loggingService;
-        $this->provider = config('services.speech.provider', 'vosk');
+        $this->provider = config('speech.provider', 'vosk');
         $this->apiKey = config("services.{$this->provider}.api_key") ?? '';
         $this->apiUrl = config("services.{$this->provider}.speech_url") ?? '';
     }
@@ -35,14 +35,52 @@ class SpeechToTextService
             }
 
             $cacheKey = $this->generateCacheKey($voiceFilePath);
+
+            // Check if this file is currently being processed to prevent duplicate processing
+            $processingKey = $cacheKey . '_processing';
+            if (Cache::has($processingKey)) {
+                $this->loggingService->logTelegramEvent('voice_to_text_already_processing', [
+                    'file' => $voiceFilePath,
+                    'cache_key' => $cacheKey,
+                    'note' => 'File is already being processed, waiting for completion'
+                ], 'info');
+
+                // Wait for processing to complete (max 30 seconds)
+                $waitTime = 0;
+                $maxWaitTime = config('speech.cache.max_wait_time', 30);
+                while (Cache::has($processingKey) && $waitTime < $maxWaitTime) {
+                    sleep(1);
+                    $waitTime++;
+                }
+
+                // Check if result is now available
+                $cachedResult = Cache::get($cacheKey);
+                if ($cachedResult) {
+                    $this->loggingService->logTelegramEvent('voice_to_text_retrieved_after_wait', [
+                        'file' => $voiceFilePath,
+                        'cache_key' => $cacheKey,
+                        'wait_time' => $waitTime,
+                        'result_length' => strlen($cachedResult)
+                    ]);
+                    return $cachedResult;
+                }
+            }
+
             $cachedResult = Cache::get($cacheKey);
 
             if ($cachedResult) {
-                $this->loggingService->logTelegramEvent('voice_to_text_cache_hit', [
-                    'file' => $voiceFilePath,
-                    'cache_key' => $cacheKey,
-                    'cache_age' => $this->getCacheAge($cacheKey)
-                ]);
+                // Only log cache hit once per file to reduce log noise
+                $cacheHitKey = $cacheKey . '_hit_logged';
+                if (!Cache::has($cacheHitKey)) {
+                    $this->loggingService->logTelegramEvent('voice_to_text_cache_hit', [
+                        'file' => $voiceFilePath,
+                        'cache_key' => $cacheKey,
+                        'cache_age' => $this->getCacheAge($cacheKey)
+                    ]);
+
+                    // Mark that we've logged this cache hit (expires in 1 hour)
+                    Cache::put($cacheHitKey, true, 3600);
+                }
 
                 // Check if cache is still valid (additional validation)
                 if ($this->isCacheStillValid($cacheKey, $voiceFilePath)) {
@@ -50,6 +88,8 @@ class SpeechToTextService
                 } else {
                     // Cache is stale, remove it
                     Cache::forget($cacheKey);
+                    Cache::forget($cacheKey . '_metadata');
+                    Cache::forget($cacheHitKey);
                     $this->loggingService->logTelegramEvent('voice_to_text_cache_expired', [
                         'file' => $voiceFilePath,
                         'cache_key' => $cacheKey,
@@ -58,30 +98,39 @@ class SpeechToTextService
                 }
             }
 
-            $text = match($this->provider) {
-                'vosk' => $this->convertWithVosk($voiceFilePath),
-                'whisper_cpp' => $this->convertWithWhisperCpp($voiceFilePath),
-                'deepspeech' => $this->convertWithDeepSpeech($voiceFilePath),
-                'huggingface' => $this->convertWithHuggingFace($voiceFilePath),
-                'openai' => $this->convertWithOpenAI($voiceFilePath),
-                'google' => $this->convertWithGoogle($voiceFilePath),
-                'azure' => $this->convertWithAzure($voiceFilePath),
-                default => $this->convertWithVosk($voiceFilePath)
-            };
+            // Mark this file as being processed
+            Cache::put($processingKey, true, config('speech.cache.processing_timeout', 60)); // 1 minute timeout
 
-            if ($text) {
-                // Cache result with shorter TTL and additional metadata
-                $this->cacheResult($cacheKey, $text, $voiceFilePath);
+            try {
+                $text = match($this->provider) {
+                    'vosk' => $this->convertWithVosk($voiceFilePath),
+                    'whisper_cpp' => $this->convertWithWhisperCpp($voiceFilePath),
+                    'deepspeech' => $this->convertWithDeepSpeech($voiceFilePath),
+                    'huggingface' => $this->convertWithHuggingFace($voiceFilePath),
+                    'openai' => $this->convertWithOpenAI($voiceFilePath),
+                    'google' => $this->convertWithGoogle($voiceFilePath),
+                    'azure' => $this->convertWithAzure($voiceFilePath),
+                    default => $this->convertWithVosk($voiceFilePath)
+                };
 
-                $this->loggingService->logTelegramEvent('voice_to_text_conversion_success', [
-                    'file' => $voiceFilePath,
-                    'provider' => $this->provider,
-                    'text_length' => strlen($text),
-                    'cache_key' => $cacheKey
-                ]);
+                if ($text) {
+                    // Cache result with shorter TTL and additional metadata
+                    $this->cacheResult($cacheKey, $text, $voiceFilePath);
+
+                    $this->loggingService->logTelegramEvent('voice_to_text_conversion_success', [
+                        'file' => $voiceFilePath,
+                        'provider' => $this->provider,
+                        'text_length' => strlen($text),
+                        'cache_key' => $cacheKey
+                    ]);
+                }
+
+                return $text;
+
+            } finally {
+                // Always remove processing flag
+                Cache::forget($processingKey);
             }
-
-            return $text;
 
         } catch (\Exception $e) {
             $this->loggingService->logException($e, [
@@ -133,7 +182,7 @@ class SpeechToTextService
 
             // Check if cache is not too old (TTL check)
             $cacheAge = time() - $cacheMetadata['cached_at'];
-            $maxAge = config('services.speech.cache_max_age', 1800); // 30 minutes default
+            $maxAge = config('speech.cache.max_age', 1800); // 30 minutes default
 
             if ($cacheAge > $maxAge) {
                 return false;
@@ -153,7 +202,7 @@ class SpeechToTextService
     {
         try {
             // Cache the text result with shorter TTL
-            $cacheTTL = config('services.speech.cache_ttl', 1800); // 30 minutes default
+            $cacheTTL = config('speech.cache.ttl', 1800); // 30 minutes default
             Cache::put($cacheKey, $text, $cacheTTL);
 
             // Cache metadata for validation (without file_modified timestamp)
@@ -161,10 +210,14 @@ class SpeechToTextService
                 'file_size' => filesize($voiceFilePath),
                 'cached_at' => time(),
                 'provider' => $this->provider,
-                'text_length' => strlen($text)
+                'text_length' => strlen($text),
+                'processing_completed_at' => time()
             ];
 
             Cache::put($cacheKey . '_metadata', $metadata, $cacheTTL + 300); // 5 minutes extra for metadata
+
+            // Add to keys list for management
+            $this->addToCacheKeysList($cacheKey);
 
         } catch (\Exception $e) {
             $this->loggingService->logException($e, [
@@ -172,6 +225,43 @@ class SpeechToTextService
                 'cache_key' => $cacheKey,
                 'file' => $voiceFilePath
             ]);
+        }
+    }
+
+    /**
+     * Add cache key to the managed keys list
+     */
+    private function addToCacheKeysList(string $cacheKey): void
+    {
+        try {
+            $cachePrefix = 'voice_to_text_';
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            if (!in_array($cacheKey, $keys)) {
+                $keys[] = $cacheKey;
+                Cache::put($cachePrefix . 'keys', $keys, 86400); // 24 hours
+            }
+        } catch (\Exception $e) {
+            // Silent fail for key management
+        }
+    }
+
+    /**
+     * Remove cache key from the managed keys list
+     */
+    private function removeFromCacheKeysList(string $cacheKey): void
+    {
+        try {
+            $cachePrefix = 'voice_to_text_';
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            $keys = array_filter($keys, function($key) use ($cacheKey) {
+                return $key !== $cacheKey;
+            });
+
+            Cache::put($cachePrefix . 'keys', $keys, 86400); // 24 hours
+        } catch (\Exception $e) {
+            // Silent fail for key management
         }
     }
 
@@ -213,6 +303,8 @@ class SpeechToTextService
                         if ($cacheAge > $maxAge) {
                             Cache::forget($key);
                             Cache::forget($key . '_metadata');
+                            Cache::forget($key . '_hit_logged');
+                            Cache::forget($key . '_processing');
                             $clearedCount++;
                         }
                     }
@@ -248,6 +340,8 @@ class SpeechToTextService
             foreach ($keys as $key) {
                 Cache::forget($key);
                 Cache::forget($key . '_metadata');
+                Cache::forget($key . '_hit_logged');
+                Cache::forget($key . '_processing');
             }
 
             // Clear the keys list itself
@@ -269,7 +363,55 @@ class SpeechToTextService
     }
 
     /**
-     * Get cache statistics
+     * Clear duplicate log entries and clean up cache
+     */
+    public function cleanupDuplicateLogs(): array
+    {
+        try {
+            $cleanedCount = 0;
+            $cachePrefix = 'voice_to_text_';
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            foreach ($keys as $key) {
+                // Clean up duplicate log flags
+                if (Cache::has($key . '_hit_logged')) {
+                    $cleanedCount++;
+                }
+
+                // Clean up processing flags that might be stuck
+                if (Cache::has($key . '_processing')) {
+                    $processingTime = Cache::get($key . '_processing_time', 0);
+                    if (time() - $processingTime > 300) { // 5 minutes
+                        Cache::forget($key . '_processing');
+                        Cache::forget($key . '_processing_time');
+                        $cleanedCount++;
+                    }
+                }
+            }
+
+            $this->loggingService->logTelegramEvent('duplicate_logs_cleanup_completed', [
+                'cleaned_entries' => $cleanedCount,
+                'cache_prefix' => $cachePrefix
+            ]);
+
+            return [
+                'success' => true,
+                'cleaned_entries' => $cleanedCount
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'cleanup_duplicate_logs'
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get cache statistics with duplicate log information
      */
     public function getCacheStats(): array
     {
@@ -283,7 +425,9 @@ class SpeechToTextService
                 'expired_entries' => 0,
                 'total_size' => 0,
                 'oldest_entry' => null,
-                'newest_entry' => null
+                'newest_entry' => null,
+                'duplicate_log_flags' => 0,
+                'stuck_processing_flags' => 0
             ];
 
             $currentTime = time();
@@ -308,6 +452,19 @@ class SpeechToTextService
                         if (!$stats['newest_entry'] || $metadata['cached_at'] > $stats['newest_entry']) {
                             $stats['newest_entry'] = $metadata['cached_at'];
                         }
+                    }
+                }
+
+                // Count duplicate log flags
+                if (Cache::has($key . '_hit_logged')) {
+                    $stats['duplicate_log_flags']++;
+                }
+
+                // Count stuck processing flags
+                if (Cache::has($key . '_processing')) {
+                    $processingTime = Cache::get($key . '_processing_time', 0);
+                    if ($currentTime - $processingTime > 300) {
+                        $stats['stuck_processing_flags']++;
                     }
                 }
             }
@@ -1974,6 +2131,137 @@ class SpeechToTextService
 
         } catch (\Exception $e) {
             return null;
+        }
+    }
+
+    /**
+     * Diagnose cache and logging issues
+     */
+    public function diagnoseCacheIssues(): array
+    {
+        try {
+            $diagnosis = [
+                'timestamp' => now()->toISOString(),
+                'cache_stats' => $this->getCacheStats(),
+                'duplicate_log_analysis' => [],
+                'processing_flags_analysis' => [],
+                'recommendations' => []
+            ];
+
+            $cachePrefix = 'voice_to_text_';
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            foreach ($keys as $key) {
+                // Analyze duplicate log flags
+                if (Cache::has($key . '_hit_logged')) {
+                    $diagnosis['duplicate_log_analysis'][] = [
+                        'cache_key' => $key,
+                        'hit_logged' => true,
+                        'hit_logged_age' => time() - (Cache::get($key . '_hit_logged_time', time())),
+                        'note' => 'This key has duplicate log protection enabled'
+                    ];
+                }
+
+                // Analyze processing flags
+                if (Cache::has($key . '_processing')) {
+                    $processingTime = Cache::get($key . '_processing_time', 0);
+                    $age = time() - $processingTime;
+
+                    $diagnosis['processing_flags_analysis'][] = [
+                        'cache_key' => $key,
+                        'processing' => true,
+                        'processing_age' => $age,
+                        'stuck' => $age > 300,
+                        'note' => $age > 300 ? 'Processing flag may be stuck' : 'Processing flag is recent'
+                    ];
+                }
+
+                // Check for orphaned metadata
+                if (Cache::has($key . '_metadata') && !Cache::has($key)) {
+                    $diagnosis['recommendations'][] = "Clean up orphaned metadata for key: {$key}";
+                }
+            }
+
+            // Generate recommendations
+            if (count($diagnosis['duplicate_log_analysis']) > 10) {
+                $diagnosis['recommendations'][] = 'High number of duplicate log flags detected. Consider running cleanup.';
+            }
+
+            if (count(array_filter($diagnosis['processing_flags_analysis'], fn($item) => $item['stuck'])) > 0) {
+                $diagnosis['recommendations'][] = 'Stuck processing flags detected. Consider running cleanup.';
+            }
+
+            return $diagnosis;
+
+        } catch (\Exception $e) {
+            return [
+                'error' => $e->getMessage(),
+                'timestamp' => now()->toISOString()
+            ];
+        }
+    }
+
+    /**
+     * Force cleanup of all cache-related issues
+     */
+    public function forceCleanup(): array
+    {
+        try {
+            $results = [
+                'expired_cache_cleared' => $this->clearExpiredCache(),
+                'duplicate_logs_cleaned' => 0,
+                'stuck_processing_flags_cleaned' => 0,
+                'orphaned_metadata_cleaned' => 0
+            ];
+
+            $cachePrefix = 'voice_to_text_';
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            foreach ($keys as $key) {
+                // Clean duplicate log flags
+                if (Cache::has($key . '_hit_logged')) {
+                    Cache::forget($key . '_hit_logged');
+                    Cache::forget($key . '_hit_logged_time');
+                    $results['duplicate_logs_cleaned']++;
+                }
+
+                // Clean stuck processing flags
+                if (Cache::has($key . '_processing')) {
+                    $processingTime = Cache::get($key . '_processing_time', 0);
+                    if (time() - $processingTime > 300) {
+                        Cache::forget($key . '_processing');
+                        Cache::forget($key . '_processing_time');
+                        $results['stuck_processing_flags_cleaned']++;
+                    }
+                }
+
+                // Clean orphaned metadata
+                if (Cache::has($key . '_metadata') && !Cache::has($key)) {
+                    Cache::forget($key . '_metadata');
+                    $results['orphaned_metadata_cleaned']++;
+                }
+            }
+
+            $this->loggingService->logTelegramEvent('force_cleanup_completed', [
+                'results' => $results,
+                'cache_prefix' => $cachePrefix
+            ]);
+
+            return [
+                'success' => true,
+                'results' => $results,
+                'timestamp' => now()->toISOString()
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'force_cleanup'
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'timestamp' => now()->toISOString()
+            ];
         }
     }
 }
