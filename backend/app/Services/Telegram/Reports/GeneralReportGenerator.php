@@ -35,6 +35,57 @@ class GeneralReportGenerator implements TelegramReportGeneratorInterface
         }
     }
 
+    /**
+     * Generate today report (called by command system)
+     */
+    public function generateTodayReport(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->generate($chatId, ['period' => 'today']);
+    }
+
+    /**
+     * Generate week report (called by command system)
+     */
+    public function generateWeekReport(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->generate($chatId, ['period' => 'week']);
+    }
+
+    /**
+     * Generate month report (called by command system)
+     */
+    public function generateMonthReport(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->generate($chatId, ['period' => 'month']);
+    }
+
     public function getReportType(): string
     {
         return 'general';

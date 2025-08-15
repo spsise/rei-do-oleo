@@ -36,6 +36,23 @@ class TelegramMenuBuilder
     }
 
     /**
+     * Show main menu (called by command system)
+     */
+    public function showMainMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildMainMenu($chatId);
+    }
+
+    /**
      * Build report menu
      */
     public function buildReportMenu(int $chatId): array
@@ -82,6 +99,23 @@ class TelegramMenuBuilder
     }
 
     /**
+     * Show services menu (called by command system)
+     */
+    public function showServicesMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildServicesMenu($chatId);
+    }
+
+    /**
      * Build products menu
      */
     public function buildProductsMenu(int $chatId): array
@@ -100,6 +134,23 @@ class TelegramMenuBuilder
         ];
 
         return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Show reports menu (called by command system)
+     */
+    public function showReportsMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildReportMenu($chatId);
     }
 
     /**
