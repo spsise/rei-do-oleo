@@ -4,12 +4,13 @@ namespace App\Services\Telegram\Handlers;
 
 use App\Contracts\Telegram\TelegramCommandHandlerInterface;
 use App\Services\Telegram\TelegramMenuBuilder;
+use App\Services\Channels\TelegramChannel;
 
 class StartCommandHandler implements TelegramCommandHandlerInterface
 {
     public function __construct(
         private TelegramMenuBuilder $menuBuilder,
-        private \App\Services\Channels\TelegramChannel $telegramChannel
+        private TelegramChannel $telegramChannel
     ) {}
 
     public function handle(int $chatId, array $params = []): array

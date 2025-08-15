@@ -98,29 +98,24 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 $message = "❌ **Teste de Voz - FALHOU**\n\n";
                 $message .= "🎤 **Provider**: {$testResult['provider']}\n";
                 $message .= "🚨 **Erro**: {$testResult['error']}\n";
-                $message .= "🔧 **Status**: Requer configuração\n\n";
-                $message .= "💡 **Solução**: Use o comando `/enablevoice` para ativar.";
+                $message .= "🔧 **Status**: Problema detectado\n\n";
+                $message .= "📞 **Solução**: Entre em contato com o suporte técnico.";
             }
 
             $keyboard = [
                 [
-                    ['text' => '🔧 Ativar Voz', 'callback_data' => 'enablevoice'],
-                    ['text' => '📊 Status', 'callback_data' => 'voice_status']
-                ],
-                [
+                    ['text' => '🧪 Testar Novamente', 'callback_data' => 'testvoice'],
                     ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
                 ]
             ];
 
-            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
+            return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
 
         } catch (\Exception $e) {
-            Log::error('Voice test failed', [
-                'chat_id' => $chatId,
-                'error' => $e->getMessage()
-            ]);
-
-            $message = "❌ **Erro no teste de voz**: {$e->getMessage()}";
+            $message = "❌ **Teste de Voz - ERRO**\n\n" .
+                       "🚨 **Erro**: " . $e->getMessage() . "\n" .
+                       "🔧 **Status**: Falha no teste\n\n" .
+                       "📞 **Solução**: Entre em contato com o suporte técnico.";
 
             $keyboard = [
                 [
@@ -128,8 +123,25 @@ class VoiceCommandHandler implements TelegramCommandHandlerInterface
                 ]
             ];
 
-            return $this->telegramChannel->sendMessageWithKeyboard($message, (string) $chatId, $keyboard);
+            return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
         }
+    }
+
+    /**
+     * Test voice (called by command system)
+     */
+    public function testVoice(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->testVoiceService($chatId);
     }
 
     /**

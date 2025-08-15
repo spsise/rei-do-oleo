@@ -40,7 +40,7 @@ class TelegramCommandHandlerManager
     private function registerCommandHandlers(): void
     {
         $this->commandHandlers = [
-            new StartCommandHandler($this->menuBuilder),
+            new StartCommandHandler($this->menuBuilder, $this->telegramChannel),
             new ReportCommandHandler($this->menuBuilder, $this->generalReportGenerator),
             new StatusCommandHandler($this->telegramChannel),
             new MenuCommandHandler($this->menuBuilder),
