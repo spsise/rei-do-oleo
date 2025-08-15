@@ -50,7 +50,8 @@ class StatusCommandHandler implements TelegramCommandHandlerInterface
 
         $keyboard = [
             [
-                ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu'],
+                ['text' => '🔄 Atualizar Status', 'callback_data' => 'refresh_status']
             ]
         ];
 

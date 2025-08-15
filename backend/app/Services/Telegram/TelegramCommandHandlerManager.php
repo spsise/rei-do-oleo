@@ -96,8 +96,13 @@ class TelegramCommandHandlerManager
      */
     public function handleCallbackQuery(string $action, int $chatId, array $params = []): array
     {
-        // Handle status callback directly to avoid loop
+        // Skip status callback to avoid loop - let unified system handle it
         if ($action === 'status') {
+            return ['success' => true, 'message' => 'Redirected to unified system'];
+        }
+
+        // Handle refresh_status callback
+        if ($action === 'refresh_status') {
             return $this->handleStatusCallback($chatId);
         }
 
