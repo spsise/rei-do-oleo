@@ -34,15 +34,29 @@ class SpeechToTextService
                 return null;
             }
 
-            // Check cache first
-            $cacheKey = 'voice_to_text_' . md5_file($voiceFilePath);
+            // Check cache first with improved cache key
+            $cacheKey = $this->generateCacheKey($voiceFilePath);
             $cachedResult = Cache::get($cacheKey);
 
             if ($cachedResult) {
                 $this->loggingService->logTelegramEvent('voice_to_text_cache_hit', [
-                    'file' => $voiceFilePath
+                    'file' => $voiceFilePath,
+                    'cache_key' => $cacheKey,
+                    'cache_age' => $this->getCacheAge($cacheKey)
                 ]);
-                return $cachedResult;
+
+                // Check if cache is still valid (additional validation)
+                if ($this->isCacheStillValid($cacheKey, $voiceFilePath)) {
+                    return $cachedResult;
+                } else {
+                    // Cache is stale, remove it
+                    Cache::forget($cacheKey);
+                    $this->loggingService->logTelegramEvent('voice_to_text_cache_expired', [
+                        'file' => $voiceFilePath,
+                        'cache_key' => $cacheKey,
+                        'action' => 'cache_removed_and_reprocessing'
+                    ]);
+                }
             }
 
             // Convert based on provider
@@ -58,13 +72,14 @@ class SpeechToTextService
             };
 
             if ($text) {
-                // Cache result for 1 hour
-                Cache::put($cacheKey, $text, 3600);
+                // Cache result with shorter TTL and additional metadata
+                $this->cacheResult($cacheKey, $text, $voiceFilePath);
 
                 $this->loggingService->logTelegramEvent('voice_to_text_conversion_success', [
                     'file' => $voiceFilePath,
                     'provider' => $this->provider,
-                    'text_length' => strlen($text)
+                    'text_length' => strlen($text),
+                    'cache_key' => $cacheKey
                 ]);
             }
 
@@ -78,6 +93,241 @@ class SpeechToTextService
             ]);
 
             return null;
+        }
+    }
+
+    /**
+     * Generate improved cache key with file metadata
+     */
+    private function generateCacheKey(string $voiceFilePath): string
+    {
+        $fileHash = md5_file($voiceFilePath);
+        $fileSize = filesize($voiceFilePath);
+        $fileModified = filemtime($voiceFilePath);
+        $provider = $this->provider;
+
+        // Include more metadata in cache key to avoid conflicts
+        return "voice_to_text_{$provider}_{$fileHash}_{$fileSize}_{$fileModified}";
+    }
+
+    /**
+     * Check if cache is still valid
+     */
+    private function isCacheStillValid(string $cacheKey, string $voiceFilePath): bool
+    {
+        try {
+            // Check if file still exists and hasn't changed
+            if (!file_exists($voiceFilePath)) {
+                return false;
+            }
+
+            // Get cache metadata
+            $cacheMetadata = Cache::get($cacheKey . '_metadata');
+            if (!$cacheMetadata) {
+                return false;
+            }
+
+            // Check if file has been modified since caching
+            $currentFileModified = filemtime($voiceFilePath);
+            if ($currentFileModified !== $cacheMetadata['file_modified']) {
+                return false;
+            }
+
+            // Check if file size has changed
+            $currentFileSize = filesize($voiceFilePath);
+            if ($currentFileSize !== $cacheMetadata['file_size']) {
+                return false;
+            }
+
+            // Check if cache is not too old (additional TTL check)
+            $cacheAge = time() - $cacheMetadata['cached_at'];
+            $maxAge = config('services.speech.cache_max_age', 1800); // 30 minutes default
+
+            if ($cacheAge > $maxAge) {
+                return false;
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Cache result with metadata
+     */
+    private function cacheResult(string $cacheKey, string $text, string $voiceFilePath): void
+    {
+        try {
+            // Cache the text result with shorter TTL
+            $cacheTTL = config('services.speech.cache_ttl', 1800); // 30 minutes default
+            Cache::put($cacheKey, $text, $cacheTTL);
+
+            // Cache metadata for validation
+            $metadata = [
+                'file_modified' => filemtime($voiceFilePath),
+                'file_size' => filesize($voiceFilePath),
+                'cached_at' => time(),
+                'provider' => $this->provider,
+                'text_length' => strlen($text)
+            ];
+
+            Cache::put($cacheKey . '_metadata', $metadata, $cacheTTL + 300); // 5 minutes extra for metadata
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'cache_result',
+                'cache_key' => $cacheKey,
+                'file' => $voiceFilePath
+            ]);
+        }
+    }
+
+    /**
+     * Get cache age in seconds
+     */
+    private function getCacheAge(string $cacheKey): int
+    {
+        try {
+            $metadata = Cache::get($cacheKey . '_metadata');
+            if ($metadata && isset($metadata['cached_at'])) {
+                return time() - $metadata['cached_at'];
+            }
+            return 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Clear expired cache entries
+     */
+    public function clearExpiredCache(): int
+    {
+        try {
+            $clearedCount = 0;
+            $cachePrefix = 'voice_to_text_';
+
+            // Get all cache keys with our prefix
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            foreach ($keys as $key) {
+                if (Cache::has($key)) {
+                    $metadata = Cache::get($key . '_metadata');
+                    if ($metadata) {
+                        $cacheAge = time() - $metadata['cached_at'];
+                        $maxAge = config('services.speech.cache_max_age', 1800);
+
+                        if ($cacheAge > $maxAge) {
+                            Cache::forget($key);
+                            Cache::forget($key . '_metadata');
+                            $clearedCount++;
+                        }
+                    }
+                }
+            }
+
+            $this->loggingService->logTelegramEvent('speech_cache_cleanup_completed', [
+                'cleared_entries' => $clearedCount,
+                'cache_prefix' => $cachePrefix
+            ]);
+
+            return $clearedCount;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'clear_expired_cache'
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Force clear all speech cache
+     */
+    public function clearAllSpeechCache(): bool
+    {
+        try {
+            $cachePrefix = 'voice_to_text_';
+
+            // Clear all cache entries with our prefix
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            foreach ($keys as $key) {
+                Cache::forget($key);
+                Cache::forget($key . '_metadata');
+            }
+
+            // Clear the keys list itself
+            Cache::forget($cachePrefix . 'keys');
+
+            $this->loggingService->logTelegramEvent('speech_cache_cleared', [
+                'action' => 'all_cache_cleared',
+                'cache_prefix' => $cachePrefix
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'context' => 'clear_all_speech_cache'
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Get cache statistics
+     */
+    public function getCacheStats(): array
+    {
+        try {
+            $cachePrefix = 'voice_to_text_';
+            $keys = Cache::get($cachePrefix . 'keys', []);
+
+            $stats = [
+                'total_entries' => count($keys),
+                'active_entries' => 0,
+                'expired_entries' => 0,
+                'total_size' => 0,
+                'oldest_entry' => null,
+                'newest_entry' => null
+            ];
+
+            $currentTime = time();
+            $maxAge = config('services.speech.cache_max_age', 1800);
+
+            foreach ($keys as $key) {
+                if (Cache::has($key)) {
+                    $metadata = Cache::get($key . '_metadata');
+                    if ($metadata) {
+                        $stats['active_entries']++;
+                        $stats['total_size'] += $metadata['text_length'] ?? 0;
+
+                        $age = $currentTime - $metadata['cached_at'];
+                        if ($age > $maxAge) {
+                            $stats['expired_entries']++;
+                        }
+
+                        if (!$stats['oldest_entry'] || $metadata['cached_at'] < $stats['oldest_entry']) {
+                            $stats['oldest_entry'] = $metadata['cached_at'];
+                        }
+
+                        if (!$stats['newest_entry'] || $metadata['cached_at'] > $stats['newest_entry']) {
+                            $stats['newest_entry'] = $metadata['cached_at'];
+                        }
+                    }
+                }
+            }
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            return [
+                'error' => $e->getMessage(),
+                'total_entries' => 0
+            ];
         }
     }
 
