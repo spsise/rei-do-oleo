@@ -11,7 +11,35 @@ class StatusCommandHandler implements TelegramCommandHandlerInterface
         private TelegramChannel $telegramChannel
     ) {}
 
+    /**
+     * Handle command for legacy system (TelegramCommandHandlerInterface)
+     */
     public function handle(int $chatId, array $params = []): array
+    {
+        return $this->executeStatusCommand($chatId);
+    }
+
+    /**
+     * Handle status command for unified command system
+     */
+    public function handleStatus(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->executeStatusCommand($chatId);
+    }
+
+    /**
+     * Internal method to execute status command
+     */
+    private function executeStatusCommand(int $chatId): array
     {
         $message = "📋 *Status do Sistema*\n\n" .
                    "🟢 *Sistema:* Online\n" .
