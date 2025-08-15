@@ -2,8 +2,7 @@
 
 namespace App\Services;
 
-use App\Services\Telegram\TelegramCommandParser;
-use App\Services\Telegram\TelegramCommandHandlerManager;
+use App\Services\Telegram\Commands\UnifiedCommandSystem;
 use App\Services\Telegram\TelegramAuthorizationService;
 use App\Services\Telegram\TelegramMenuBuilder;
 use App\Contracts\LoggingServiceInterface;
@@ -11,8 +10,7 @@ use App\Contracts\LoggingServiceInterface;
 class TelegramBotService
 {
     public function __construct(
-        private TelegramCommandParser $commandParser,
-        private TelegramCommandHandlerManager $commandHandlerManager,
+        private UnifiedCommandSystem $commandSystem,
         private TelegramAuthorizationService $authorizationService,
         private TelegramMenuBuilder $menuBuilder,
         private LoggingServiceInterface $loggingService
@@ -33,11 +31,42 @@ class TelegramBotService
                 return $this->menuBuilder->buildUnauthorizedMessage($chatId);
             }
 
-            // Parse command
-            $command = $this->commandParser->parseCommand($text);
+            // Process command using UnifiedCommandSystem
+            $context = [
+                'chat_id' => $chatId,
+                'user_id' => $from['id'] ?? null,
+                'type' => 'text',
+                'timestamp' => time(),
+                'user_permissions' => ['user'] // TODO: Get real permissions
+            ];
 
-            // Handle command using the manager
-            return $this->commandHandlerManager->handleCommand($command['type'], $chatId, $command['params']);
+            $result = $this->commandSystem->processCommand($text, $context);
+
+            if ($result->isSuccess()) {
+                $data = $result->getData();
+                return [
+                    'success' => true,
+                    'chat_id' => $chatId,
+                    'type' => $result->getType(),
+                    'data' => $data,
+                    'command_info' => $result->getCommandMatch() ? [
+                        'command_id' => $result->getCommandMatch()->getCommand()->getId(),
+                        'confidence' => $result->getCommandMatch()->getConfidence()
+                    ] : null
+                ];
+            } else {
+                $data = $result->getData();
+                $fallbackMessage = $data['fallback_message'] ?? 'Comando não encontrado';
+
+                return [
+                    'success' => false,
+                    'chat_id' => $chatId,
+                    'type' => 'command_not_found',
+                    'message' => $fallbackMessage,
+                    'suggestions' => $data['suggestions'] ?? [],
+                    'data' => $data
+                ];
+            }
 
         } catch (\Exception $e) {
             $this->loggingService->logException($e, [
@@ -47,7 +76,13 @@ class TelegramBotService
                 'message' => $message
             ]);
 
-            return $this->menuBuilder->buildErrorMessage($chatId);
+            return [
+                'success' => false,
+                'chat_id' => $chatId,
+                'type' => 'error',
+                'message' => 'Erro interno do sistema',
+                'data' => []
+            ];
         }
     }
 
@@ -67,11 +102,43 @@ class TelegramBotService
                 return $this->menuBuilder->buildUnauthorizedMessage($chatId);
             }
 
-            // Parse callback data
-            $callback = $this->commandParser->parseCallbackData($callbackData);
+            // Process callback using UnifiedCommandSystem
+            $context = [
+                'chat_id' => $chatId,
+                'user_id' => $from['id'] ?? null,
+                'type' => 'callback_query',
+                'timestamp' => time(),
+                'user_permissions' => ['user'], // TODO: Get real permissions
+                'callback_data' => $callbackData
+            ];
 
-            // Handle callback using the manager
-            return $this->commandHandlerManager->handleCallbackQuery($callback['action'], $chatId, $callback);
+            $result = $this->commandSystem->processCommand($callbackData, $context);
+
+            if ($result->isSuccess()) {
+                $data = $result->getData();
+                return [
+                    'success' => true,
+                    'chat_id' => $chatId,
+                    'type' => $result->getType(),
+                    'data' => $data,
+                    'command_info' => $result->getCommandMatch() ? [
+                        'command_id' => $result->getCommandMatch()->getCommand()->getId(),
+                        'confidence' => $result->getCommandMatch()->getConfidence()
+                    ] : null
+                ];
+            } else {
+                $data = $result->getData();
+                $fallbackMessage = $data['fallback_message'] ?? 'Ação não encontrada';
+
+                return [
+                    'success' => false,
+                    'chat_id' => $chatId,
+                    'type' => 'callback_not_found',
+                    'message' => $fallbackMessage,
+                    'suggestions' => $data['suggestions'] ?? [],
+                    'data' => $data
+                ];
+            }
 
         } catch (\Exception $e) {
             $this->loggingService->logException($e, [
@@ -81,7 +148,13 @@ class TelegramBotService
                 'callback_query' => $callbackQuery
             ]);
 
-            return $this->menuBuilder->buildErrorMessage($chatId);
+            return [
+                'success' => false,
+                'chat_id' => $chatId,
+                'type' => 'error',
+                'message' => 'Erro interno do sistema',
+                'data' => []
+            ];
         }
     }
 

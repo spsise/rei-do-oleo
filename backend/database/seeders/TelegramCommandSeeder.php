@@ -10,15 +10,16 @@ class TelegramCommandSeeder extends Seeder
     public function run(): void
     {
         $commands = [
+            // Basic Commands (highest priority)
             [
-                'command_id' => 'main_menu',
-                'aliases' => ['menu', 'menu_principal', 'Menu', 'início', 'start', 'home'],
-                'description' => 'Comando para envio do menu principal para o usuário',
-                'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
-                'action_method' => 'showMainMenu',
+                'command_id' => 'help_start',
+                'aliases' => ['ajuda', 'help', 'comandos', 'opções', 'iniciar', 'start', 'begin', 'home', 'principal'],
+                'description' => 'Comando de ajuda e início',
+                'action_handler' => 'App\Services\Telegram\Handlers\StartCommandHandler',
+                'action_method' => 'handle',
                 'action_parameters' => [],
                 'permissions' => ['all'],
-                'category' => 'navigation',
+                'category' => 'basic',
                 'voice_settings' => [
                     'enabled' => true,
                     'priority' => 1,
@@ -26,26 +27,255 @@ class TelegramCommandSeeder extends Seeder
                     'language' => ['pt', 'en']
                 ],
                 'natural_language' => [
-                    'mostrar menu',
-                    'quero ver o menu',
-                    'abrir menu',
-                    'menu principal',
-                    'início',
-                    'voltar ao início'
+                    'ajuda',
+                    'help',
+                    'comandos',
+                    'opções',
+                    'iniciar',
+                    'start',
+                    'begin',
+                    'home',
+                    'principal'
                 ],
                 'fallback' => [
-                    'message' => 'Desculpe, não entendi. Você quer ver o menu principal?',
-                    'suggestions' => ['Menu', 'Ajuda', 'Relatórios']
+                    'message' => 'Olá! Como posso ajudar você?',
+                    'suggestions' => ['Menu', 'Status', 'Relatórios']
                 ],
                 'is_active' => true,
                 'priority' => 1
             ],
+            // Menu Navigation Commands
+            [
+                'command_id' => 'main_menu',
+                'aliases' => ['menu', 'main_menu', 'voltar', 'back', 'menu_principal'],
+                'description' => 'Comando para envio do menu principal para o usuário',
+                'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
+                'action_method' => 'buildMainMenu',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'navigation',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 2,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'menu',
+                    'main_menu',
+                    'voltar',
+                    'back',
+                    'menu_principal',
+                    'mostrar menu',
+                    'quero ver o menu',
+                    'abrir menu',
+                    'menu principal',
+                    'voltar ao menu'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o menu principal:',
+                    'suggestions' => ['Menu', 'Ajuda', 'Relatórios']
+                ],
+                'is_active' => true,
+                'priority' => 2
+            ],
+            // Dashboard/Status Commands
+            [
+                'command_id' => 'system_status',
+                'aliases' => ['dashboard', 'status', 'como', 'está', 'dashboard_menu', 'sistema', 'verificar sistema', 'status do sistema'],
+                'description' => 'Mostra status do sistema',
+                'action_handler' => 'App\Services\Telegram\Handlers\StatusCommandHandler',
+                'action_method' => 'handleStatus',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'system',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 3,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'dashboard',
+                    'status',
+                    'como está',
+                    'dashboard_menu',
+                    'sistema',
+                    'verificar sistema',
+                    'status do sistema',
+                    'como está o sistema',
+                    'sistema funcionando',
+                    'status sistema',
+                    'verificar status',
+                    'mostrar status'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o status do sistema:',
+                    'suggestions' => ['Menu', 'Relatórios', 'Serviços']
+                ],
+                'is_active' => true,
+                'priority' => 3
+            ],
+            // Dashboard Menu
+            [
+                'command_id' => 'dashboard_menu',
+                'aliases' => ['dashboard_menu'],
+                'description' => 'Menu do dashboard',
+                'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
+                'action_method' => 'buildDashboardMenu',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'navigation',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 3,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'dashboard menu',
+                    'menu dashboard',
+                    'painel de controle'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o menu do dashboard:',
+                    'suggestions' => ['Status', 'Relatórios', 'Menu Principal']
+                ],
+                'is_active' => true,
+                'priority' => 4
+            ],
+            // Report Commands with Period
+            [
+                'command_id' => 'report_with_period',
+                'aliases' => ['relatório', 'report', 'reports'],
+                'description' => 'Relatório com período específico',
+                'action_handler' => 'App\Services\Telegram\Handlers\ReportCommandHandler',
+                'action_method' => 'handle',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 5,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'relatório hoje',
+                    'relatório semana',
+                    'relatório mês',
+                    'report today',
+                    'report week',
+                    'report month',
+                    'enviar relatório',
+                    'quero relatório',
+                    'preciso relatório',
+                    'mostre relatório',
+                    'mostra relatório'
+                ],
+                'fallback' => [
+                    'message' => 'Qual período você gostaria para o relatório?',
+                    'suggestions' => ['Hoje', 'Semana', 'Mês']
+                ],
+                'is_active' => true,
+                'priority' => 5
+            ],
+            // Services Commands
+            [
+                'command_id' => 'services_with_period',
+                'aliases' => ['serviços', 'services'],
+                'description' => 'Serviços com período específico',
+                'action_handler' => 'App\Services\Telegram\Handlers\ServicesCommandHandler',
+                'action_method' => 'handle',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'services',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 6,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'serviços hoje',
+                    'serviços semana',
+                    'serviços mês',
+                    'services today',
+                    'services week',
+                    'services month'
+                ],
+                'fallback' => [
+                    'message' => 'Qual período você gostaria para os serviços?',
+                    'suggestions' => ['Hoje', 'Semana', 'Mês']
+                ],
+                'is_active' => true,
+                'priority' => 6
+            ],
+            // Products Commands
+            [
+                'command_id' => 'products_with_period',
+                'aliases' => ['produtos', 'products'],
+                'description' => 'Produtos com período específico',
+                'action_handler' => 'App\Services\Telegram\Handlers\ProductsCommandHandler',
+                'action_method' => 'handle',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'products',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 7,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'produtos hoje',
+                    'produtos semana',
+                    'produtos mês',
+                    'products today',
+                    'products week',
+                    'products month'
+                ],
+                'fallback' => [
+                    'message' => 'Qual período você gostaria para os produtos?',
+                    'suggestions' => ['Hoje', 'Semana', 'Mês']
+                ],
+                'is_active' => true,
+                'priority' => 7
+            ],
+            // General Menu Commands
+            [
+                'command_id' => 'report_menu',
+                'aliases' => ['report_menu'],
+                'description' => 'Menu de relatórios',
+                'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
+                'action_method' => 'buildReportMenu',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'navigation',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 8,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'menu relatórios',
+                    'relatórios',
+                    'report menu'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o menu de relatórios:',
+                    'suggestions' => ['Relatório Hoje', 'Relatório Semana', 'Menu Principal']
+                ],
+                'is_active' => true,
+                'priority' => 8
+            ],
             [
                 'command_id' => 'services_menu',
-                'aliases' => ['services', 'menu_service', 'Serviços', 'Menu de serviços', 'serviços'],
+                'aliases' => ['services_menu', 'menu_service', 'Menu de serviços'],
                 'description' => 'Exibe menu de serviços disponíveis',
                 'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
-                'action_method' => 'showServicesMenu',
+                'action_method' => 'buildServicesMenu',
                 'action_parameters' => [],
                 'permissions' => ['all'],
                 'category' => 'navigation',
@@ -68,6 +298,35 @@ class TelegramCommandSeeder extends Seeder
                 ],
                 'is_active' => true,
                 'priority' => 2
+            ],
+            [
+                'command_id' => 'products_menu',
+                'aliases' => ['products_menu', 'menu_produtos', 'Menu de produtos'],
+                'description' => 'Exibe menu de produtos disponíveis',
+                'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
+                'action_method' => 'buildProductsMenu',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'navigation',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 9,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'menu produtos',
+                    'produtos',
+                    'products menu',
+                    'mostrar produtos',
+                    'ver produtos'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o menu de produtos:',
+                    'suggestions' => ['Estoque', 'Produtos Baixo', 'Menu Principal']
+                ],
+                'is_active' => true,
+                'priority' => 9
             ],
             [
                 'command_id' => 'reports_menu',

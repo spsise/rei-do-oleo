@@ -4,13 +4,23 @@ namespace App\Services\Telegram;
 
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @deprecated This class is deprecated. Use UnifiedCommandSystem instead.
+ * Only kept for debugging and migration purposes.
+ */
 class TelegramCommandParser
 {
     /**
      * Parse command from message text
+     * @deprecated Use UnifiedCommandSystem instead
      */
     public function parseCommand(string $text): array
     {
+        Log::warning('TelegramCommandParser is deprecated. Use UnifiedCommandSystem instead.', [
+            'text' => $text,
+            'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)
+        ]);
+
         $originalText = $text;
         $text = trim(strtolower($text));
 
