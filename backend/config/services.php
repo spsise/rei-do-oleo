@@ -98,7 +98,7 @@ return [
     ],
 
     'google' => [
-        'api_key' => env('GOOGLE_API_KEY'),
+        'api_key' => env('GOOGLE_SPEECH_API_KEY'),
         'speech_url' => env('GOOGLE_SPEECH_URL', 'https://speech.googleapis.com/v1/speech:recognize'),
     ],
 
