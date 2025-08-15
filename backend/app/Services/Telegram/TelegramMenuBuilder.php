@@ -154,6 +154,40 @@ class TelegramMenuBuilder
     }
 
     /**
+     * Show products menu (called by command system)
+     */
+    public function showProductsMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildProductsMenu($chatId);
+    }
+
+    /**
+     * Show dashboard menu (called by command system)
+     */
+    public function showDashboardMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildDashboardMenu($chatId);
+    }
+
+    /**
      * Build dashboard menu
      */
     public function buildDashboardMenu(int $chatId): array
