@@ -195,15 +195,15 @@ class TelegramWebhookRequest extends FormRequest
     public function validateResolved(): void
     {
         // Log successful validation
-        $this->loggingService->logTelegramEvent('telegram_webhook_validation_success', [
-            'success' => 'Webhook validation passed successfully',
-            'message_type' => $this->getMessageType(),
-            'telegram_update_id' => $this->input('update_id'),
-            'has_message' => $this->has('message'),
-            'has_callback_query' => $this->has('callback_query'),
-            'message_content_types' => $this->getMessageContentTypes(),
-            'timestamp' => now()->toISOString()
-        ], 'info');
+        // $this->loggingService->logTelegramEvent('telegram_webhook_validation_success', [
+        //     'success' => 'Webhook validation passed successfully',
+        //     'message_type' => $this->getMessageType(),
+        //     'telegram_update_id' => $this->input('update_id'),
+        //     'has_message' => $this->has('message'),
+        //     'has_callback_query' => $this->has('callback_query'),
+        //     'message_content_types' => $this->getMessageContentTypes(),
+        //     'timestamp' => now()->toISOString()
+        // ], 'info');
 
         parent::validateResolved();
     }

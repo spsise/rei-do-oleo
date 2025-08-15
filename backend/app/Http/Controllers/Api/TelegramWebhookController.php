@@ -31,6 +31,29 @@ class TelegramWebhookController extends Controller
         try {
             $payload = $request->validated();
 
+            // Quick duplicate check BEFORE detailed validation
+            $updateId = $payload['update_id'] ?? null;
+            if ($updateId && $this->isDuplicateRequest($updateId)) {
+                $this->loggingService->logTelegramEvent('duplicate_webhook_ignored_early', [
+                    'update_id' => $updateId,
+                    'message' => 'Duplicate webhook detected and ignored before processing'
+                ], 'info');
+
+                return TelegramWebhookResource::success('Duplicate webhook ignored', [
+                    'success' => true,
+                    'status' => 'ignored',
+                    'message' => 'Duplicate webhook ignored',
+                    'update_id' => $updateId
+                ])
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Mark as processing to prevent race conditions
+            if ($updateId) {
+                $this->markRequestAsProcessing($updateId);
+            }
+
             // Validate payload structure
             $validation = $this->webhookService->validatePayload($payload);
 
@@ -163,6 +186,42 @@ class TelegramWebhookController extends Controller
         }
 
         return $result;
+    }
+
+    /**
+     * Check if request is duplicate (quick cache check)
+     */
+    private function isDuplicateRequest(int $updateId): bool
+    {
+        try {
+            $cacheKey = "telegram_update_processed_{$updateId}";
+            return cache()->has($cacheKey);
+        } catch (\Exception $e) {
+            // If cache fails, log but don't block processing
+            $this->loggingService->logException($e, [
+                'operation' => 'check_duplicate_update_id_controller',
+                'update_id' => $updateId
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Mark request as being processed (to prevent race conditions)
+     */
+    private function markRequestAsProcessing(int $updateId): void
+    {
+        try {
+            $cacheKey = "telegram_update_processed_{$updateId}";
+            // Cache for 1 hour to prevent duplicates
+            cache()->put($cacheKey, true, 3600);
+        } catch (\Exception $e) {
+            // If cache fails, log but don't block processing
+            $this->loggingService->logException($e, [
+                'operation' => 'mark_update_id_processed_controller',
+                'update_id' => $updateId
+            ]);
+        }
     }
 
     /**
