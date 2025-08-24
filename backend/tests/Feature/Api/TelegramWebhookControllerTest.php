@@ -206,7 +206,8 @@ class TelegramWebhookControllerTest extends BaseTestCase
             $mock->shouldReceive('processWebhookPayload')->andReturn([
                 'success' => true,
                 'message' => 'Ignored update',
-                'status' => 'ignored'
+                'status' => 'ignored',
+                'type' => 'ignored'
             ]);
         });
         $response = $this->postJson('/api/telegram/webhook', $this->sampleTextPayload());

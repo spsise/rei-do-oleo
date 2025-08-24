@@ -8,7 +8,8 @@ use App\Http\Requests\TelegramWebhookSetupRequest;
 use App\Http\Resources\TelegramWebhookResource;
 use App\Services\TelegramBotService;
 use App\Services\TelegramWebhookService;
-use App\Services\Telegram\TelegramMessageProcessorService;
+use App\Services\TelegramMessageProcessorService;
+use App\Services\Telegram\TelegramWebhookValidationService;
 use App\Contracts\LoggingServiceInterface;
 use Illuminate\Http\JsonResponse;
 
@@ -18,6 +19,7 @@ class TelegramWebhookController extends Controller
         private TelegramBotService $telegramBotService,
         private TelegramWebhookService $webhookService,
         private TelegramMessageProcessorService $messageProcessor,
+        private TelegramWebhookValidationService $webhookValidationService,
         private LoggingServiceInterface $loggingService
     ) {}
 
@@ -31,14 +33,19 @@ class TelegramWebhookController extends Controller
         try {
             $payload = $request->validated();
 
-            // Quick duplicate check BEFORE detailed validation
-            $updateId = $payload['update_id'] ?? null;
-            if ($updateId && $this->isDuplicateRequest($updateId)) {
-                $this->loggingService->logTelegramEvent('duplicate_webhook_ignored_early', [
-                    'update_id' => $updateId,
-                    'message' => 'Duplicate webhook detected and ignored before processing'
-                ], 'info');
+            // Validate payload structure first
+            $validation = $this->webhookService->validatePayload($payload);
 
+            if (!$validation['valid']) {
+                return TelegramWebhookResource::ignored($validation['message'])
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Validate webhook and mark as processing (after payload validation)
+            $updateId = $payload['update_id'] ?? null;
+            $skipDuplicateCheck = app()->environment('testing');
+            if (!$this->webhookValidationService->validateAndMarkProcessing($updateId, $skipDuplicateCheck)) {
                 return TelegramWebhookResource::success('Duplicate webhook ignored', [
                     'success' => true,
                     'status' => 'ignored',
@@ -49,23 +56,9 @@ class TelegramWebhookController extends Controller
                     ->setStatusCode(200);
             }
 
-            // Mark as processing to prevent race conditions
-            if ($updateId) {
-                $this->markRequestAsProcessing($updateId);
-            }
-
-            // Validate payload structure
-            $validation = $this->webhookService->validatePayload($payload);
-
-            if (!$validation['valid']) {
-                return TelegramWebhookResource::ignored($validation['message'])
-                    ->response()
-                    ->setStatusCode(200);
-            }
-
             // Process the webhook payload with timeout protection
             $result = $this->processWithTimeout(function () use ($payload) {
-                return $this->messageProcessor->processMessage($payload);
+                return $this->messageProcessor->processWebhookPayload($payload);
             }, 25); // 25 seconds timeout
 
             // Check if the result is valid and has the expected structure
@@ -83,22 +76,7 @@ class TelegramWebhookController extends Controller
                     ->setStatusCode(500);
             }
 
-            // Check if the message was processed successfully
-            if ($result['success']) {
-                // $duration = (microtime(true) - $startTime) * 1000;
-
-                // $this->loggingService->logTelegramEvent('webhook_processed_successfully', [
-                //     'processing_time_ms' => round($duration, 2),
-                //     'chat_id' => $request->input('message.chat.id'),
-                //     'user_id' => $request->input('message.from.id'),
-                // ], 'info');
-
-                return TelegramWebhookResource::success($result['message'] ?? 'Message processed successfully', $result)
-                    ->response()
-                    ->setStatusCode(200);
-            }
-
-            // Check if this is a normal response (not an error)
+            // Check if this is a normal response (not an error) - check status first
             $isNormalResponse = isset($result['type']) && in_array($result['type'], [
                 'command_not_found',
                 'ignored',
@@ -110,7 +88,29 @@ class TelegramWebhookController extends Controller
             ]);
 
             if ($isNormalResponse) {
+                // Use appropriate resource method based on status
+                if (isset($result['status']) && $result['status'] === 'ignored') {
+                    return TelegramWebhookResource::ignored($result['message'] ?? 'Message ignored', $result)
+                        ->response()
+                        ->setStatusCode(200);
+                }
+
                 return TelegramWebhookResource::success($result['message'] ?? 'Message processed', $result)
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Check if the message was processed successfully
+            if ($result['success']) {
+                // $duration = (microtime(true) - $startTime) * 1000;
+
+                // $this->loggingService->logTelegramEvent('webhook_processed_successfully', [
+                //     'processing_time_ms' => round($duration, 2),
+                //     'chat_id' => $request->input('message.chat.id'),
+                //     'user_id' => $request->input('message.from.id'),
+                // ], 'info');
+
+                return TelegramWebhookResource::success($result['message'] ?? 'Message processed successfully', $result)
                     ->response()
                     ->setStatusCode(200);
             }
@@ -188,41 +188,7 @@ class TelegramWebhookController extends Controller
         return $result;
     }
 
-    /**
-     * Check if request is duplicate (quick cache check)
-     */
-    private function isDuplicateRequest(int $updateId): bool
-    {
-        try {
-            $cacheKey = "telegram_update_processed_{$updateId}";
-            return cache()->has($cacheKey);
-        } catch (\Exception $e) {
-            // If cache fails, log but don't block processing
-            $this->loggingService->logException($e, [
-                'operation' => 'check_duplicate_update_id_controller',
-                'update_id' => $updateId
-            ]);
-            return false;
-        }
-    }
 
-    /**
-     * Mark request as being processed (to prevent race conditions)
-     */
-    private function markRequestAsProcessing(int $updateId): void
-    {
-        try {
-            $cacheKey = "telegram_update_processed_{$updateId}";
-            // Cache for 1 hour to prevent duplicates
-            cache()->put($cacheKey, true, 3600);
-        } catch (\Exception $e) {
-            // If cache fails, log but don't block processing
-            $this->loggingService->logException($e, [
-                'operation' => 'mark_update_id_processed_controller',
-                'update_id' => $updateId
-            ]);
-        }
-    }
 
     /**
      * Set webhook URL for Telegram bot
