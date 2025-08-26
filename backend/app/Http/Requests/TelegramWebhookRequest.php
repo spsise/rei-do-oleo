@@ -112,11 +112,8 @@ class TelegramWebhookRequest extends FormRequest
 
     /**
      * Handle a failed validation attempt.
-     *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
-     * @return void
-     *
-     * @throws \Illuminate\Http\Exceptions\HttpResponseException
+     * Instead of throwing HTTP exception, we'll let the controller handle it
+     * and send a friendly message via Telegram.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator): void
     {
@@ -139,8 +136,11 @@ class TelegramWebhookRequest extends FormRequest
             'has_callback_query' => $this->has('callback_query')
         ], 'error');
 
-        // Chamar o método padrão do Laravel para lançar a exceção
-        parent::failedValidation($validator);
+        // Store validation errors in the request for the controller to handle
+        $this->merge(['validation_errors' => $validator->errors()->toArray()]);
+
+        // Don't throw exception - let controller handle it gracefully
+        // parent::failedValidation($validator);
     }
 
     /**

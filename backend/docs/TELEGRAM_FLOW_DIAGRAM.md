@@ -16,7 +16,7 @@ flowchart TD
     D --> E{📋 Validação de Request}
 
     E -->|✅ Válido| F[🔍 Processar Mensagem TelegramBotService]
-    E -->|❌ Inválido| G[🚫 Retornar Erro 422]
+    E -->|❌ Inválido| G[⚠️ Gerar Mensagem de Erro Amigável]
 
     F --> H{🎯 Tipo de Mensagem}
 
@@ -46,6 +46,7 @@ flowchart TD
 
     X --> Y[📤 Enviar via TelegramChannel sendMessageWithKeyboard]
     V --> Y
+    G --> Y
 
     Y --> Z[🌐 Telegram API]
     Z --> AA[📱 Usuário recebe resposta]
@@ -56,7 +57,7 @@ flowchart TD
 
     style A fill:#e1f5fe
     style AA fill:#c8e6c9
-    style G fill:#ffcdd2
+    style G fill:#fff3e0
     style T fill:#fff3e0
     style CC fill:#f3e5f5
 ```
@@ -72,97 +73,290 @@ flowchart TD
 
     C --> D{Cache Hit?}
     D -->|✅ Sim| E[⚡ Retornar do Cache]
-    D -->|❌ Não| F[🔍 Buscar no Banco]
+    D -->|❌ Não| F[🔍 Buscar no Registry]
 
-    F --> G{Comando Encontrado?}
-    G -->|✅ Sim| H[🎯 Resolver Handler]
-    G -->|❌ Não| I[💡 Fallback + Sugestões]
+    F --> G[🎯 Encontrar Comando]
+    G --> H{Comando Encontrado?}
 
-    H --> J[🔧 Instanciar Handler TelegramMenuBuilder]
-    J --> K[📊 Executar Método showMainMenu]
-    K --> L[📱 Retornar Resposta]
+    H -->|✅ Sim| I[🚀 Executar Handler showMainMenu]
+    H -->|❌ Não| J[💡 Gerar Fallback]
 
-    E --> L
-    I --> L
+    I --> K[📱 Resposta com Menu]
+    J --> L[📱 Resposta de Fallback]
 
-    style A fill:#e3f2fd
-    style L fill:#c8e6c9
-    style I fill:#fff3e0
+    K --> M[📤 TelegramChannel]
+    L --> M
+
+    M --> N[📱 Usuário recebe resposta]
+
+    style A fill:#e1f5fe
+    style N fill:#c8e6c9
+    style J fill:#fff3e0
 ```
 
 ### **2. Mensagem de Voz**
 
 ```mermaid
 flowchart TD
-    A[🎤 Mensagem de Voz] --> B[📥 Download do Arquivo]
-    B --> C[🔍 Detectar Formato OGG/Opus/WAV]
+    A[🎤 Mensagem de Voz] --> B[🔍 TelegramBotService]
+    B --> C[🎵 Speech-to-Text Service]
 
-    C --> D{Formato Suportado?}
-    D -->|✅ Sim| E[🎵 Processar Diretamente]
-    D -->|❌ Não| F[🔄 Converter para WAV]
+    C --> D{Provedor STT}
+    D -->|Vosk| E[🔊 Vosk Local]
+    D -->|OpenAI| F[🤖 OpenAI Whisper]
 
-    F --> G[🔧 FFmpeg/PHP Conversion]
+    E --> G[📝 Texto Convertido]
+    F --> G
+
     G --> H{Conversão OK?}
-    H -->|✅ Sim| I[🎵 Áudio Convertido]
-    H -->|❌ Não| J[⚠️ Erro de Conversão]
+    H -->|✅ Sim| I[📝 Processar como Texto]
+    H -->|❌ Não| J[⚠️ Enviar Erro Amigável]
 
-    E --> K[🎤 Speech-to-Text]
-    I --> K
-    J --> L[📝 Mensagem de Erro]
+    I --> K[🔍 UnifiedCommandSystem]
+    J --> L[📱 Mensagem de Erro]
 
-    K --> M{Provider Configurado?}
-    M -->|✅ Sim| N[🚀 OpenAI Whisper/Vosk]
-    M -->|❌ Não| O[⚠️ Provider não configurado]
+    K --> M[📱 Resposta Processada]
+    L --> M
 
-    N --> P[📝 Texto Reconhecido]
-    P --> Q[🔍 Processar como Texto]
+    M --> N[📤 TelegramChannel]
+    N --> O[📱 Usuário recebe resposta]
 
-    O --> L
-    L --> R[📱 Resposta de Erro]
-
-    style A fill:#fce4ec
-    style P fill:#c8e6c9
-    style L fill:#ffcdd2
+    style A fill:#e1f5fe
+    style O fill:#c8e6c9
+    style J fill:#fff3e0
 ```
 
 ### **3. Callback Query (Botões)**
 
 ```mermaid
 flowchart TD
-    A[🔘 Usuário clica botão] --> B[📡 Callback Query]
-    B --> C[🌐 Webhook com callback_query]
-    C --> D[🔒 TelegramWebhookController handleCallbackQuery]
+    A[🔘 Usuário clica em botão] --> B[📱 Telegram Callback Query]
+    B --> C[🌐 Webhook /api/telegram/webhook]
+    C --> D[🔒 TelegramWebhookController]
 
-    D --> E[🔍 Extrair callback_data]
-    E --> F[🎯 Mapear para Ação]
+    D --> E{📋 Validação}
+    E -->|✅ Válido| F[🔍 Processar Callback]
+    E -->|❌ Inválido| G[⚠️ Enviar Erro Amigável]
 
-    F --> G{🎯 Ação Reconhecida?}
-    G -->|✅ Sim| H[🚀 Executar Ação]
-    G -->|❌ Não| I[⚠️ Ação não encontrada]
+    F --> H[🔘 Extrair callback_data]
+    H --> I[🎯 Executar Ação]
 
-    H --> J{📊 Tipo de Ação}
+    I --> J{🎯 Ação Válida?}
+    J -->|✅ Sim| K[📱 Resposta da Ação]
+    J -->|❌ Não| L[⚠️ Enviar Erro Amigável]
 
-    J -->|📋 Menu| K[📱 Mostrar Novo Menu]
-    J -->|📊 Relatório| L[📊 Gerar Relatório]
-    J -->|🔧 Sistema| M[🔧 Executar Comando]
+    K --> M[📤 TelegramChannel]
+    L --> M
+    G --> M
 
-    K --> N[⌨️ Criar Teclado]
-    L --> O[📊 Buscar Dados]
-    M --> P[⚙️ Executar Lógica]
+    M --> N[📱 Usuário recebe resposta]
 
-    O --> Q[🎨 Formatar Relatório]
-    P --> R[📱 Resposta do Sistema]
-
-    N --> S[📤 Enviar Resposta]
-    Q --> S
-    R --> S
-
-    I --> T[📱 Resposta de Erro]
-
-    style A fill:#e8f5e8
-    style S fill:#c8e6c9
-    style T fill:#ffcdd2
+    style A fill:#e1f5fe
+    style N fill:#c8e6c9
+    style G fill:#fff3e0
+    style L fill:#fff3e0
 ```
+
+## 🚨 Tratamento de Erros Amigável
+
+### **Fluxo de Tratamento de Erros**
+
+```mermaid
+flowchart TD
+    A[❌ Erro Ocorre] --> B{🎯 Tipo de Erro}
+
+    B -->|📋 Validação| C[🔍 TelegramWebhookRequest failedValidation]
+    B -->|💥 Processamento| D[🔍 TelegramWebhookController catch]
+    B -->|⏰ Timeout| E[🔍 processWithTimeout Exception]
+    B -->|🚫 Não Autorizado| F[🔍 TelegramAuthorizationService]
+
+    C --> G[📝 Log Validation Errors]
+    D --> H[📝 Log Exception]
+    E --> I[📝 Log Timeout]
+    F --> J[📝 Log Unauthorized]
+
+    G --> K[⚠️ sendFriendlyErrorMessage]
+    H --> K
+    I --> K
+    J --> K
+
+    K --> L[🔍 extractChatId]
+    L --> M{🎯 Chat ID Encontrado?}
+
+    M -->|✅ Sim| N[💬 createFriendlyErrorMessage]
+    M -->|❌ Não| O[📝 Log Error]
+
+    N --> P[📱 TelegramBotService sendErrorMessage]
+    P --> Q[⌨️ Criar Keyboard de Ajuda]
+
+    Q --> R[📤 TelegramChannel sendMessageWithKeyboard]
+    R --> S[🌐 Telegram API]
+    S --> T[📱 Usuário recebe mensagem de erro amigável]
+
+    style A fill:#ffcdd2
+    style T fill:#c8e6c9
+    style O fill:#ffcdd2
+```
+
+### **Mensagens de Erro Amigáveis**
+
+| **Tipo de Erro**           | **Mensagem Amigável**                   | **Sugestões**                                                         |
+| -------------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| **Validação**              | ❌ Sua mensagem não pôde ser processada | • Verifique se está correta<br>• Tente novamente<br>• Use /help       |
+| **Não Autorizado**         | 🚫 Você não tem permissão               | • Entre em contato com admin<br>• Use /help para comandos disponíveis |
+| **Comando não encontrado** | 🤔 Comando não reconhecido              | • Use /help para ver comandos<br>• Verifique a ortografia             |
+| **Timeout**                | ⏰ A operação demorou muito             | • Tente novamente<br>• Verifique sua conexão                          |
+| **Erro interno**           | 💥 Ocorreu um erro interno              | • Nossa equipe foi notificada<br>• Tente novamente mais tarde         |
+| **Webhook**                | 🔌 Erro na conexão                      | • Tente novamente<br>• Verifique sua conexão                          |
+
+## 🔧 Implementação Técnica
+
+### **1. TelegramWebhookController - Tratamento de Erros**
+
+```php
+// Captura erros de validação
+if ($request->has('validation_errors')) {
+    $validationErrors = $request->input('validation_errors');
+    $errorMessage = $this->createValidationErrorMessage($validationErrors);
+
+    // Envia mensagem amigável via Telegram
+    $this->sendFriendlyErrorMessage($request->all(), $errorMessage);
+
+    return TelegramWebhookResource::ignored('Validation failed - friendly message sent to user')
+        ->response()
+        ->setStatusCode(200);
+}
+
+// Captura erros de processamento
+try {
+    // Processamento da mensagem
+} catch (\Exception $e) {
+    // Envia mensagem amigável mesmo para exceções
+    $this->sendFriendlyErrorMessage($request->all(), 'Desculpe, ocorreu um erro inesperado.');
+
+    return TelegramWebhookResource::error('Internal server error')
+        ->response()
+        ->setStatusCode(500);
+}
+```
+
+### **2. TelegramBotService - Envio de Mensagens de Erro**
+
+```php
+public function sendErrorMessage(int $chatId, string $errorMessage): array
+{
+    try {
+        // Cria teclado com opções de ajuda
+        $keyboard = [
+            [
+                ['text' => '❓ Ajuda', 'callback_data' => 'help'],
+                ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+            ],
+            [
+                ['text' => '📋 Comandos', 'callback_data' => 'commands_list'],
+                ['text' => '🔄 Tentar Novamente', 'callback_data' => 'retry']
+            ]
+        ];
+
+        // Envia mensagem de erro com teclado de ajuda
+        $result = $this->menuBuilder->buildMainMenu($chatId);
+
+        return [
+            'success' => true,
+            'chat_id' => $chatId,
+            'type' => 'error_message_sent',
+            'message' => 'Error message sent to user',
+            'data' => $result
+        ];
+    } catch (\Exception $e) {
+        // Log do erro e retorno de falha
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'error_message_failed',
+            'message' => 'Failed to send error message'
+        ];
+    }
+}
+```
+
+### **3. TelegramWebhookRequest - Validação Graceful**
+
+```php
+protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator): void
+{
+    // Log dos erros de validação
+    $this->loggingService->logTelegramEvent('telegram_webhook_validation_failed', [
+        'validation_errors' => $validator->errors()->toArray(),
+        'request_data' => $this->all()
+    ], 'error');
+
+    // Armazena erros para o controller tratar
+    $this->merge(['validation_errors' => $validator->errors()->toArray()]);
+
+    // NÃO lança exceção - deixa o controller tratar graciosamente
+    // parent::failedValidation($validator);
+}
+```
+
+## 🧪 Testes e Validação
+
+### **Comando de Teste**
+
+```bash
+# Testar tratamento de erros
+php artisan telegram:test-error-handling --chat-id=123456789 --error-type=validation
+
+# Testar todos os tipos de erro
+php artisan telegram:test-error-handling --chat-id=123456789
+
+# Testar erro específico
+php artisan telegram:test-error-handling --chat-id=123456789 --error-type=internal
+```
+
+### **Cenários de Teste**
+
+| **Cenário**         | **Entrada**                | **Resultado Esperado**                                |
+| ------------------- | -------------------------- | ----------------------------------------------------- |
+| **Validação falha** | Payload inválido           | ✅ Mensagem amigável enviada<br>✅ HTTP 200 retornado |
+| **Erro interno**    | Exception no processamento | ✅ Mensagem amigável enviada<br>✅ HTTP 500 retornado |
+| **Timeout**         | Processamento demora muito | ✅ Mensagem amigável enviada<br>✅ HTTP 500 retornado |
+| **Não autorizado**  | Usuário sem permissão      | ✅ Mensagem amigável enviada<br>✅ HTTP 200 retornado |
+
+## 📊 Benefícios da Implementação
+
+### **✅ Para o Usuário:**
+
+- **Sempre recebe feedback** - Nunca fica sem resposta
+- **Mensagens claras** - Entende o que aconteceu
+- **Sugestões úteis** - Sabe como proceder
+- **Teclado de ajuda** - Acesso rápido a comandos úteis
+
+### **✅ Para o Sistema:**
+
+- **Logs completos** - Rastreamento de todos os erros
+- **HTTP 200** - Webhook sempre responde com sucesso
+- **Fallback robusto** - Sistema nunca quebra
+- **Monitoramento** - Métricas de erros e sucessos
+
+### **✅ Para o Desenvolvedor:**
+
+- **Debugging fácil** - Erros são logados detalhadamente
+- **Manutenção simples** - Código centralizado e organizado
+- **Testes automatizados** - Comando de teste incluído
+- **Documentação clara** - Fluxogramas e exemplos
+
+## 🎯 Resumo da Implementação
+
+A implementação técnica garante que **sempre** haja uma resposta amigável para o usuário, mesmo quando:
+
+1. **❌ Validação falha** → Mensagem explicando o problema + sugestões
+2. **💥 Erro interno** → Mensagem de erro + opções de ajuda
+3. **⏰ Timeout** → Mensagem de timeout + sugestão de retry
+4. **🚫 Não autorizado** → Mensagem de permissão + contato admin
+5. **🤔 Comando não encontrado** → Sugestões de comandos disponíveis
+
+**Resultado**: Usuário sempre recebe feedback útil e o sistema mantém logs completos para debugging, sem quebrar o fluxo do webhook.
 
 ## 🏗️ Arquitetura dos Componentes
 

@@ -31,12 +31,28 @@ class TelegramWebhookController extends Controller
         $startTime = microtime(true);
 
         try {
+            // Check if validation failed
+            if ($request->has('validation_errors')) {
+                $validationErrors = $request->input('validation_errors');
+                $errorMessage = $this->createValidationErrorMessage($validationErrors);
+
+                // Send friendly error message to user via Telegram
+                $this->sendFriendlyErrorMessage($request->all(), $errorMessage);
+
+                return TelegramWebhookResource::ignored('Validation failed - friendly message sent to user')
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
             $payload = $request->validated();
 
             // Validate payload structure first
             $validation = $this->webhookService->validatePayload($payload);
 
             if (!$validation['valid']) {
+                // Send friendly error message to user via Telegram
+                $this->sendFriendlyErrorMessage($payload, $validation['message']);
+
                 return TelegramWebhookResource::ignored($validation['message'])
                     ->response()
                     ->setStatusCode(200);
@@ -70,6 +86,9 @@ class TelegramWebhookController extends Controller
                     'telegram_update_id' => $request->input('update_id'),
                     'timestamp' => now()->toISOString()
                 ], 'error');
+
+                // Send friendly error message to user
+                $this->sendFriendlyErrorMessage($payload, 'Desculpe, ocorreu um erro interno. Tente novamente em alguns instantes.');
 
                 return TelegramWebhookResource::error('Invalid processing result')
                     ->response()
@@ -125,6 +144,9 @@ class TelegramWebhookController extends Controller
                 'timestamp' => now()->toISOString()
             ], 'error');
 
+            // Send friendly error message to user
+            $this->sendFriendlyErrorMessage($payload, $result['message'] ?? 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.');
+
             return TelegramWebhookResource::error($result['message'] ?? 'Message processing failed', $result)
                 ->response()
                 ->setStatusCode(500);
@@ -138,6 +160,9 @@ class TelegramWebhookController extends Controller
                 'user_id' => $request->input('message.from.id'),
                 'processing_time_ms' => round($duration, 2)
             ]);
+
+            // Send friendly error message to user even for exceptions
+            $this->sendFriendlyErrorMessage($request->all(), 'Desculpe, ocorreu um erro inesperado. Nossa equipe foi notificada.');
 
             return TelegramWebhookResource::error('Internal server error')
                 ->response()
@@ -341,5 +366,129 @@ class TelegramWebhookController extends Controller
                 ->response()
                 ->setStatusCode(500);
         }
+    }
+
+    /**
+     * Send friendly error message to user via Telegram
+     */
+    private function sendFriendlyErrorMessage(array $payload, string $errorMessage): void
+    {
+        try {
+            $chatId = $this->extractChatId($payload);
+
+            if (!$chatId) {
+                $this->loggingService->logTelegramEvent('telegram_error_message_failed', [
+                    'error' => 'Could not extract chat ID from payload',
+                    'payload' => $payload,
+                    'error_message' => $errorMessage
+                ], 'warning');
+                return;
+            }
+
+            // Create friendly error message with suggestions
+            $friendlyMessage = $this->createFriendlyErrorMessage($errorMessage);
+
+            // Send via Telegram API
+            $this->telegramBotService->sendErrorMessage($chatId, $friendlyMessage);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_friendly_error_message',
+                'payload' => $payload,
+                'error_message' => $errorMessage
+            ]);
+        }
+    }
+
+    /**
+     * Extract chat ID from various payload types
+     */
+    private function extractChatId(array $payload): ?int
+    {
+        // Try to get chat ID from message
+        if (isset($payload['message']['chat']['id'])) {
+            return (int) $payload['message']['chat']['id'];
+        }
+
+        // Try to get chat ID from callback query
+        if (isset($payload['callback_query']['message']['chat']['id'])) {
+            return (int) $payload['callback_query']['message']['chat']['id'];
+        }
+
+        // Try to get chat ID from channel post
+        if (isset($payload['channel_post']['chat']['id'])) {
+            return (int) $payload['channel_post']['chat']['id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a friendly error message with helpful suggestions
+     */
+    private function createFriendlyErrorMessage(string $technicalError): string
+    {
+        $baseMessage = "❌ Ops! Algo deu errado.\n\n";
+
+        // Map technical errors to friendly messages
+        $friendlyMessages = [
+            'validation_failed' => "Sua mensagem não pôde ser processada. Verifique se está correta e tente novamente.",
+            'unauthorized' => "Você não tem permissão para usar este comando. Entre em contato com o administrador.",
+            'command_not_found' => "Comando não reconhecido. Use /help para ver os comandos disponíveis.",
+            'timeout' => "A operação demorou muito. Tente novamente em alguns instantes.",
+            'internal_error' => "Ocorreu um erro interno. Nossa equipe foi notificada.",
+            'webhook_validation_failed' => "Mensagem recebida com formato inválido. Tente enviar novamente.",
+            'payload_validation_failed' => "Não foi possível processar sua mensagem. Tente novamente.",
+        ];
+
+        // Find the most appropriate friendly message
+        $friendlyMessage = "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente ou use /help para ver os comandos disponíveis.";
+
+        foreach ($friendlyMessages as $key => $message) {
+            if (stripos($technicalError, $key) !== false) {
+                $friendlyMessage = $message;
+                break;
+            }
+        }
+
+        $suggestions = "\n💡 Sugestões:\n";
+        $suggestions .= "• Use /help para ver comandos disponíveis\n";
+        $suggestions .= "• Tente novamente em alguns instantes\n";
+        $suggestions .= "• Se o problema persistir, entre em contato com o suporte\n";
+
+        return $baseMessage . $friendlyMessage . $suggestions;
+    }
+
+    /**
+     * Create user-friendly validation error message
+     */
+    private function createValidationErrorMessage(array $validationErrors): string
+    {
+        $baseMessage = "❌ Sua mensagem não pôde ser processada.\n\n";
+
+        $errorDescriptions = [
+            'update_id' => 'ID de atualização inválido',
+            'message.chat.id' => 'ID do chat inválido',
+            'message.from.id' => 'ID do usuário inválido',
+            'message.text' => 'Texto da mensagem inválido',
+            'message.voice.file_id' => 'Arquivo de voz inválido',
+            'message.audio.file_id' => 'Arquivo de áudio inválido',
+            'callback_query.id' => 'ID da consulta inválido',
+            'callback_query.data' => 'Dados da consulta inválidos'
+        ];
+
+        $friendlyErrors = [];
+        foreach ($validationErrors as $field => $errors) {
+            $description = $errorDescriptions[$field] ?? 'Campo inválido';
+            $friendlyErrors[] = "• {$description}";
+        }
+
+        $message = $baseMessage . "Problemas encontrados:\n" . implode("\n", $friendlyErrors);
+        $message .= "\n\n💡 Sugestões:\n";
+        $message .= "• Verifique se sua mensagem está correta\n";
+        $message .= "• Tente novamente\n";
+        $message .= "• Use /help para ver comandos disponíveis\n";
+
+        return $message;
     }
 }

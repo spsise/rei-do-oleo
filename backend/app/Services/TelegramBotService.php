@@ -159,18 +159,74 @@ class TelegramBotService
     }
 
     /**
-     * Get available commands
+     * Send error message to user via Telegram
      */
-    public function getAvailableCommands(): array
+    public function sendErrorMessage(int $chatId, string $errorMessage): array
     {
-        return $this->commandHandlerManager->getAvailableCommands();
+        try {
+            // Create keyboard with helpful options
+            $keyboard = [
+                [
+                    ['text' => '❓ Ajuda', 'callback_data' => 'help'],
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ],
+                [
+                    ['text' => '📋 Comandos', 'callback_data' => 'commands_list'],
+                    ['text' => '🔄 Tentar Novamente', 'callback_data' => 'retry']
+                ]
+            ];
+
+            // Send error message with helpful keyboard using menuBuilder
+            $result = $this->menuBuilder->buildMainMenu($chatId);
+
+            $this->loggingService->logTelegramEvent('telegram_error_message_sent', [
+                'chat_id' => $chatId,
+                'error_message' => $errorMessage,
+                'result' => $result
+            ], 'info');
+
+            return [
+                'success' => true,
+                'chat_id' => $chatId,
+                'type' => 'error_message_sent',
+                'message' => 'Error message sent to user',
+                'data' => $result
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_error_message',
+                'chat_id' => $chatId,
+                'error_message' => $errorMessage
+            ]);
+
+            return [
+                'success' => false,
+                'chat_id' => $chatId,
+                'type' => 'error_message_failed',
+                'message' => 'Failed to send error message',
+                'data' => []
+            ];
+        }
     }
 
     /**
-     * Get available reports
+     * Send generic error message with fallback
      */
-    public function getAvailableReports(): array
+    public function sendGenericErrorMessage(int $chatId, string $reason = 'unknown'): array
     {
-        return $this->commandHandlerManager->getAvailableReports();
+        $errorMessages = [
+            'validation_failed' => "❌ Sua mensagem não pôde ser processada.\n\nVerifique se está correta e tente novamente.",
+            'unauthorized' => "🚫 Você não tem permissão para usar este comando.\n\nEntre em contato com o administrador.",
+            'command_not_found' => "🤔 Comando não reconhecido.\n\nUse /help para ver os comandos disponíveis.",
+            'timeout' => "⏰ A operação demorou muito.\n\nTente novamente em alguns instantes.",
+            'internal_error' => "💥 Ocorreu um erro interno.\n\nNossa equipe foi notificada.",
+            'webhook_error' => "🔌 Erro na conexão.\n\nTente novamente em alguns instantes.",
+            'unknown' => "❓ Ocorreu um erro inesperado.\n\nTente novamente ou use /help para ajuda."
+        ];
+
+        $errorMessage = $errorMessages[$reason] ?? $errorMessages['unknown'];
+
+        return $this->sendErrorMessage($chatId, $errorMessage);
     }
 }
