@@ -107,6 +107,12 @@ class TelegramWebhookController extends Controller
             ]);
 
             if ($isNormalResponse) {
+                // Send fallback message to user for command_not_found
+                if ($result['type'] === 'command_not_found') {
+                    $fallbackMessage = $this->createCommandNotFoundFallbackMessage($result);
+                    $this->sendFriendlyErrorMessage($payload, $fallbackMessage);
+                }
+
                 // Use appropriate resource method based on status
                 if (isset($result['status']) && $result['status'] === 'ignored') {
                     return TelegramWebhookResource::ignored($result['message'] ?? 'Message ignored', $result)
@@ -490,5 +496,27 @@ class TelegramWebhookController extends Controller
         $message .= "• Use /help para ver comandos disponíveis\n";
 
         return $message;
+    }
+
+    /**
+     * Create a friendly fallback message for command_not_found
+     */
+    private function createCommandNotFoundFallbackMessage(array $result): string
+    {
+        $baseMessage = "❌ Comando não reconhecido.\n\n";
+        $fallbackMessage = $baseMessage . "Desculpe, mas o comando que você tentou usar não foi encontrado. ";
+
+        if (isset($result['message'])) {
+            $fallbackMessage .= "A mensagem enviada foi: " . $result['message'] . "\n\n";
+        }
+
+        $fallbackMessage .= "Aqui estão alguns comandos que você pode usar:\n";
+        $fallbackMessage .= "• /help - Para ver todos os comandos disponíveis\n";
+        $fallbackMessage .= "• /start - Para iniciar o bot\n";
+        $fallbackMessage .= "• /status - Para verificar o status do bot\n";
+        $fallbackMessage .= "• /settings - Para configurar o bot\n";
+        $fallbackMessage .= "• /about - Para saber mais sobre o bot\n";
+
+        return $fallbackMessage;
     }
 }

@@ -33,21 +33,21 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
 
         // 2. Check natural language patterns
         $bestMatch = $this->findByNaturalLanguage($input, $context);
-        if ($bestMatch && $bestMatch->getConfidence() > 0.8) {
+        if ($bestMatch && $bestMatch->getConfidence() > 0.85) { // Aumentado de 0.8 para 0.85
             return $bestMatch;
         }
 
         // 3. Check voice commands (if context indicates voice input)
         if (isset($context['type']) && $context['type'] === 'voice') {
             $voiceMatch = $this->findByVoiceSimilarity($input, $context);
-            if ($voiceMatch && $voiceMatch->getConfidence() > 0.7) {
+            if ($voiceMatch && $voiceMatch->getConfidence() > 0.8) { // Aumentado de 0.7 para 0.8
                 return $voiceMatch;
             }
         }
 
         // 4. Fuzzy matching for low confidence cases
         $fuzzyMatch = $this->findByFuzzyMatch($input, $context);
-        if ($fuzzyMatch && $fuzzyMatch->getConfidence() > 0.6) {
+        if ($fuzzyMatch && $fuzzyMatch->getConfidence() > 0.75) { // Aumentado de 0.6 para 0.75
             return $fuzzyMatch;
         }
 
@@ -139,7 +139,7 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
         foreach ($this->naturalLanguage as $pattern => $command) {
             $score = $this->calculateSimilarity($input, $pattern);
 
-            if ($score > $highestScore && $score > 0.7) {
+            if ($score > $highestScore && $score > 0.85) { // Aumentado de 0.7 para 0.85
                 $highestScore = $score;
                 $bestMatch = $command;
             }
