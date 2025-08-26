@@ -10,12 +10,12 @@ Este documento apresenta um fluxograma visual que mostra como uma mensagem do Te
 
 ```mermaid
 flowchart TD
-    A[👤 Usuário envia mensagem<br/>'menu' no Telegram] --> B[📱 Telegram Servers]
-    B --> C[🌐 Webhook HTTP POST<br/>/api/telegram/webhook]
-    C --> D[🔒 TelegramWebhookController<br/>handle()]
-    D --> E{📋 Validação de Request<br/>TelegramWebhookRequest}
+    A[👤 Usuário envia mensagem 'menu'] --> B[📱 Telegram Servers]
+    B --> C[🌐 Webhook HTTP POST /api/telegram/webhook]
+    C --> D[🔒 TelegramWebhookController handle]
+    D --> E{📋 Validação de Request}
 
-    E -->|✅ Válido| F[🔍 Processar Mensagem<br/>TelegramBotService]
+    E -->|✅ Válido| F[🔍 Processar Mensagem TelegramBotService]
     E -->|❌ Inválido| G[🚫 Retornar Erro 422]
 
     F --> H{🎯 Tipo de Mensagem}
@@ -25,8 +25,8 @@ flowchart TD
     H -->|🔘 Callback Query| K[🔘 Processar Callback Query]
     H -->|📎 Outros| L[📎 Processar Outros Tipos]
 
-    I --> M[🔍 Parser de Comandos<br/>UnifiedCommandSystem]
-    J --> N[🎵 Speech-to-Text<br/>Vosk/OpenAI Whisper]
+    I --> M[🔍 Parser de Comandos UnifiedCommandSystem]
+    J --> N[🎵 Speech-to-Text Vosk/OpenAI Whisper]
     K --> O[🔘 Processar Ação do Botão]
     L --> P[📎 Processar Arquivo/Mídia]
 
@@ -35,16 +35,16 @@ flowchart TD
 
     M --> R{🎯 Comando Reconhecido?}
 
-    R -->|✅ Sim| S[🚀 Executar Handler<br/>Ex: TelegramMenuBuilder]
-    R -->|❌ Não| T[💡 Gerar Fallback<br/>Sugestões + Ajuda]
+    R -->|✅ Sim| S[🚀 Executar Handler TelegramMenuBuilder]
+    R -->|❌ Não| T[💡 Gerar Fallback Sugestões + Ajuda]
 
-    S --> U[📊 Gerar Dados<br/>Services/Repositories]
+    S --> U[📊 Gerar Dados Services/Repositories]
     T --> V[📱 Resposta de Fallback]
 
-    U --> W[🎨 Formatar Resposta<br/>Markdown + Emojis]
-    W --> X[⌨️ Adicionar Teclado<br/>Botões Inline]
+    U --> W[🎨 Formatar Resposta Markdown + Emojis]
+    W --> X[⌨️ Adicionar Teclado Botões Inline]
 
-    X --> Y[📤 Enviar via TelegramChannel<br/>sendMessageWithKeyboard]
+    X --> Y[📤 Enviar via TelegramChannel sendMessageWithKeyboard]
     V --> Y
 
     Y --> Z[🌐 Telegram API]
@@ -67,7 +67,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[📝 Mensagem de Texto<br/>'menu'] --> B[🔍 UnifiedCommandSystem]
+    A[📝 Mensagem de Texto 'menu'] --> B[🔍 UnifiedCommandSystem]
     B --> C[📚 Buscar no Cache]
 
     C --> D{Cache Hit?}
@@ -78,8 +78,8 @@ flowchart TD
     G -->|✅ Sim| H[🎯 Resolver Handler]
     G -->|❌ Não| I[💡 Fallback + Sugestões]
 
-    H --> J[🔧 Instanciar Handler<br/>Ex: TelegramMenuBuilder]
-    J --> K[📊 Executar Método<br/>showMainMenu()]
+    H --> J[🔧 Instanciar Handler TelegramMenuBuilder]
+    J --> K[📊 Executar Método showMainMenu]
     K --> L[📱 Retornar Resposta]
 
     E --> L
@@ -95,7 +95,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[🎤 Mensagem de Voz] --> B[📥 Download do Arquivo]
-    B --> C[🔍 Detectar Formato<br/>OGG/Opus/WAV]
+    B --> C[🔍 Detectar Formato OGG/Opus/WAV]
 
     C --> D{Formato Suportado?}
     D -->|✅ Sim| E[🎵 Processar Diretamente]
@@ -131,7 +131,7 @@ flowchart TD
 flowchart TD
     A[🔘 Usuário clica botão] --> B[📡 Callback Query]
     B --> C[🌐 Webhook com callback_query]
-    C --> D[🔒 TelegramWebhookController<br/>handleCallbackQuery]
+    C --> D[🔒 TelegramWebhookController handleCallbackQuery]
 
     D --> E[🔍 Extrair callback_data]
     E --> F[🎯 Mapear para Ação]
