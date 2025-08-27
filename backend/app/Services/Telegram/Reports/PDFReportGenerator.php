@@ -6,7 +6,6 @@ use App\Contracts\Telegram\TelegramReportGeneratorInterface;
 use App\Contracts\LoggingServiceInterface;
 use App\Domain\Service\Services\ServiceService;
 use App\Services\Channels\TelegramChannel;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
 class PDFReportGenerator implements TelegramReportGeneratorInterface
@@ -284,7 +283,7 @@ class PDFReportGenerator implements TelegramReportGeneratorInterface
         );
 
         // Generate PDF
-        $pdf = Pdf::loadView('pdf.report', $data)
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.report', $data)
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'dpi' => 150,
