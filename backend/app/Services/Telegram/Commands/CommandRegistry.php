@@ -113,27 +113,41 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
         $this->voiceCommands = [];
 
         foreach ($this->commands as $command) {
-            // Build aliases index
+            // Build aliases index - only overwrite if current command has higher priority
             foreach ($command->getAliases() as $alias) {
                 $normalized = $this->normalizeText($alias);
-                $this->aliases[$normalized] = $command;
+
+                if (!isset($this->aliases[$normalized]) ||
+                    $command->priority > $this->aliases[$normalized]->priority) {
+                    $this->aliases[$normalized] = $command;
+                }
 
                 // Simple singular/plural handling: also index without trailing 's'
                 if (str_ends_with($normalized, 's')) {
                     $singular = rtrim($normalized, 's');
-                    $this->aliases[$singular] = $command;
+                    if (!isset($this->aliases[$singular]) ||
+                        $command->priority > $this->aliases[$singular]->priority) {
+                        $this->aliases[$singular] = $command;
+                    }
                 }
             }
 
-            // Build natural language index
+            // Build natural language index - only overwrite if current command has higher priority
             foreach ($command->getNaturalLanguage() as $pattern) {
                 $normalizedPattern = $this->normalizeText($pattern);
-                $this->naturalLanguage[$normalizedPattern] = $command;
+
+                if (!isset($this->naturalLanguage[$normalizedPattern]) ||
+                    $command->priority > $this->naturalLanguage[$normalizedPattern]->priority) {
+                    $this->naturalLanguage[$normalizedPattern] = $command;
+                }
 
                 // Also index simplified singular without trailing 's'
                 if (str_ends_with($normalizedPattern, 's')) {
                     $singular = rtrim($normalizedPattern, 's');
-                    $this->naturalLanguage[$singular] = $command;
+                    if (!isset($this->naturalLanguage[$singular]) ||
+                        $command->priority > $this->naturalLanguage[$singular]->priority) {
+                        $this->naturalLanguage[$singular] = $command;
+                    }
                 }
             }
 
