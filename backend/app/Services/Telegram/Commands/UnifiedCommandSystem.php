@@ -329,7 +329,22 @@ class UnifiedCommandSystem
                 throw new \Exception("Method {$method} not found in handler {$handler}");
             }
 
-            // Execute handler method
+            // Execute handler method with proper signature handling
+            $reflection = new \ReflectionMethod($handlerInstance, $method);
+            $methodParams = $reflection->getParameters();
+
+            if (count($methodParams) >= 1) {
+                $firstParam = $methodParams[0];
+
+                // Check if first parameter expects int (legacy handle signature)
+                if ($firstParam->getType() && $firstParam->getType()->getName() === 'int') {
+                    $chatId = $context['chat_id'] ?? 0;
+                    $params = array_diff_key($parameters, ['chat_id' => null]);
+                    return $handlerInstance->$method($chatId, $params);
+                }
+            }
+
+            // Default: pass full context array (new signature)
             return $handlerInstance->$method($parameters);
 
         } catch (\Exception $e) {
