@@ -275,35 +275,204 @@ class PDFReportGenerator implements TelegramReportGeneratorInterface
      */
     private function generatePdf(array $data, int $chatId): string
     {
-        // Generate unique filename
-        $filename = sprintf('report_%s_%d_%s.pdf',
-            $data['data']['total_services'] > 0 ? 'services' : 'general',
-            $chatId,
-            now()->format('Y-m-d_H-i-s')
-        );
+        try {
+            // Log início da geração
+            $this->loggingService->logTelegramEvent('pdf_generation_started', [
+                'chat_id' => $chatId,
+                'data_keys' => array_keys($data),
+                'has_data_key' => isset($data['data']),
+                'data_data_keys' => isset($data['data']) ? array_keys($data['data']) : []
+            ], 'info');
 
-        // Generate PDF
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.report', $data)
-            ->setPaper('a4', 'portrait')
-            ->setOptions([
-                'dpi' => 150,
-                'defaultFont' => 'sans-serif',
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => true,
-            ]);
+            // Generate unique filename
+            $filename = sprintf('report_%s_%d_%s.pdf',
+                $data['data']['total_services'] > 0 ? 'services' : 'general',
+                $chatId,
+                now()->format('Y-m-d_H-i-s')
+            );
 
-        // Save PDF to storage
-        $pdfPath = "telegram/reports/{$filename}";
-        Storage::disk('local')->put($pdfPath, $pdf->output());
+            $this->loggingService->logTelegramEvent('pdf_filename_generated', [
+                'chat_id' => $chatId,
+                'filename' => $filename
+            ], 'info');
 
-        $this->loggingService->logTelegramEvent('pdf_generated_successfully', [
-            'chat_id' => $chatId,
-            'filename' => $filename,
-            'path' => $pdfPath,
-            'file_size' => Storage::disk('local')->size($pdfPath)
-        ], 'info');
+            // Verificar se a view existe
+            if (!view()->exists('pdf.report')) {
+                throw new \Exception('View pdf.report não encontrada');
+            }
 
-        return $pdfPath;
+            $this->loggingService->logTelegramEvent('pdf_view_verified', [
+                'chat_id' => $chatId,
+                'view_exists' => true
+            ], 'info');
+
+            // Tentar diferentes abordagens para gerar o PDF
+            $pdf = null;
+            $attempts = [];
+
+            // Abordagem 1: Facade completa
+            try {
+                $this->loggingService->logTelegramEvent('pdf_trying_facade_approach', [
+                    'chat_id' => $chatId
+                ], 'info');
+
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.report', $data)
+                    ->setPaper('a4', 'portrait')
+                    ->setOptions([
+                        'dpi' => 150,
+                        'defaultFont' => 'sans-serif',
+                        'isHtml5ParserEnabled' => true,
+                        'isRemoteEnabled' => true,
+                    ]);
+
+                $attempts[] = 'facade_success';
+
+            } catch (\Exception $e) {
+                $attempts[] = 'facade_failed';
+                $this->loggingService->logTelegramEvent('pdf_facade_failed', [
+                    'chat_id' => $chatId,
+                    'error' => $e->getMessage()
+                ], 'warning');
+
+                // Abordagem 2: Container resolution
+                try {
+                    $this->loggingService->logTelegramEvent('pdf_trying_container_approach', [
+                        'chat_id' => $chatId
+                    ], 'info');
+
+                    $pdfWrapper = app('dompdf.wrapper');
+                    $pdf = $pdfWrapper->loadView('pdf.report', $data)
+                        ->setPaper('a4', 'portrait')
+                        ->setOptions([
+                            'dpi' => 150,
+                            'defaultFont' => 'sans-serif',
+                            'isHtml5ParserEnabled' => true,
+                            'isRemoteEnabled' => true,
+                        ]);
+
+                    $attempts[] = 'container_success';
+
+                } catch (\Exception $e2) {
+                    $attempts[] = 'container_failed';
+                    $this->loggingService->logTelegramEvent('pdf_container_failed', [
+                        'chat_id' => $chatId,
+                        'error' => $e2->getMessage()
+                    ], 'warning');
+
+                    // Abordagem 3: HTML direto usando view render
+                    try {
+                        $this->loggingService->logTelegramEvent('pdf_trying_html_approach', [
+                            'chat_id' => $chatId
+                        ], 'info');
+
+                        $htmlContent = view('pdf.report', $data)->render();
+                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($htmlContent)
+                            ->setPaper('a4', 'portrait')
+                            ->setOptions([
+                                'dpi' => 150,
+                                'defaultFont' => 'sans-serif',
+                                'isHtml5ParserEnabled' => true,
+                                'isRemoteEnabled' => true,
+                            ]);
+
+                        $attempts[] = 'html_success';
+
+                    } catch (\Exception $e3) {
+                        $attempts[] = 'html_failed';
+                        $this->loggingService->logTelegramEvent('pdf_html_failed', [
+                            'chat_id' => $chatId,
+                            'error' => $e3->getMessage()
+                        ], 'error');
+
+                        // Abordagem 4: Fallback com template simples
+                        try {
+                            $this->loggingService->logTelegramEvent('pdf_trying_fallback_approach', [
+                                'chat_id' => $chatId
+                            ], 'info');
+
+                            $fallbackHtml = $this->generateFallbackHtml($data);
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($fallbackHtml)
+                                ->setPaper('a4', 'portrait')
+                                ->setOptions([
+                                    'dpi' => 150,
+                                    'defaultFont' => 'sans-serif',
+                                    'isHtml5ParserEnabled' => true,
+                                    'isRemoteEnabled' => true,
+                                ]);
+
+                            $attempts[] = 'fallback_success';
+
+                        } catch (\Exception $e4) {
+                            $attempts[] = 'fallback_failed';
+                            $this->loggingService->logTelegramEvent('pdf_all_approaches_failed', [
+                                'chat_id' => $chatId,
+                                'facade_error' => $e->getMessage(),
+                                'container_error' => $e2->getMessage(),
+                                'html_error' => $e3->getMessage(),
+                                'fallback_error' => $e4->getMessage(),
+                                'attempts' => $attempts
+                            ], 'error');
+
+                            throw new \Exception('Todas as abordagens de geração de PDF falharam. Último erro: ' . $e4->getMessage());
+                        }
+                    }
+                }
+            }
+
+            if (!$pdf) {
+                throw new \Exception('Não foi possível gerar o PDF após todas as tentativas');
+            }
+
+            $this->loggingService->logTelegramEvent('pdf_generated_successfully_step', [
+                'chat_id' => $chatId,
+                'pdf_class' => get_class($pdf)
+            ], 'info');
+
+            // Save PDF to storage
+            $pdfPath = "telegram/reports/{$filename}";
+
+            // Ensure directory exists
+            $directory = dirname($pdfPath);
+            if (!Storage::disk('local')->exists($directory)) {
+                Storage::disk('local')->makeDirectory($directory);
+            }
+
+            // Generate PDF output
+            $pdfOutput = $pdf->output();
+
+            if (empty($pdfOutput)) {
+                throw new \Exception('PDF output está vazio');
+            }
+
+            Storage::disk('local')->put($pdfPath, $pdfOutput);
+
+            // Verify file was saved
+            if (!Storage::disk('local')->exists($pdfPath)) {
+                throw new \Exception('Falha ao salvar PDF no storage');
+            }
+
+            $fileSize = Storage::disk('local')->size($pdfPath);
+
+            $this->loggingService->logTelegramEvent('pdf_generated_successfully', [
+                'chat_id' => $chatId,
+                'filename' => $filename,
+                'path' => $pdfPath,
+                'file_size' => $fileSize
+            ], 'info');
+
+            return $pdfPath;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logTelegramEvent('pdf_generation_failed', [
+                'chat_id' => $chatId,
+                'error' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ], 'error');
+
+            throw new \Exception('Falha na geração do PDF: ' . $e->getMessage(), 0, $e);
+        }
     }
 
         /**
@@ -468,6 +637,150 @@ class PDFReportGenerator implements TelegramReportGeneratorInterface
                 'success' => false,
                 'message' => 'Failed to cleanup orphaned files: ' . $e->getMessage(),
                 'deleted_count' => 0
+            ];
+        }
+    }
+
+    /**
+     * Generate fallback HTML when view fails
+     */
+    private function generateFallbackHtml(array $data): string
+    {
+        $title = $data['title'] ?? 'Relatório PDF';
+        $periodLabel = $data['period_label'] ?? 'Período não especificado';
+        $generatedAt = $data['generated_at'] ?? now()->format('d/m/Y H:i:s');
+        $reportData = $data['data'] ?? [];
+
+        $html = '<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>' . htmlspecialchars($title) . '</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007bff; padding-bottom: 20px; }
+        .header h1 { color: #007bff; margin: 0; }
+        .section { margin-bottom: 20px; }
+        .section h2 { background-color: #007bff; color: white; padding: 10px; margin: 0; }
+        .metric { background-color: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 4px solid #007bff; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>' . htmlspecialchars($title) . '</h1>
+        <p>Período: ' . htmlspecialchars($periodLabel) . '</p>
+        <p>Gerado em: ' . htmlspecialchars($generatedAt) . '</p>
+    </div>
+
+    <div class="section">
+        <h2>📊 Resumo Geral</h2>
+        <div class="metric">Total de Serviços: ' . ($reportData['total_services'] ?? 0) . '</div>
+        <div class="metric">Agendados: ' . ($reportData['scheduled'] ?? 0) . '</div>
+        <div class="metric">Em Andamento: ' . ($reportData['in_progress'] ?? 0) . '</div>
+        <div class="metric">Concluídos: ' . ($reportData['completed'] ?? 0) . '</div>
+    </div>
+
+    <div class="section">
+        <h2>💰 Financeiro</h2>
+        <div class="metric">Receita Total: R$ ' . number_format($reportData['total_revenue'] ?? 0, 2, ',', '.') . '</div>
+        <div class="metric">Ticket Médio: R$ ' . number_format($reportData['average_ticket'] ?? 0, 2, ',', '.') . '</div>
+    </div>
+
+    <div class="section">
+        <h2>📦 Produtos</h2>
+        <div class="metric">Total de Produtos: ' . ($reportData['total_products'] ?? 0) . '</div>
+        <div class="metric">Estoque Baixo: ' . ($reportData['low_stock_count'] ?? 0) . '</div>
+    </div>
+
+    <div class="footer">
+        <p>© ' . date('Y') . ' Rei do Óleo - Sistema de Gestão</p>
+        <p>Relatório gerado automaticamente via Telegram Bot</p>
+        <p><strong>Nota:</strong> Este relatório foi gerado usando template de fallback devido a problemas técnicos.</p>
+    </div>
+</body>
+</html>';
+
+        return $html;
+    }
+
+    /**
+     * Test PDF generation with debugging
+     */
+    public function testPdfGeneration(int $chatId = 123456): array
+    {
+        try {
+            $this->loggingService->logTelegramEvent('pdf_test_started', [
+                'chat_id' => $chatId
+            ], 'info');
+
+            // Test 1: View exists
+            $viewExists = view()->exists('pdf.report');
+            $this->loggingService->logTelegramEvent('pdf_test_view_check', [
+                'view_exists' => $viewExists
+            ], 'info');
+
+            // Test 2: DomPDF service
+            $dompdfService = app('dompdf.wrapper');
+            $this->loggingService->logTelegramEvent('pdf_test_service_check', [
+                'service_class' => get_class($dompdfService)
+            ], 'info');
+
+            // Test 3: Simple HTML generation
+            $simpleHtml = '<h1>Test PDF</h1><p>This is a test.</p>';
+            $simplePdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($simpleHtml);
+            $this->loggingService->logTelegramEvent('pdf_test_simple_html', [
+                'success' => true,
+                'pdf_class' => get_class($simplePdf)
+            ], 'info');
+
+            // Test 4: View with minimal data
+            $minimalData = [
+                'title' => 'Test Report',
+                'data' => ['total_services' => 1]
+            ];
+            $viewPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.report', $minimalData);
+            $this->loggingService->logTelegramEvent('pdf_test_view_minimal', [
+                'success' => true,
+                'pdf_class' => get_class($viewPdf)
+            ], 'info');
+
+            // Test 5: Full data structure
+            $fullData = $this->preparePdfData(['total_services' => 5], 'today', 'general');
+            $fullPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.report', $fullData);
+            $this->loggingService->logTelegramEvent('pdf_test_view_full', [
+                'success' => true,
+                'pdf_class' => get_class($fullPdf),
+                'data_keys' => array_keys($fullData)
+            ], 'info');
+
+            return [
+                'success' => true,
+                'message' => 'All PDF tests passed',
+                'tests' => [
+                    'view_exists' => $viewExists,
+                    'service_available' => true,
+                    'simple_html' => true,
+                    'view_minimal' => true,
+                    'view_full' => true
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logTelegramEvent('pdf_test_failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 'error');
+
+            return [
+                'success' => false,
+                'message' => 'PDF test failed: ' . $e->getMessage(),
+                'error_details' => [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
             ];
         }
     }
