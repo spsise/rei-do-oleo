@@ -25,7 +25,7 @@ return [
     'tracking' => [
         'log_to_file' => env('MESSAGE_FLOW_LOG_TO_FILE', false),
         'send_to_user' => env('MESSAGE_FLOW_SEND_TO_USER', true),
-        'cache_traces' => env('MESSAGE_FLOW_CACHE_TRACES', true),
+        'cache_traces' => env('MESSAGE_FLOW_CACHE_TRACES', false),
 
         'stages_to_track' => [
             'webhook_received',
