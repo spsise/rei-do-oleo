@@ -3,19 +3,29 @@
 namespace App\Services\Telegram;
 
 use Illuminate\Support\Facades\Log;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
 
 /**
  * @deprecated This class is deprecated. Use UnifiedCommandSystem instead.
  * Only kept for debugging and migration purposes.
  */
-class TelegramCommandParser
+class TelegramCommandParser implements MessageTrackingInterface
 {
+    public function __construct(
+        private MessageFlowTrackerInterface $flowTracker
+    ) {
+        $this->initializeTracking();
+    }
+
     /**
      * Parse command from message text
      * @deprecated Use UnifiedCommandSystem instead
      */
     public function parseCommand(string $text): array
     {
+        $this->trackMethod('parseCommand', ['text' => $text]);
+
         Log::warning('TelegramCommandParser is deprecated. Use UnifiedCommandSystem instead.', [
             'text' => $text,
             'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)
@@ -47,6 +57,7 @@ class TelegramCommandParser
                 'result' => $result
             ]);
 
+            $this->endMethod('parseCommand', ['result' => $result, 'type' => 'slash_command']);
             return $result;
         }
 
@@ -59,6 +70,7 @@ class TelegramCommandParser
             'result' => $result
         ]);
 
+        $this->endMethod('parseCommand', ['result' => $result, 'type' => 'natural_language']);
         return $result;
     }
 
@@ -365,5 +377,35 @@ class TelegramCommandParser
         $intent['params'] = $this->extractPeriodFromText($text);
 
         return $intent;
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
     }
 }

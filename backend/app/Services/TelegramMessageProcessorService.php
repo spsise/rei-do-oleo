@@ -3,26 +3,36 @@
 namespace App\Services;
 
 use App\Contracts\LoggingServiceInterface;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
 use App\Services\Channels\TelegramChannel;
 
-class TelegramMessageProcessorService
+class TelegramMessageProcessorService implements MessageTrackingInterface
 {
     public function __construct(
         private TelegramBotService $telegramBotService,
         private TelegramChannel $telegramChannel,
         private LoggingServiceInterface $loggingService,
+        private MessageFlowTrackerInterface $flowTracker,
         private ?SpeechToTextService $speechService = null
-    ) {}
+    ) {
+        $this->initializeTracking();
+    }
 
     /**
      * Process webhook payload
      */
     public function processWebhookPayload(array $payload): array
     {
+        // Inicia tracking
+        $this->trackMethod('processWebhookPayload', ['payload' => $payload]);
+
         try {
             // Check if it's a callback query (button click)
             if (isset($payload['callback_query'])) {
-                return $this->processCallbackQuery($payload['callback_query']);
+                $result = $this->processCallbackQuery($payload['callback_query']);
+                $this->endMethod('processWebhookPayload', ['result' => $result]);
+                return $result;
             }
 
             // Verify if it's a message
@@ -33,6 +43,7 @@ class TelegramMessageProcessorService
                     'message' => 'No message in payload'
                 ];
 
+                $this->endMethod('processWebhookPayload', ['result' => $result]);
                 return $result;
             }
 
@@ -40,18 +51,26 @@ class TelegramMessageProcessorService
 
             // Process different message types
             if (isset($message['text'])) {
-                return $this->processTextMessage($message);
+                $result = $this->processTextMessage($message);
+                $this->endMethod('processWebhookPayload', ['result' => $result]);
+                return $result;
             }
 
             if (isset($message['voice'])) {
-                return $this->processVoiceMessage($message);
+                $result = $this->processVoiceMessage($message);
+                $this->endMethod('processWebhookPayload', ['result' => $result]);
+                return $result;
             }
 
             if (isset($message['audio'])) {
-                return $this->processAudioMessage($message);
+                $result = $this->processAudioMessage($message);
+                $this->endMethod('processWebhookPayload', ['result' => $result]);
+                return $result;
             }
 
-            return $this->createIgnoredResult('Unsupported message type');
+            $result = $this->createIgnoredResult('Unsupported message type');
+            $this->endMethod('processWebhookPayload', ['result' => $result]);
+            return $result;
 
         } catch (\Exception $e) {
             $result = [
@@ -60,6 +79,8 @@ class TelegramMessageProcessorService
                 'message' => 'Internal server error',
                 'error' => $e->getMessage()
             ];
+
+            $this->endMethod('processWebhookPayload', ['result' => $result, 'error' => $e->getMessage()]);
 
             $this->loggingService->logException($e, [
                 'operation' => 'telegram_webhook_processing',
@@ -75,11 +96,14 @@ class TelegramMessageProcessorService
      */
     private function processTextMessage(array $message): array
     {
+        $this->trackMethod('processTextMessage', ['message' => $message]);
+
         $result = $this->telegramBotService->processMessage($message);
         $result['status'] = 'success';
         $result['message'] = 'Text message processed';
         $result['input_type'] = 'text';
 
+        $this->endMethod('processTextMessage', ['result' => $result]);
         return $result;
     }
 
@@ -474,5 +498,35 @@ class TelegramMessageProcessorService
 
             return $this->createErrorResult('Callback query processing failed: ' . $e->getMessage());
         }
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
     }
 }

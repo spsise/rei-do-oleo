@@ -16,8 +16,10 @@ use App\Services\Telegram\TelegramMenuBuilder;
 use App\Services\Channels\TelegramChannel;
 use App\Services\SpeechToTextService;
 use Illuminate\Support\Facades\Log;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
 
-class TelegramCommandHandlerManager
+class TelegramCommandHandlerManager implements MessageTrackingInterface
 {
     private array $commandHandlers = [];
     private array $reportGenerators = [];
@@ -28,8 +30,10 @@ class TelegramCommandHandlerManager
         private SpeechToTextService $speechService,
         private GeneralReportGenerator $generalReportGenerator,
         private ServicesReportGenerator $servicesReportGenerator,
-        private ProductsReportGenerator $productsReportGenerator
+        private ProductsReportGenerator $productsReportGenerator,
+        private MessageFlowTrackerInterface $flowTracker
     ) {
+        $this->initializeTracking();
         $this->registerCommandHandlers();
         $this->registerReportGenerators();
     }
@@ -73,10 +77,14 @@ class TelegramCommandHandlerManager
      */
     public function handleCommand(string $command, int $chatId, array $params = []): array
     {
+        $this->trackMethod('handleCommand', ['command' => $command, 'chat_id' => $chatId, 'params' => $params]);
+
         // Find command handler
         foreach ($this->commandHandlers as $handler) {
             if ($handler->canHandle($command)) {
-                return $handler->handle($chatId, $params);
+                $result = $handler->handle($chatId, $params);
+                $this->endMethod('handleCommand', ['result' => $result, 'handler' => get_class($handler)]);
+                return $result;
             }
         }
 
@@ -84,11 +92,15 @@ class TelegramCommandHandlerManager
 
         // Handle report commands
         if ($this->isReportCommand($command)) {
-            return $this->handleReportCommand($command, $chatId, $params);
+            $result = $this->handleReportCommand($command, $chatId, $params);
+            $this->endMethod('handleCommand', ['result' => $result, 'type' => 'report_command']);
+            return $result;
         }
 
         // Default to main menu
-        return $this->menuBuilder->buildMainMenu($chatId);
+        $result = $this->menuBuilder->buildMainMenu($chatId);
+        $this->endMethod('handleCommand', ['result' => $result, 'type' => 'default_menu']);
+        return $result;
     }
 
     /**
@@ -353,5 +365,35 @@ class TelegramCommandHandlerManager
         }
 
         return $reports;
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
     }
 }

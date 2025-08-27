@@ -5,16 +5,21 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use App\Contracts\LoggingServiceInterface;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
 
-class SpeechToTextService
+class SpeechToTextService implements MessageTrackingInterface
 {
     private string $apiKey;
     private string $apiUrl;
     private string $provider;
     private LoggingServiceInterface $loggingService;
 
-    public function __construct(LoggingServiceInterface $loggingService)
-    {
+    public function __construct(
+        LoggingServiceInterface $loggingService,
+        private MessageFlowTrackerInterface $flowTracker
+    ) {
+        $this->initializeTracking();
         $this->loggingService = $loggingService;
         $this->provider = config('speech.provider', 'vosk');
         $this->apiKey = config("services.{$this->provider}.api_key") ?? '';
@@ -26,6 +31,8 @@ class SpeechToTextService
      */
     public function convertVoiceToText(string $voiceFilePath): ?string
     {
+        $this->trackMethod('convertVoiceToText', ['voice_file_path' => $voiceFilePath]);
+
         try {
             if (!file_exists($voiceFilePath)) {
                 $this->loggingService->logTelegramEvent('voice_file_not_found', [
@@ -125,6 +132,7 @@ class SpeechToTextService
                     ]);
                 }
 
+                $this->endMethod('convertVoiceToText', ['result' => $text, 'status' => 'success']);
                 return $text;
 
             } finally {
@@ -139,6 +147,7 @@ class SpeechToTextService
                 'provider' => $this->provider
             ]);
 
+            $this->endMethod('convertVoiceToText', ['result' => null, 'error' => $e->getMessage()]);
             return null;
         }
     }
@@ -2263,5 +2272,35 @@ class SpeechToTextService
                 'timestamp' => now()->toISOString()
             ];
         }
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
     }
 }

@@ -5,15 +5,19 @@ namespace App\Services\Channels;
 use App\Contracts\NotificationChannelInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
 
-class TelegramChannel implements NotificationChannelInterface
+class TelegramChannel implements NotificationChannelInterface, MessageTrackingInterface
 {
     private string $botToken;
     private string $apiUrl;
     private array $recipients;
 
-    public function __construct()
-    {
+    public function __construct(
+        private MessageFlowTrackerInterface $flowTracker
+    ) {
+        $this->initializeTracking();
         $this->botToken = config('services.telegram.bot_token', '');
         $this->apiUrl = "https://api.telegram.org/bot{$this->botToken}";
         $this->recipients = config('services.telegram.recipients', []);
@@ -28,11 +32,16 @@ class TelegramChannel implements NotificationChannelInterface
      */
     public function sendTextMessage(string $message, ?string $recipient = null): array
     {
+        $this->trackMethod('sendTextMessage', ['message' => $message, 'recipient' => $recipient]);
+
         if (!$this->isEnabled()) {
-            return [
+            $result = [
                 'success' => false,
                 'error' => 'Telegram channel is disabled'
             ];
+
+            $this->endMethod('sendTextMessage', ['result' => $result, 'status' => 'disabled']);
+            return $result;
         }
 
         try {
@@ -42,10 +51,13 @@ class TelegramChannel implements NotificationChannelInterface
 
             // Send to all configured recipients
             if (empty($this->recipients)) {
-                return [
+                $result = [
                     'success' => false,
                     'error' => 'No Telegram recipients configured'
                 ];
+
+                $this->endMethod('sendTextMessage', ['result' => $result, 'status' => 'no_recipients']);
+                return $result;
             }
 
             $results = [];
@@ -55,12 +67,15 @@ class TelegramChannel implements NotificationChannelInterface
 
             $successCount = count(array_filter($results, fn($r) => $r['success']));
 
-            return [
+            $result = [
                 'success' => $successCount > 0,
                 'sent_to' => $successCount,
                 'total_recipients' => count($results),
                 'results' => $results
             ];
+
+            $this->endMethod('sendTextMessage', ['result' => $result, 'status' => 'success']);
+            return $result;
 
         } catch (\Exception $e) {
             Log::error('Telegram channel error', [
@@ -68,10 +83,13 @@ class TelegramChannel implements NotificationChannelInterface
                 'message' => $message
             ]);
 
-            return [
+            $result = [
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+
+            $this->endMethod('sendTextMessage', ['result' => $result, 'error' => $e->getMessage()]);
+            return $result;
         }
     }
 
@@ -455,5 +473,35 @@ class TelegramChannel implements NotificationChannelInterface
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
     }
 }

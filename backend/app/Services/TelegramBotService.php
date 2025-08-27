@@ -6,21 +6,28 @@ use App\Services\Telegram\Commands\UnifiedCommandSystem;
 use App\Services\Telegram\TelegramAuthorizationService;
 use App\Services\Telegram\TelegramMenuBuilder;
 use App\Contracts\LoggingServiceInterface;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
 
-class TelegramBotService
+class TelegramBotService implements MessageTrackingInterface
 {
     public function __construct(
         private UnifiedCommandSystem $commandSystem,
         private TelegramAuthorizationService $authorizationService,
         private TelegramMenuBuilder $menuBuilder,
-        private LoggingServiceInterface $loggingService
-    ) {}
+        private LoggingServiceInterface $loggingService,
+        private MessageFlowTrackerInterface $flowTracker
+    ) {
+        $this->initializeTracking();
+    }
 
     /**
      * Process incoming message from Telegram webhook
      */
     public function processMessage(array $message): array
     {
+        $this->trackMethod('processMessage', ['message' => $message]);
+
         try {
             $chatId = $message['chat']['id'];
             $text = $message['text'] ?? '';
@@ -28,7 +35,9 @@ class TelegramBotService
 
             // Check if user is authorized
             if (!$this->authorizationService->isAuthorizedUser($chatId)) {
-                return $this->menuBuilder->buildUnauthorizedMessage($chatId);
+                $result = $this->menuBuilder->buildUnauthorizedMessage($chatId);
+                $this->endMethod('processMessage', ['result' => $result, 'status' => 'unauthorized']);
+                return $result;
             }
 
             // Process command using UnifiedCommandSystem
@@ -44,7 +53,7 @@ class TelegramBotService
 
             if ($result->isSuccess()) {
                 $data = $result->getData();
-                return [
+                $response = [
                     'success' => true,
                     'chat_id' => $chatId,
                     'type' => $result->getType(),
@@ -54,11 +63,14 @@ class TelegramBotService
                         'confidence' => $result->getCommandMatch()->getConfidence()
                     ] : null
                 ];
+
+                $this->endMethod('processMessage', ['result' => $response, 'status' => 'success']);
+                return $response;
             } else {
                 $data = $result->getData();
                 $fallbackMessage = $data['fallback_message'] ?? 'Comando não encontrado';
 
-                return [
+                $response = [
                     'success' => false,
                     'chat_id' => $chatId,
                     'type' => 'command_not_found',
@@ -66,6 +78,9 @@ class TelegramBotService
                     'suggestions' => $data['suggestions'] ?? [],
                     'data' => $data
                 ];
+
+                $this->endMethod('processMessage', ['result' => $response, 'status' => 'command_not_found']);
+                return $response;
             }
 
         } catch (\Exception $e) {
@@ -76,13 +91,16 @@ class TelegramBotService
                 'message' => $message
             ]);
 
-            return [
+            $errorResponse = [
                 'success' => false,
                 'chat_id' => $chatId,
                 'type' => 'error',
                 'message' => 'Erro interno do sistema',
                 'data' => []
             ];
+
+            $this->endMethod('processMessage', ['result' => $errorResponse, 'error' => $e->getMessage()]);
+            return $errorResponse;
         }
     }
 
@@ -228,5 +246,35 @@ class TelegramBotService
         $errorMessage = $errorMessages[$reason] ?? $errorMessages['unknown'];
 
         return $this->sendErrorMessage($chatId, $errorMessage);
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
     }
 }

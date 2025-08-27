@@ -11,6 +11,7 @@ use App\Services\TelegramWebhookService;
 use App\Services\TelegramMessageProcessorService;
 use App\Services\Telegram\TelegramWebhookValidationService;
 use App\Contracts\LoggingServiceInterface;
+use App\Contracts\MessageFlowTrackerInterface;
 use Illuminate\Http\JsonResponse;
 
 class TelegramWebhookController extends Controller
@@ -20,7 +21,8 @@ class TelegramWebhookController extends Controller
         private TelegramWebhookService $webhookService,
         private TelegramMessageProcessorService $messageProcessor,
         private TelegramWebhookValidationService $webhookValidationService,
-        private LoggingServiceInterface $loggingService
+        private LoggingServiceInterface $loggingService,
+        private MessageFlowTrackerInterface $flowTracker
     ) {}
 
     /**
@@ -29,6 +31,9 @@ class TelegramWebhookController extends Controller
     public function handle(TelegramWebhookRequest $request): JsonResponse
     {
         $startTime = microtime(true);
+
+        // Inicializa o tracker com ID único
+        $this->flowTracker->startTracking(uniqid('webhook_', true));
 
         try {
             // Check if validation failed
@@ -76,6 +81,26 @@ class TelegramWebhookController extends Controller
             $result = $this->processWithTimeout(function () use ($payload) {
                 return $this->messageProcessor->processWebhookPayload($payload);
             }, 25); // 25 seconds timeout
+
+            // Gera relatório do fluxo APÓS o processamento
+            $flowReport = $this->flowTracker->generateFlowReport($payload);
+            $userReport = $this->flowTracker->generateUserReport($payload);
+
+            // Finaliza o tracking
+            $this->flowTracker->endTracking();
+
+            // Se habilitado, envia relatório para o usuário
+            if (config('message-flow.tracking.send_to_user', false)) {
+                $this->sendFlowReportToUser($payload, $userReport);
+            }
+
+            if (config('message-flow.enabled', false)) {
+                $this->loggingService->logTelegramEvent('message_flow_report', [
+                    'flow_report' => $flowReport,
+                    'user_report' => $userReport,
+                    'payload' => $payload
+                ], 'info');
+            }
 
             // Check if the result is valid and has the expected structure
             if (!is_array($result) || !isset($result['success'])) {
@@ -173,6 +198,25 @@ class TelegramWebhookController extends Controller
             return TelegramWebhookResource::error('Internal server error')
                 ->response()
                 ->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Send flow report to user via Telegram
+     */
+    private function sendFlowReportToUser(array $payload, string $report): void
+    {
+        try {
+            $chatId = $this->extractChatId($payload);
+            if ($chatId) {
+                $this->telegramBotService->sendErrorMessage($chatId, $report);
+            }
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_flow_report_to_user',
+                'chat_id' => $chatId ?? 'unknown',
+                'report' => $report
+            ]);
         }
     }
 

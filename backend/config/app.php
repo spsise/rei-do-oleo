@@ -180,5 +180,6 @@ return [
         App\Providers\TelegramServiceProvider::class,
         App\Providers\LoggingServiceProvider::class,
         App\Providers\TelegramCommandServiceProvider::class,
+        App\Providers\MessageFlowServiceProvider::class,
     ],
 ];
