@@ -10,6 +10,7 @@ use App\Services\TelegramBotService;
 use App\Services\TelegramWebhookService;
 use App\Services\TelegramMessageProcessorService;
 use App\Services\Telegram\TelegramWebhookValidationService;
+use App\Services\Channels\TelegramChannel;
 use App\Contracts\LoggingServiceInterface;
 use App\Contracts\MessageFlowTrackerInterface;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ class TelegramWebhookController extends Controller
 {
     public function __construct(
         private TelegramBotService $telegramBotService,
+        private TelegramChannel $telegramChannel,
         private TelegramWebhookService $webhookService,
         private TelegramMessageProcessorService $messageProcessor,
         private TelegramWebhookValidationService $webhookValidationService,
@@ -209,7 +211,8 @@ class TelegramWebhookController extends Controller
         try {
             $chatId = $this->extractChatId($payload);
             if ($chatId) {
-                $this->telegramBotService->sendErrorMessage($chatId, $report);
+                // Send plain text report directly to the user without triggering menus
+                $this->telegramChannel->sendTextMessage($report, (string) $chatId);
             }
         } catch (\Exception $e) {
             $this->loggingService->logException($e, [
