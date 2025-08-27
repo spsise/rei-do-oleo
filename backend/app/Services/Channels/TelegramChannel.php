@@ -3,6 +3,7 @@
 namespace App\Services\Channels;
 
 use App\Contracts\NotificationChannelInterface;
+use App\Contracts\LoggingServiceInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Contracts\MessageFlowTrackerInterface;
@@ -15,7 +16,8 @@ class TelegramChannel implements NotificationChannelInterface, MessageTrackingIn
     private array $recipients;
 
     public function __construct(
-        private MessageFlowTrackerInterface $flowTracker
+        private MessageFlowTrackerInterface $flowTracker,
+        private ?LoggingServiceInterface $loggingService = null
     ) {
         $this->initializeTracking();
         $this->botToken = config('services.telegram.bot_token', '');
@@ -450,6 +452,112 @@ class TelegramChannel implements NotificationChannelInterface, MessageTrackingIn
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Send document via Telegram
+     */
+    public function sendDocument(string $chatId, string $filePath, string $caption = ''): array
+    {
+        $this->trackMethod('sendDocument', ['chat_id' => $chatId, 'file_path' => $filePath, 'caption' => $caption]);
+
+        if (!$this->isEnabled()) {
+            $result = [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+
+            $this->endMethod('sendDocument', ['result' => $result, 'status' => 'disabled']);
+            return $result;
+        }
+
+        if (!file_exists($filePath)) {
+            $result = [
+                'success' => false,
+                'error' => 'File not found: ' . $filePath
+            ];
+
+            $this->endMethod('sendDocument', ['result' => $result, 'status' => 'file_not_found']);
+            return $result;
+        }
+
+        try {
+            // Send upload document indicator
+            $this->sendUploadDocumentIndicator($chatId);
+
+            $response = Http::attach(
+                'document', file_get_contents($filePath), basename($filePath)
+            )->post("{$this->apiUrl}/sendDocument", [
+                'chat_id' => $chatId,
+                'caption' => $caption,
+                'parse_mode' => 'Markdown'
+            ]);
+
+            $result = [
+                'success' => $response->successful(),
+                'status' => $response->status(),
+                'data' => $response->json(),
+                'response_body' => $response->body()
+            ];
+
+            if (!$response->successful()) {
+                if ($this->loggingService) {
+                    $this->loggingService->logTelegramEvent('document_send_failed', [
+                        'chat_id' => $chatId,
+                        'file_path' => $filePath,
+                        'status' => $response->status(),
+                        'response' => $response->body()
+                    ], 'error');
+                } else {
+                    Log::error('Failed to send document via Telegram', [
+                        'chat_id' => $chatId,
+                        'file_path' => $filePath,
+                        'status' => $response->status(),
+                        'response' => $response->body()
+                    ]);
+                }
+            } else {
+                if ($this->loggingService) {
+                    $this->loggingService->logTelegramEvent('document_sent_successfully', [
+                        'chat_id' => $chatId,
+                        'file_name' => basename($filePath),
+                        'file_size' => filesize($filePath)
+                    ], 'info');
+                } else {
+                    Log::info('Document sent successfully via Telegram', [
+                        'chat_id' => $chatId,
+                        'file_name' => basename($filePath),
+                        'file_size' => filesize($filePath)
+                    ]);
+                }
+            }
+
+            $this->endMethod('sendDocument', ['result' => $result]);
+            return $result;
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logTelegramEvent('document_send_exception', [
+                    'chat_id' => $chatId,
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage()
+                ], 'error');
+            } else {
+                Log::error('Exception while sending document via Telegram', [
+                    'chat_id' => $chatId,
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            $result = [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+
+            $this->endMethod('sendDocument', ['result' => $result, 'status' => 'exception']);
+            return $result;
         }
     }
 

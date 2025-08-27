@@ -62,6 +62,10 @@ class TelegramMenuBuilder
 
         $keyboard = [
             [
+                ['text' => '📄 Relatórios PDF', 'callback_data' => 'pdf_report_menu'],
+                ['text' => '📱 Relatórios Texto', 'callback_data' => 'text_reports_menu']
+            ],
+            [
                 ['text' => '📋 Relatório Geral', 'callback_data' => 'report_general'],
                 ['text' => '🔧 Relatório de Serviços', 'callback_data' => 'report_services']
             ],
@@ -75,6 +79,49 @@ class TelegramMenuBuilder
         ];
 
         return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Build text reports menu
+     */
+    public function buildTextReportsMenu(int $chatId): array
+    {
+        $message = "📱 *Relatórios em Texto*\n\n" .
+                   "Escolha o período para o relatório em texto:";
+
+        $keyboard = [
+            [
+                ['text' => '📅 Hoje', 'callback_data' => 'today_report'],
+                ['text' => '📊 Semana', 'callback_data' => 'week_report']
+            ],
+            [
+                ['text' => '📈 Mês', 'callback_data' => 'month_report'],
+                ['text' => '🔧 Serviços', 'callback_data' => 'services_report']
+            ],
+            [
+                ['text' => '📦 Produtos', 'callback_data' => 'products_report'],
+                ['text' => '⬅️ Menu Relatórios', 'callback_data' => 'report_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Show text reports menu (called by command system)
+     */
+    public function showTextReportsMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildTextReportsMenu($chatId);
     }
 
     /**
@@ -248,6 +295,7 @@ class TelegramMenuBuilder
     {
         return match($from) {
             'report_menu' => $this->buildReportMenu($chatId),
+            'text_reports_menu' => $this->buildTextReportsMenu($chatId),
             'services_menu' => $this->buildServicesMenu($chatId),
             'products_menu' => $this->buildProductsMenu($chatId),
             'dashboard_menu' => $this->buildDashboardMenu($chatId),

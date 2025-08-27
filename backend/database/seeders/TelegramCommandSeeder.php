@@ -588,6 +588,310 @@ class TelegramCommandSeeder extends Seeder
                 ],
                 'is_active' => true,
                 'priority' => 99
+            ],
+            // PDF Report Commands
+            [
+                'command_id' => 'pdf_report_menu',
+                'aliases' => ['pdf_report_menu', 'pdf menu', 'menu pdf'],
+                'description' => 'Menu principal de relatórios PDF',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'handlePdfRequest',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 11,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'menu pdf',
+                    'relatórios pdf',
+                    'pdf menu',
+                    'menu de pdf'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o menu de relatórios PDF:',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'PDF Mês']
+                ],
+                'is_active' => true,
+                'priority' => 11
+            ],
+            [
+                'command_id' => 'pdf_today',
+                'aliases' => ['pdf hoje', 'pdf today', 'relatório pdf hoje'],
+                'description' => 'Gera relatório PDF do dia atual',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'generateTodayPdf',
+                'action_parameters' => ['period' => 'today'],
+                'permissions' => ['admin', 'manager', 'user'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 12,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf de hoje',
+                    'relatório pdf hoje',
+                    'gerar pdf hoje',
+                    'pdf diário'
+                ],
+                'fallback' => [
+                    'message' => 'Gerando relatório PDF de hoje...',
+                    'suggestions' => ['PDF Semana', 'PDF Mês', 'Menu PDF']
+                ],
+                'is_active' => true,
+                'priority' => 12
+            ],
+            [
+                'command_id' => 'pdf_week',
+                'aliases' => ['pdf semana', 'pdf week', 'relatório pdf semana'],
+                'description' => 'Gera relatório PDF da semana atual',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'generateWeekPdf',
+                'action_parameters' => ['period' => 'week'],
+                'permissions' => ['admin', 'manager', 'user'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 13,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf da semana',
+                    'relatório pdf semana',
+                    'gerar pdf semana',
+                    'pdf semanal'
+                ],
+                'fallback' => [
+                    'message' => 'Gerando relatório PDF da semana...',
+                    'suggestions' => ['PDF Hoje', 'PDF Mês', 'Menu PDF']
+                ],
+                'is_active' => true,
+                'priority' => 13
+            ],
+            [
+                'command_id' => 'pdf_month',
+                'aliases' => ['pdf mês', 'pdf month', 'relatório pdf mês'],
+                'description' => 'Gera relatório PDF do mês atual',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'generateMonthPdf',
+                'action_parameters' => ['period' => 'month'],
+                'permissions' => ['admin', 'manager', 'user'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 14,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf do mês',
+                    'relatório pdf mês',
+                    'gerar pdf mês',
+                    'pdf mensal'
+                ],
+                'fallback' => [
+                    'message' => 'Gerando relatório PDF do mês...',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'Menu PDF']
+                ],
+                'is_active' => true,
+                'priority' => 14
+            ],
+            [
+                'command_id' => 'pdf_types',
+                'aliases' => ['pdf types', 'tipos pdf', 'tipos de pdf'],
+                'description' => 'Menu de tipos de relatórios PDF',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'showPdfTypesMenu',
+                'action_parameters' => [],
+                'permissions' => ['admin', 'manager'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 15,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'tipos de pdf',
+                    'tipos de relatório pdf',
+                    'categorias pdf',
+                    'tipos relatório'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui estão os tipos de relatório PDF disponíveis:',
+                    'suggestions' => ['PDF Geral', 'PDF Serviços', 'PDF Produtos']
+                ],
+                'is_active' => true,
+                'priority' => 15
+            ],
+            [
+                'command_id' => 'pdf_general',
+                'aliases' => ['pdf geral', 'pdf general'],
+                'description' => 'Gera relatório PDF geral personalizado',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'handlePdfTypeSelection',
+                'action_parameters' => ['report_type' => 'general'],
+                'permissions' => ['admin', 'manager'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 16,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf geral',
+                    'relatório pdf geral',
+                    'pdf completo'
+                ],
+                'fallback' => [
+                    'message' => 'Configurando relatório PDF geral...',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'PDF Mês']
+                ],
+                'is_active' => true,
+                'priority' => 16
+            ],
+            [
+                'command_id' => 'pdf_services',
+                'aliases' => ['pdf serviços', 'pdf services'],
+                'description' => 'Gera relatório PDF de serviços',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'handlePdfTypeSelection',
+                'action_parameters' => ['report_type' => 'services'],
+                'permissions' => ['admin', 'manager'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 17,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf serviços',
+                    'relatório pdf serviços',
+                    'pdf de serviços'
+                ],
+                'fallback' => [
+                    'message' => 'Configurando relatório PDF de serviços...',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'PDF Mês']
+                ],
+                'is_active' => true,
+                'priority' => 17
+            ],
+            [
+                'command_id' => 'pdf_products',
+                'aliases' => ['pdf produtos', 'pdf products'],
+                'description' => 'Gera relatório PDF de produtos',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'handlePdfTypeSelection',
+                'action_parameters' => ['report_type' => 'products'],
+                'permissions' => ['admin', 'manager'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 18,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf produtos',
+                    'relatório pdf produtos',
+                    'pdf de produtos'
+                ],
+                'fallback' => [
+                    'message' => 'Configurando relatório PDF de produtos...',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'PDF Mês']
+                ],
+                'is_active' => true,
+                'priority' => 18
+            ],
+            [
+                'command_id' => 'pdf_financial',
+                'aliases' => ['pdf financeiro', 'pdf financial'],
+                'description' => 'Gera relatório PDF financeiro',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'handlePdfTypeSelection',
+                'action_parameters' => ['report_type' => 'financial'],
+                'permissions' => ['admin', 'manager'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 19,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf financeiro',
+                    'relatório pdf financeiro',
+                    'pdf de finanças'
+                ],
+                'fallback' => [
+                    'message' => 'Configurando relatório PDF financeiro...',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'PDF Mês']
+                ],
+                'is_active' => true,
+                'priority' => 19
+            ],
+            [
+                'command_id' => 'pdf_custom',
+                'aliases' => ['pdf personalizado', 'pdf custom'],
+                'description' => 'Gera relatório PDF personalizado',
+                'action_handler' => 'App\Services\Telegram\Handlers\PdfCommandHandler',
+                'action_method' => 'generateCustomPdf',
+                'action_parameters' => ['period' => 'custom'],
+                'permissions' => ['admin', 'manager'],
+                'category' => 'reports',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 20,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'pdf personalizado',
+                    'relatório pdf personalizado',
+                    'pdf customizado'
+                ],
+                'fallback' => [
+                    'message' => 'Gerando relatório PDF personalizado...',
+                    'suggestions' => ['PDF Hoje', 'PDF Semana', 'Menu PDF']
+                ],
+                'is_active' => true,
+                'priority' => 20
+            ],
+            [
+                'command_id' => 'text_reports_menu',
+                'aliases' => ['text_reports_menu', 'relatórios texto', 'menu texto'],
+                'description' => 'Menu de relatórios em formato texto',
+                'action_handler' => 'App\Services\Telegram\TelegramMenuBuilder',
+                'action_method' => 'showTextReportsMenu',
+                'action_parameters' => [],
+                'permissions' => ['all'],
+                'category' => 'navigation',
+                'voice_settings' => [
+                    'enabled' => true,
+                    'priority' => 21,
+                    'noise_reduction' => true,
+                    'language' => ['pt', 'en']
+                ],
+                'natural_language' => [
+                    'relatórios texto',
+                    'menu texto',
+                    'relatórios em texto',
+                    'menu de texto'
+                ],
+                'fallback' => [
+                    'message' => 'Aqui está o menu de relatórios em texto:',
+                    'suggestions' => ['Hoje', 'Semana', 'Mês']
+                ],
+                'is_active' => true,
+                'priority' => 21
             ]
         ];
 
