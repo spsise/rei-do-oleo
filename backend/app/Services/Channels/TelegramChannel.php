@@ -103,11 +103,14 @@ class TelegramChannel implements NotificationChannelInterface, MessageTrackingIn
      */
     public function sendMessageWithKeyboard(string $message, string $chatId, array $keyboard): array
     {
+        $this->trackMethod('sendMessageWithKeyboard', ['message' => $message, 'chat_id' => $chatId, 'keyboard' => $keyboard]);
         if (!$this->isEnabled()) {
-            return [
+            $result = [
                 'success' => false,
                 'error' => 'Telegram channel is disabled'
             ];
+            $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'status' => 'disabled']);
+            return $result;
         }
 
         try {
@@ -122,18 +125,22 @@ class TelegramChannel implements NotificationChannelInterface, MessageTrackingIn
 
             if ($response->successful()) {
                 $data = $response->json();
-                return [
+                $result = [
                     'success' => true,
                     'message_id' => $data['result']['message_id'] ?? null,
                     'response' => $data
                 ];
+                $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'status' => 'success']);
+                return $result;
             }
 
-            return [
+            $result = [
                 'success' => false,
                 'error' => $response->json()['description'] ?? 'Unknown error',
                 'status' => $response->status()
             ];
+            $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'status' => 'http_error']);
+            return $result;
 
         } catch (\Exception $e) {
             Log::error('Telegram keyboard message error', [
@@ -142,10 +149,12 @@ class TelegramChannel implements NotificationChannelInterface, MessageTrackingIn
                 'chat_id' => $chatId
             ]);
 
-            return [
+            $result = [
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+            $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'error' => $e->getMessage()]);
+            return $result;
         }
     }
 

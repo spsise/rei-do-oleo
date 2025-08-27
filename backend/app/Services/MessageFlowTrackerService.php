@@ -26,9 +26,10 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
                 'TelegramMessageProcessorService.processWebhookPayload',
                 'TelegramMessageProcessorService.processTextMessage',
                 'TelegramBotService.processMessage',
-                'TelegramCommandParser.parseCommand',
-                'TelegramCommandHandlerManager.handleCommand',
-                'TelegramChannel.sendTextMessage'
+                // UnifiedCommandSystem is the current command processor; optional to track
+                // 'UnifiedCommandSystem.processCommand',
+                // Response can be sent via keyboard or plain text; we track keyboard variant
+                'TelegramChannel.sendMessageWithKeyboard'
             ],
             'voice' => [
                 'TelegramMessageProcessorService.processWebhookPayload',
@@ -163,6 +164,18 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
         $report .= "❌ **Métodos NÃO Executados (Esperados)**\n";
         $missingMethods = array_diff($expectedMethods, $this->executedMethods);
 
+        // OR logic for response methods on text messages
+        if ($messageType === 'text') {
+            $responseOr = [
+                'TelegramChannel.sendMessageWithKeyboard',
+                'TelegramChannel.sendTextMessage'
+            ];
+            $executedResponse = array_intersect($this->executedMethods, $responseOr);
+            if (!empty($executedResponse)) {
+                $missingMethods = array_values(array_diff($missingMethods, $responseOr));
+            }
+        }
+
         if (empty($missingMethods)) {
             $report .= "✅ Todos os métodos esperados foram executados!\n\n";
         } else {
@@ -200,6 +213,18 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
         $messageType = $this->identifyMessageType($payload);
         $expectedMethods = $this->expectedMethods[$messageType] ?? [];
         $missingMethods = array_diff($expectedMethods, $this->executedMethods);
+
+        // OR logic for response methods on text messages
+        if ($messageType === 'text') {
+            $responseOr = [
+                'TelegramChannel.sendMessageWithKeyboard',
+                'TelegramChannel.sendTextMessage'
+            ];
+            $executedResponse = array_intersect($this->executedMethods, $responseOr);
+            if (!empty($executedResponse)) {
+                $missingMethods = array_values(array_diff($missingMethods, $responseOr));
+            }
+        }
 
         if (empty($missingMethods)) {
             return "✅ Sua mensagem foi processada com sucesso em todas as etapas!";
@@ -362,6 +387,7 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
             'TelegramCommandParser.parseCommand' => 'Falha na interpretação do comando',
             'TelegramCommandHandlerManager.handleCommand' => 'Falha no gerenciamento de comandos',
             'TelegramChannel.sendTextMessage' => 'Falha no envio da resposta',
+            'TelegramChannel.sendMessageWithKeyboard' => 'Falha no envio da resposta',
             'SpeechToTextService.convertVoiceToText' => 'Falha na conversão de voz para texto'
         ];
 
@@ -377,6 +403,7 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
             'TelegramCommandParser.parseCommand' => 'Interpretação do comando',
             'TelegramCommandHandlerManager.handleCommand' => 'Execução do comando',
             'TelegramChannel.sendTextMessage' => 'Envio da resposta',
+            'TelegramChannel.sendMessageWithKeyboard' => 'Envio da resposta',
             'SpeechToTextService.convertVoiceToText' => 'Conversão de voz'
         ];
 
