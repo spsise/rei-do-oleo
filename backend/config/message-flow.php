@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'enabled' => env('MESSAGE_FLOW_TRACKING_ENABLED', false),
+    'enabled' => env('MESSAGE_FLOW_TRACKING_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -23,8 +23,8 @@ return [
     */
 
     'tracking' => [
-        'log_to_file' => env('MESSAGE_FLOW_LOG_TO_FILE', true),
-        'send_to_user' => env('MESSAGE_FLOW_SEND_TO_USER', false),
+        'log_to_file' => env('MESSAGE_FLOW_LOG_TO_FILE', false),
+        'send_to_user' => env('MESSAGE_FLOW_SEND_TO_USER', true),
         'cache_traces' => env('MESSAGE_FLOW_CACHE_TRACES', true),
 
         'stages_to_track' => [
@@ -59,8 +59,8 @@ return [
     */
 
     'output' => [
-        'send_to_user' => env('MESSAGE_FLOW_SEND_TO_USER', false),
-        'log_to_file' => env('MESSAGE_FLOW_LOG_TO_FILE', true),
+        'send_to_user' => env('MESSAGE_FLOW_SEND_TO_USER', true),
+        'log_to_file' => env('MESSAGE_FLOW_LOG_TO_FILE', false),
         'store_in_database' => env('MESSAGE_FLOW_STORE_IN_DATABASE', false),
         'cache_for_monitoring' => env('MESSAGE_FLOW_CACHE_FOR_MONITORING', true),
 
