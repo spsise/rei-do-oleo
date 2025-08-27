@@ -23,7 +23,7 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
 
     public function findCommand(string $input, array $context = []): ?CommandMatch
     {
-        $input = strtolower(trim($input));
+        $input = $this->normalizeText($input);
 
         // 1. Check exact aliases first (highest priority)
         if (isset($this->aliases[$input])) {
@@ -33,7 +33,7 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
 
         // 2. Check natural language patterns
         $bestMatch = $this->findByNaturalLanguage($input, $context);
-        if ($bestMatch && $bestMatch->getConfidence() > 0.85) { // Aumentado de 0.8 para 0.85
+        if ($bestMatch && $bestMatch->getConfidence() > 0.8) { // Relaxed from 0.85 to 0.8
             return $bestMatch;
         }
 
@@ -115,12 +115,26 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
         foreach ($this->commands as $command) {
             // Build aliases index
             foreach ($command->getAliases() as $alias) {
-                $this->aliases[strtolower($alias)] = $command;
+                $normalized = $this->normalizeText($alias);
+                $this->aliases[$normalized] = $command;
+
+                // Simple singular/plural handling: also index without trailing 's'
+                if (str_ends_with($normalized, 's')) {
+                    $singular = rtrim($normalized, 's');
+                    $this->aliases[$singular] = $command;
+                }
             }
 
             // Build natural language index
             foreach ($command->getNaturalLanguage() as $pattern) {
-                $this->naturalLanguage[strtolower($pattern)] = $command;
+                $normalizedPattern = $this->normalizeText($pattern);
+                $this->naturalLanguage[$normalizedPattern] = $command;
+
+                // Also index simplified singular without trailing 's'
+                if (str_ends_with($normalizedPattern, 's')) {
+                    $singular = rtrim($normalizedPattern, 's');
+                    $this->naturalLanguage[$singular] = $command;
+                }
             }
 
             // Build voice commands index
@@ -139,7 +153,7 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
         foreach ($this->naturalLanguage as $pattern => $command) {
             $score = $this->calculateSimilarity($input, $pattern);
 
-            if ($score > $highestScore && $score > 0.85) { // Aumentado de 0.7 para 0.85
+            if ($score > $highestScore && $score > 0.8) { // Relaxed from 0.85 to 0.8
                 $highestScore = $score;
                 $bestMatch = $command;
             }
@@ -197,6 +211,10 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
 
     private function calculateSimilarity(string $input, string $pattern): float
     {
+        // Normalize to be accent-insensitive
+        $input = $this->normalizeText($input);
+        $pattern = $this->normalizeText($pattern);
+
         // Levenshtein distance for similarity
         $levenshtein = levenshtein($input, $pattern);
         $maxLength = max(strlen($input), strlen($pattern));
@@ -257,6 +275,22 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
         $maxScore = max($maxScore, $score * 0.8); // Lower weight for description
 
         return $maxScore;
+    }
+
+    /**
+     * Normalize text: lowercase, trim, remove diacritics
+     */
+    private function normalizeText(string $text): string
+    {
+        $text = trim(strtolower($text));
+        // Remove diacritics (accents)
+        $normalized = iconv('UTF-8', 'ASCII//TRANSLIT', $text);
+        if ($normalized !== false) {
+            $text = $normalized;
+        }
+        // Remove any remaining non-spacing marks
+        $text = preg_replace('/[^\p{L}\p{Nd}\s]/u', '', $text) ?? $text;
+        return $text;
     }
 
     private function jaroWinkler(string $str1, string $str2): float

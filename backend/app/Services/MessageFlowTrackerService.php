@@ -36,7 +36,8 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
                 'TelegramMessageProcessorService.processVoiceMessage',
                 'SpeechToTextService.convertVoiceToText',
                 'TelegramBotService.processMessage',
-                'TelegramChannel.sendTextMessage'
+                // Response can be via sendTextMessage or sendMessageWithKeyboard
+                'TelegramChannel.sendMessageWithKeyboard'
             ],
             'callback_query' => [
                 'TelegramMessageProcessorService.processWebhookPayload',
@@ -164,8 +165,8 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
         $report .= "❌ **Métodos NÃO Executados (Esperados)**\n";
         $missingMethods = array_diff($expectedMethods, $this->executedMethods);
 
-        // OR logic for response methods on text messages
-        if ($messageType === 'text') {
+        // OR logic for response methods on text and voice messages
+        if ($messageType === 'text' || $messageType === 'voice') {
             $responseOr = [
                 'TelegramChannel.sendMessageWithKeyboard',
                 'TelegramChannel.sendTextMessage'
@@ -214,8 +215,8 @@ class MessageFlowTrackerService implements MessageFlowTrackerInterface
         $expectedMethods = $this->expectedMethods[$messageType] ?? [];
         $missingMethods = array_diff($expectedMethods, $this->executedMethods);
 
-        // OR logic for response methods on text messages
-        if ($messageType === 'text') {
+        // OR logic for response methods on text and voice messages
+        if ($messageType === 'text' || $messageType === 'voice') {
             $responseOr = [
                 'TelegramChannel.sendMessageWithKeyboard',
                 'TelegramChannel.sendTextMessage'

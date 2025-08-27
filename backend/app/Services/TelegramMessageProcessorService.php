@@ -112,6 +112,8 @@ class TelegramMessageProcessorService implements MessageTrackingInterface
      */
     private function processVoiceMessage(array $message): array
     {
+        $this->trackMethod('processVoiceMessage', ['message' => $message]);
+
         try {
             $chatId = $message['chat']['id'];
             $voice = $message['voice'];
@@ -123,7 +125,9 @@ class TelegramMessageProcessorService implements MessageTrackingInterface
                     (string) $chatId
                 );
 
-                return $this->createErrorResult('Speech-to-text service not available');
+                $result = $this->createErrorResult('Speech-to-text service not available');
+                $this->endMethod('processVoiceMessage', ['result' => $result, 'error' => 'speech_service_unavailable']);
+                return $result;
             }
 
             // Send processing message
@@ -217,6 +221,7 @@ class TelegramMessageProcessorService implements MessageTrackingInterface
             $result['original_voice'] = $voice;
             $result['recognized_text'] = $text;
 
+            $this->endMethod('processVoiceMessage', ['result' => $result, 'recognized_text' => $text]);
             return $result;
 
         } catch (\Exception $e) {
@@ -226,7 +231,9 @@ class TelegramMessageProcessorService implements MessageTrackingInterface
                 'message' => $message
             ]);
 
-            return $this->createErrorResult('Voice processing failed: ' . $e->getMessage());
+            $result = $this->createErrorResult('Voice processing failed: ' . $e->getMessage());
+            $this->endMethod('processVoiceMessage', ['result' => $result, 'error' => $e->getMessage()]);
+            return $result;
         }
     }
 
