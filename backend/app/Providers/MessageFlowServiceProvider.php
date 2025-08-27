@@ -13,8 +13,8 @@ class MessageFlowServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Registra a interface para injeção de dependência
-        $this->app->bind(MessageFlowTrackerInterface::class, MessageFlowTrackerService::class);
+        // Registra a interface como singleton para compartilhar a mesma instância
+        $this->app->singleton(MessageFlowTrackerInterface::class, MessageFlowTrackerService::class);
     }
 
     /**

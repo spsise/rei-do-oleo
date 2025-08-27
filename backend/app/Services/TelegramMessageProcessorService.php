@@ -518,7 +518,7 @@ class TelegramMessageProcessorService implements MessageTrackingInterface
     public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
     {
         $className = class_basename($this);
-        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+        $this->flowTracker->trackMethod($className, $methodName, $inputData, $outputData);
     }
 
     /**
@@ -527,6 +527,18 @@ class TelegramMessageProcessorService implements MessageTrackingInterface
     public function endMethod(string $methodName, array $outputData = []): void
     {
         $className = class_basename($this);
-        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
+        $this->flowTracker->endMethod($className, $methodName, $outputData);
+    }
+
+    /**
+     * Debug: Verifica se o flowTracker está funcionando
+     */
+    public function debugFlowTracker(): array
+    {
+        return [
+            'flow_tracker_class' => get_class($this->flowTracker),
+            'flow_tracker_enabled' => $this->flowTracker->isEnabled(),
+            'this_class' => get_class($this)
+        ];
     }
 }

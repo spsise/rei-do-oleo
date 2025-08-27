@@ -397,7 +397,7 @@ class TelegramCommandParser implements MessageTrackingInterface
     public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
     {
         $className = class_basename($this);
-        $this->flowTracker->trackMethodInternal($className, $methodName, $inputData, $outputData);
+        $this->flowTracker->trackMethod($className, $methodName, $inputData, $outputData);
     }
 
     /**
@@ -406,6 +406,6 @@ class TelegramCommandParser implements MessageTrackingInterface
     public function endMethod(string $methodName, array $outputData = []): void
     {
         $className = class_basename($this);
-        $this->flowTracker->endMethodInternal($className, $methodName, $outputData);
+        $this->flowTracker->endMethod($className, $methodName, $outputData);
     }
 }

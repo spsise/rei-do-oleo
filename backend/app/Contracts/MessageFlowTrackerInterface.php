@@ -4,9 +4,9 @@ namespace App\Contracts;
 
 interface MessageFlowTrackerInterface
 {
-    // Internal tracking methods (used by trait)
-    public function trackMethodInternal(string $className, string $methodName, array $inputData = [], array $outputData = []): void;
-    public function endMethodInternal(string $className, string $methodName, array $outputData = []): void;
+    // Core tracking methods
+    public function trackMethod(string $className, string $methodName, array $inputData = [], array $outputData = []): void;
+    public function endMethod(string $className, string $methodName, array $outputData = []): void;
 
     // Report generation
     public function generateFlowReport(array $payload): string;
