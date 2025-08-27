@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'enabled' => env('MESSAGE_FLOW_TRACKING_ENABLED', true),
+    'enabled' => env('MESSAGE_FLOW_TRACKING_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------
