@@ -12,9 +12,11 @@ services:
       - ~/.ssh:/home/vscode/.ssh-localhost:ro
     command: sleep infinity
     networks:
-      - reidooleo-simple
+      - reidooleo-dev
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       - DISPLAY=:0
@@ -25,13 +27,8 @@ services:
       - DB_DATABASE=rei_do_oleo_dev
       - DB_USERNAME=rei_do_oleo
       - DB_PASSWORD=secret123
-      # Configurações simplificadas - sem Redis
-      - CACHE_DRIVER=file
-      - SESSION_DRIVER=file
-      - QUEUE_CONNECTION=sync
-      # Configurações de email simplificadas
-      - MAIL_MAILER=log
-      - MAIL_LOG_CHANNEL=null
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:
@@ -39,7 +36,7 @@ services:
       - '3000:3000' # React Frontend
       - '5200:5173' # Vite Dev Server
 
-  # 🗄️ MySQL Database 8.0 (Essencial)
+  # 🗄️ MySQL Database 8.0
   mysql:
     image: mysql:8.0
     restart: unless-stopped
@@ -63,7 +60,7 @@ services:
     ports:
       - '3310:3306'
     networks:
-      - reidooleo-simple
+      - reidooleo-dev
     healthcheck:
       test:
         [
@@ -82,7 +79,25 @@ services:
       retries: 5
       start_period: 60s
 
-  # 💾 phpMyAdmin - Interface Web MySQL (Opcional mas útil)
+  # 📦 Redis Cache & Sessions 7.x
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis-data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - '6400:6379'
+    networks:
+      - reidooleo-dev
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 💾 phpMyAdmin - Interface Web MySQL
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     restart: unless-stopped
@@ -97,17 +112,44 @@ services:
     ports:
       - '8110:80'
     networks:
-      - reidooleo-simple
+      - reidooleo-dev
     depends_on:
       mysql:
         condition: service_healthy
 
+  # 🔍 Redis Commander - Interface Web Redis
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: secret123
+    ports:
+      - '6410:8081'
+    networks:
+      - reidooleo-dev
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # 📧 MailHog - Captura de Emails (Desenvolvimento)
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - '1030:1025' # SMTP
+      - '8030:8025' # Web UI
+    networks:
+      - reidooleo-dev
+
 volumes:
   vscode-extensions:
   mysql-data:
+  redis-data:
   composer-cache:
   npm-cache:
 
 networks:
-  reidooleo-simple:
-    name: devcontainer_reidooleo-simple
+  reidooleo-dev:
+    name: devcontainer_reidooleo-dev

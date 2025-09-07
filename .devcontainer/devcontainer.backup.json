@@ -1,6 +1,6 @@
 {
-  "name": "🛠️ Rei do Óleo - Ambiente Simplificado",
-  "dockerComposeFile": "docker-compose.simple.yml",
+  "name": "🛠️ Rei do Óleo - Full Stack Development Environment",
+  "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
@@ -156,11 +156,13 @@
 
   "forwardPorts": [
     8000, // Laravel API
-    3000, // React Frontend
+    3000, // React Vite Dev Server
     3306, // MySQL Database
+    6379, // Redis Cache
     8080, // phpMyAdmin
+    6380, // Redis Commander
     9000, // PHP-FPM
-    5173  // Vite Alternative Port
+    5173 // Vite Alternative Port
   ],
 
   "portsAttributes": {
@@ -183,16 +185,25 @@
       "label": "🗄️ MySQL Database",
       "onAutoForward": "ignore"
     },
+    "6379": {
+      "label": "📦 Redis Cache",
+      "onAutoForward": "ignore"
+    },
     "8080": {
       "label": "💾 phpMyAdmin",
+      "onAutoForward": "silent",
+      "protocol": "http"
+    },
+    "6380": {
+      "label": "🔍 Redis Commander",
       "onAutoForward": "silent",
       "protocol": "http"
     }
   },
 
-  "postCreateCommand": "bash /workspace/.devcontainer/scripts/setup-simple.sh",
-  "postStartCommand": "bash /workspace/.devcontainer/scripts/start-simple.sh",
-  "postAttachCommand": "bash /workspace/.devcontainer/scripts/welcome-simple.sh",
+  "postCreateCommand": "bash /workspace/.devcontainer/scripts/setup.sh",
+  "postStartCommand": "bash /workspace/.devcontainer/scripts/start.sh",
+  "postAttachCommand": "bash /workspace/.devcontainer/scripts/welcome.sh",
 
   "remoteUser": "vscode",
 
