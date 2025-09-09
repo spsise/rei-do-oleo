@@ -1,0 +1,160 @@
+[[:templates_ai|{{wiki:user:undo_24.png}}]]
+
+====== .cursorrules Laravel Senior Padrão ======
+
+===== 📋 Visão Geral =====
+
+Template completo de .cursorrules para desenvolvimento Laravel Senior com padrões avançados, otimizado para Cursor AI.
+
+===== 🚀 Comando de Criação =====
+
+<code bash>
+crie um .cursorrules laravel senior padrão
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+Antes de usar este template, certifique-se de ter:
+
+  * **Cursor AI** (versão mais recente)
+  * **Laravel** instalado
+  * **PHP** configurado
+  * **Composer** para dependências
+
+===== 📁 Estrutura do Arquivo =====
+
+O arquivo .cursorrules será criado na raiz do projeto com:
+
+<code>
+projeto/
+└── .cursorrules          # Arquivo principal de regras
+</code>
+
+===== 🔧 Passo a Passo Detalhado =====
+
+=== Passo 1: Preparação do Ambiente ===
+
+1. **Verificações:**
+   * Verificação de estrutura Laravel existente
+   * Criação do arquivo .cursorrules na raiz
+   * Configuração de regras específicas do projeto
+
+=== Passo 2: Configuração Automática ===
+
+O sistema realizará automaticamente:
+
+1. **Configuração de regras:**
+   * Padrões de código Laravel
+   * Regras de nomenclatura em inglês
+   * Estrutura de commits padronizada
+   * Verificações de consistência
+
+2. **Integração com ferramentas:**
+   * PHPStan para análise estática
+   * Laravel Pint para formatação
+   * PHPUnit para testes
+   * Composer para dependências
+
+===== 🔍 Troubleshooting =====
+
+=== Problemas Comuns ===
+
+1. **Arquivo não reconhecido:**
+   * Verificar se está na raiz do projeto
+
+2. **Regras não aplicadas:**
+   * Verificar sintaxe do arquivo
+   * Confirmar permissões de leitura
+
+3. **Conflitos com outros .cursorrules:**
+   * Remover arquivos duplicados
+   * Manter apenas um arquivo principal
+
+===== Scripts =====
+
+=== .cursorrules Completo ===
+
+<code>
+# Laravel Senior Development Rules
+# Version: 1.0.0
+# Author: Cursor AI Assistant
+
+# ===== REGRAS CRÍTICAS =====
+rules:
+  # 1. CÓDIGO EM INGLÊS OBRIGATÓRIO
+  english_code:
+    description: "TODO código deve ser escrito em inglês"
+    classes: "UserController, OrderService, ProductRepository"
+    methods: "createUser(), processOrder(), validateEmail()"
+    variables: "$userData, $orderTotal, $productList"
+    interfaces: "UserInterface, OrderRepositoryInterface"
+    enums: "OrderStatus, PaymentMethod"
+    migrations: "create_users_table, add_email_to_orders_table"
+
+  # 2. PADRÕES DE COMMIT
+  commit_patterns:
+    backend: "🐘 Backend ✨ feat: Curta Descrição"
+    frontend: "⚛️ Frontend ✨ feat: Curta Descrição"
+    devops: "🐳 DevOps 🚀 deploy: Curta Descrição"
+    docs: "📝 Docs ✨ feat: Curta Descrição"
+    prefixes:
+      - "📝 docs: Alterações em documentação"
+      - "✨ feat: Novas funcionalidades"
+      - "🐛 fix: Correções de bugs"
+      - "♻️ refactor: Refatoração de código"
+      - "🎨 style: Formatação e estilo"
+      - "⚡ perf: Melhorias de performance"
+      - "🔧 chore: Tarefas de manutenção"
+      - "🔥 remove: Remoção de código/arquivos"
+      - "🚀 deploy: Alterações de deploy"
+
+# ===== ESTRUTURA DE ARQUIVOS =====
+file_structure:
+  backend:
+    controllers: "app/Http/Controllers/Api/"
+    models: "app/Models/"
+    services: "app/Services/"
+    repositories: "app/Repositories/"
+    requests: "app/Http/Requests/"
+    resources: "app/Http/Resources/"
+    migrations: "database/migrations/"
+    seeders: "database/seeders/"
+    factories: "database/factories/"
+    tests: "tests/"
+  
+  frontend:
+    components: "src/components/"
+    pages: "src/pages/"
+    hooks: "src/hooks/"
+    services: "src/services/"
+    types: "src/types/"
+    utils: "src/utils/"
+    tests: "__tests__/"
+
+</code>
+
+===== 📋 Checklist de Implementação =====
+
+=== Antes de Usar ===
+
+  * [ ] Verificar se o Cursor AI está atualizado
+  * [ ] Confirmar estrutura do projeto Laravel
+  * [ ] Validar permissões de escrita na raiz
+  * [ ] Fazer backup do projeto atual
+
+=== Durante a Implementação ===
+
+  * [ ] Executar comando de criação
+  * [ ] Verificar se arquivo foi criado corretamente
+  * [ ] Testar regras com funcionalidade simples
+  * [ ] Validar comandos de verificação
+
+=== Após a Implementação ===
+
+  * [ ] Testar criação de funcionalidade
+  * [ ] Verificar aplicação das regras
+  * [ ] Documentar customizações necessárias
+
+=== Customizações ===
+
+  * Adaptar regras para domínio específico
