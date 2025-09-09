@@ -1,0 +1,843 @@
+[[:templates_ai:funcionalidades:laravel:telegram_bot_passos|{{wiki:user:undo_24.png}}]]
+
+====== Passo 02: Sistema de Canais de Notificação - Telegram Webhook ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Sistema de canais de notificação que permite comunicação com diferentes serviços externos. Focado no canal do Telegram, mas extensível para outros canais. Depende do sistema de logging e pode ser reutilizado em outros projetos.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar sistema canais notificacao telegram
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+  - **Sistema de Logging** implementado
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
+  - **Guzzle HTTP** para requisições
+  - **Bot Token** do Telegram
+
+===== 📁 Arquivos do Módulo =====
+
+=== 🏗️ Contracts ===
+
+  * **`app/Contracts/NotificationChannelInterface.php`**
+    - Interface para canais de notificação
+    - Define métodos padrão para envio de mensagens
+    - Permite extensibilidade para outros canais
+
+=== 🔧 Services ===
+
+  * **`app/Services/Channels/TelegramChannel.php`**
+    - Implementação do canal do Telegram
+    - Envio de mensagens de texto
+    - Envio de teclados inline
+    - Upload de arquivos
+    - Integração com Bot API
+
+=== ⚙️ Configurações ===
+
+  * **`config/services.php`** (atualização)
+    - Configuração do Telegram
+    - Bot token e URLs
+    - Configurações de rate limiting
+
+===== 🔧 Implementação Passo a Passo =====
+
+=== Passo 1: Criar Interface ===
+
+<code php>
+<?php
+
+namespace App\Contracts;
+
+interface NotificationChannelInterface
+{
+    /**
+     * Send text message
+     *
+     * @param string $message
+     * @param string|null $recipient
+     * @return array
+     */
+    public function sendTextMessage(string $message, ?string $recipient = null): array;
+
+    /**
+     * Send notification with data
+     *
+     * @param array $data
+     * @return array
+     */
+    public function sendNotification(array $data): array;
+
+    /**
+     * Test connection
+     *
+     * @return array
+     */
+    public function testConnection(): array;
+
+    /**
+     * Get channel name
+     *
+     * @return string
+     */
+    public function getChannelName(): string;
+
+    /**
+     * Check if channel is enabled
+     *
+     * @return bool
+     */
+    public function isEnabled(): bool;
+}
+</code>
+
+=== Passo 2: Implementar Canal do Telegram ===
+
+<code php>
+<?php
+
+namespace App\Services\Channels;
+
+use App\Contracts\NotificationChannelInterface;
+use App\Contracts\LoggingServiceInterface;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
+
+class TelegramChannel implements NotificationChannelInterface, MessageTrackingInterface
+{
+    private string $botToken;
+    private string $apiUrl;
+    private array $recipients;
+
+    public function __construct(
+        private MessageFlowTrackerInterface $flowTracker,
+        private ?LoggingServiceInterface $loggingService = null
+    ) {
+        $this->initializeTracking();
+        $this->botToken = config('services.telegram.bot_token', '');
+        $this->apiUrl = "https://api.telegram.org/bot{$this->botToken}";
+        $this->recipients = config('services.telegram.recipients', []);
+    }
+
+    /**
+     * Send text message via Telegram
+     *
+     * @param string $message
+     * @param string|null $recipient
+     * @return array
+     */
+    public function sendTextMessage(string $message, ?string $recipient = null): array
+    {
+        $this->trackMethod('sendTextMessage', ['message' => $message, 'recipient' => $recipient]);
+
+        if (!$this->isEnabled()) {
+            $result = [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+
+            $this->endMethod('sendTextMessage', ['result' => $result, 'status' => 'disabled']);
+            return $result;
+        }
+
+        try {
+            if ($recipient) {
+                return $this->sendToRecipient($recipient, $message);
+            }
+
+            // Send to all configured recipients
+            if (empty($this->recipients)) {
+                $result = [
+                    'success' => false,
+                    'error' => 'No Telegram recipients configured'
+                ];
+
+                $this->endMethod('sendTextMessage', ['result' => $result, 'status' => 'no_recipients']);
+                return $result;
+            }
+
+            $results = [];
+            foreach ($this->recipients as $recipient) {
+                $results[$recipient] = $this->sendToRecipient($recipient, $message);
+            }
+
+            $successCount = count(array_filter($results, fn($r) => $r['success']));
+
+            $result = [
+                'success' => $successCount > 0,
+                'sent_to' => $successCount,
+                'total_recipients' => count($results),
+                'results' => $results
+            ];
+
+            $this->endMethod('sendTextMessage', ['result' => $result, 'status' => 'success']);
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Telegram channel error', [
+                'error' => $e->getMessage(),
+                'message' => $message
+            ]);
+
+            $result = [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+
+            $this->endMethod('sendTextMessage', ['result' => $result, 'error' => $e->getMessage()]);
+            return $result;
+        }
+    }
+
+    /**
+     * Send message with inline keyboard via Telegram
+     *
+     * @param string $message
+     * @param string $chatId
+     * @param array $keyboard
+     * @return array
+     */
+    public function sendMessageWithKeyboard(string $message, string $chatId, array $keyboard): array
+    {
+        $this->trackMethod('sendMessageWithKeyboard', ['message' => $message, 'chat_id' => $chatId, 'keyboard' => $keyboard]);
+        if (!$this->isEnabled()) {
+            $result = [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+            $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'status' => 'disabled']);
+            return $result;
+        }
+
+        try {
+            $response = Http::post("{$this->apiUrl}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $message,
+                'parse_mode' => 'Markdown',
+                'reply_markup' => [
+                    'inline_keyboard' => $keyboard
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $result = [
+                    'success' => true,
+                    'message_id' => $data['result']['message_id'] ?? null,
+                    'response' => $data
+                ];
+                $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'status' => 'success']);
+                return $result;
+            }
+
+            $result = [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+            $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'status' => 'http_error']);
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Telegram keyboard message error', [
+                'error' => $e->getMessage(),
+                'message' => $message,
+                'chat_id' => $chatId
+            ]);
+
+            $result = [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+            $this->endMethod('sendMessageWithKeyboard', ['result' => $result, 'error' => $e->getMessage()]);
+            return $result;
+        }
+    }
+
+    /**
+     * Answer callback query (for inline keyboard buttons)
+     *
+     * @param string $callbackQueryId
+     * @param string|null $text
+     * @param bool $showAlert
+     * @return array
+     */
+    public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $data = [
+                'callback_query_id' => $callbackQueryId
+            ];
+
+            if ($text) {
+                $data['text'] = $text;
+            }
+
+            if ($showAlert) {
+                $data['show_alert'] = $showAlert;
+            }
+
+            $response = Http::post("{$this->apiUrl}/answerCallbackQuery", $data);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Telegram answer callback query error', [
+                'error' => $e->getMessage(),
+                'callback_query_id' => $callbackQueryId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send notification with data via Telegram
+     *
+     * @param array $data
+     * @return array
+     */
+    public function sendNotification(array $data): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $message = $this->formatNotificationMessage($data);
+            return $this->sendTextMessage($message);
+        } catch (\Exception $e) {
+            Log::error('Telegram notification error', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Test Telegram connection
+     *
+     * @return array
+     */
+    public function testConnection(): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::get("{$this->apiUrl}/getMe");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'bot_name' => $data['result']['first_name'] ?? 'Unknown',
+                    'bot_username' => $data['result']['username'] ?? 'Unknown',
+                    'bot_id' => $data['result']['id'] ?? 'Unknown'
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get channel name
+     *
+     * @return string
+     */
+    public function getChannelName(): string
+    {
+        return 'telegram';
+    }
+
+    /**
+     * Check if Telegram channel is enabled
+     *
+     * @return bool
+     */
+    public function isEnabled(): bool
+    {
+        return config('services.telegram.enabled', true) &&
+               !empty($this->botToken) &&
+               !empty($this->recipients);
+    }
+
+    /**
+     * Send message to specific recipient
+     *
+     * @param string $chatId
+     * @param string $message
+     * @return array
+     */
+    private function sendToRecipient(string $chatId, string $message): array
+    {
+        try {
+            $response = Http::post("{$this->apiUrl}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $message,
+                'parse_mode' => 'Markdown'
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'message_id' => $data['result']['message_id'] ?? null,
+                    'response' => $data
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Format notification message for Telegram
+     *
+     * @param array $data
+     * @return string
+     */
+    private function formatNotificationMessage(array $data): string
+    {
+        $status = $data['status'] ?? 'unknown';
+        $branch = $data['branch'] ?? 'unknown';
+        $commit = $data['commit'] ?? 'unknown';
+        $message = $data['message'] ?? 'no message';
+        $timestamp = $data['timestamp'] ?? now()->format('d/m/Y H:i:s');
+
+        $emoji = $status === 'success' ? '✅' : ($status === 'error' ? '❌' : '⚠️');
+        $statusText = $status === 'success' ? 'SUCESSO' : ($status === 'error' ? 'ERRO' : 'ATENÇÃO');
+
+        return "🚀 *DEPLOY NOTIFICATION*\n\n" .
+               "{$emoji} *Status:* {$statusText}\n" .
+               "🌿 *Branch:* {$branch}\n" .
+               "🔗 *Commit:* {$commit}\n" .
+               "💬 *Message:* {$message}\n" .
+               "⏰ *Timestamp:* {$timestamp}\n\n" .
+               "Sistema: Rei do Óleo";
+    }
+
+    /**
+     * Get file info from Telegram
+     */
+    public function getFile(string $fileId): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::get("{$this->apiUrl}/getFile", [
+                'file_id' => $fileId
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'file_path' => $data['result']['file_path'] ?? null,
+                    'file_size' => $data['result']['file_size'] ?? null,
+                    'file_id' => $data['result']['file_id'] ?? null
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error',
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Telegram get file error', [
+                'error' => $e->getMessage(),
+                'file_id' => $fileId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send typing indicator
+     */
+    public function sendTypingIndicator(string $chatId): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::post("{$this->apiUrl}/sendChatAction", [
+                'chat_id' => $chatId,
+                'action' => 'typing'
+            ]);
+
+            return [
+                'success' => $response->successful(),
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send document via Telegram
+     */
+    public function sendDocument(string $chatId, string $filePath, string $caption = ''): array
+    {
+        $this->trackMethod('sendDocument', ['chat_id' => $chatId, 'file_path' => $filePath, 'caption' => $caption]);
+
+        if (!$this->isEnabled()) {
+            $result = [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+
+            $this->endMethod('sendDocument', ['result' => $result, 'status' => 'disabled']);
+            return $result;
+        }
+
+        if (!file_exists($filePath)) {
+            $result = [
+                'success' => false,
+                'error' => 'File not found: ' . $filePath
+            ];
+
+            $this->endMethod('sendDocument', ['result' => $result, 'status' => 'file_not_found']);
+            return $result;
+        }
+
+        try {
+            // Send upload document indicator
+            $this->sendUploadDocumentIndicator($chatId);
+
+            $response = Http::attach(
+                'document', file_get_contents($filePath), basename($filePath)
+            )->post("{$this->apiUrl}/sendDocument", [
+                'chat_id' => $chatId,
+                'caption' => $caption,
+                'parse_mode' => 'Markdown'
+            ]);
+
+            $result = [
+                'success' => $response->successful(),
+                'status' => $response->status(),
+                'data' => $response->json(),
+                'response_body' => $response->body()
+            ];
+
+            if (!$response->successful()) {
+                if ($this->loggingService) {
+                    $this->loggingService->logTelegramEvent('document_send_failed', [
+                        'chat_id' => $chatId,
+                        'file_path' => $filePath,
+                        'status' => $response->status(),
+                        'response' => $response->body()
+                    ], 'error');
+                } else {
+                    Log::error('Failed to send document via Telegram', [
+                        'chat_id' => $chatId,
+                        'file_path' => $filePath,
+                        'status' => $response->status(),
+                        'response' => $response->body()
+                    ]);
+                }
+            } else {
+                if ($this->loggingService) {
+                    $this->loggingService->logTelegramEvent('document_sent_successfully', [
+                        'chat_id' => $chatId,
+                        'file_name' => basename($filePath),
+                        'file_size' => filesize($filePath)
+                    ], 'info');
+                } else {
+                    Log::info('Document sent successfully via Telegram', [
+                        'chat_id' => $chatId,
+                        'file_name' => basename($filePath),
+                        'file_size' => filesize($filePath)
+                    ]);
+                }
+            }
+
+            $this->endMethod('sendDocument', ['result' => $result]);
+            return $result;
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logTelegramEvent('document_send_exception', [
+                    'chat_id' => $chatId,
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage()
+                ], 'error');
+            } else {
+                Log::error('Exception while sending document via Telegram', [
+                    'chat_id' => $chatId,
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            $result = [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+
+            $this->endMethod('sendDocument', ['result' => $result, 'status' => 'exception']);
+            return $result;
+        }
+    }
+
+    /**
+     * Send upload document indicator
+     */
+    public function sendUploadDocumentIndicator(string $chatId): array
+    {
+        if (!$this->isEnabled()) {
+            return [
+                'success' => false,
+                'error' => 'Telegram channel is disabled'
+            ];
+        }
+
+        try {
+            $response = Http::post("{$this->apiUrl}/sendChatAction", [
+                'chat_id' => $chatId,
+                'action' => 'upload_document'
+            ]);
+
+            return [
+                'success' => $response->successful(),
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethod($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethod($className, $methodName, $outputData);
+    }
+}
+</code>
+
+=== Passo 3: Configurar Services ===
+
+#config/services.php
+<code php>
+
+    ...
+
+    'telegram' => [
+        'enabled' => env('TELEGRAM_ENABLED', false),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET', ''),
+        'recipients' => array_filter(explode(',', env('TELEGRAM_RECIPIENTS', ''))),
+    ],
+
+    ...
+
+</code>
+
+=== Passo 4: Registrar no Container ===
+
+#app/Providers/TelegramServiceProvider.php 
+<code php>
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App\Services\Channels\TelegramChannel;
+
+
+class TelegramServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton(TelegramChannel::class);
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}
+
+</code>
+
+=== Passo 5: Registrar Provider ===
+
+#config/app.php
+<code php>
+'providers' => [
+    // ... outros providers
+    App\Providers\TelegramServiceProvider::class,
+],
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] Interface `NotificationChannelInterface` criada
+  - [ ] Canal `TelegramChannel` implementado
+  - [ ] Configuração `services.php` atualizada
+  - [ ] Registro no container de dependência
+  - [ ] Integração com sistema de logging
+  - [ ] Suporte a tracking de mensagens
+
+=== Comandos de Validação ===
+
+<code bash>
+
+# Verificar configuração
+php artisan config:cache
+php artisan config:show services.telegram
+
+# Testar canal
+php artisan tinker
+# >>> $channel = app(\App\Contracts\NotificationChannelInterface::class);
+# >>> $channel->isAvailable();
+# >>> $channel->getBotInfo();
+</code>
