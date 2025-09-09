@@ -1,0 +1,1852 @@
+[[:templates_ai:funcionalidades:laravel:telegram_bot_passos|{{wiki:user:undo_24.png}}]]
+
+====== Passo 00: Implementar sistema activity log spatie ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Sistema de Activity Log usando o pacote Spatie Laravel Activity Log, que serve como base para o sistema de logging do Telegram Webhook. Este módulo deve ser implementado antes de qualquer outro sistema de logging.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar sistema activity log spatie
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
+  - **Composer** para dependências
+  - **MySQL/PostgreSQL** para banco de dados
+  - **Redis** para cache (recomendado)
+
+===== 🔧 Implementação Passo a Passo =====
+
+==== Passo 1: Instalar Pacote ====
+
+<code bash>
+# Instalar o pacote Spatie Activity Log
+composer require spatie/laravel-activitylog
+
+# Publicar as migrations
+php artisan vendor:publish --provider="Spatie\Activitylog\ActivitylogServiceProvider" --tag="activitylog-migrations"
+
+# Publicar a configuração
+php artisan vendor:publish --provider="Spatie\Activitylog\ActivitylogServiceProvider" --tag="activitylog-config"
+</code>
+
+==== Passo 2: Verificar Configuração Existente ====
+
+<code bash>
+# Verificar se a configuração já existe
+php artisan config:show activitylog
+
+# Verificar se as migrations foram executadas
+php artisan migrate:status | grep activity_log
+</code>
+
+==== Passo 3: Verificar Migrations ====
+
+<code bash>
+# Verificar se as migrations já foram executadas
+php artisan migrate:status | grep activity_log
+
+# Verificar se as tabelas existem
+php artisan tinker
+# >>> Schema::hasTable('activity_log');
+# >>> Schema::hasColumn('activity_log', 'event');
+# >>> Schema::hasColumn('activity_log', 'batch_uuid');
+</code>
+
+**Nota:** Se alguma migration estiver pendente, execute:
+<code bash>
+php artisan migrate
+</code>
+
+==== Passo 4: Verificar Service Existente ====
+
+# Verificar se o service existe e está funcionando
+LoggingServiceInterface
+
+**se não existir implementar Interface (`LoggingServiceInterface`):**
+<code php>
+<?php
+
+namespace App\Contracts;
+
+use Illuminate\Http\Request;
+
+interface LoggingServiceInterface
+{
+    /**
+     * Log API requests and responses
+     */
+    public function logApiRequest(Request $request, array $context = []): void;
+
+    /**
+     * Log API responses
+     */
+    public function logApiResponse(int $statusCode, array $response, float $duration, array $context = []): void;
+
+    /**
+     * Log business operations
+     */
+    public function logBusinessOperation(string $operation, array $data, string $status = 'success', array $context = []): void;
+
+    /**
+     * Log security events
+     */
+    public function logSecurityEvent(string $event, array $data, string $level = 'warning', array $context = []): void;
+
+    /**
+     * Log performance metrics
+     */
+    public function logPerformance(string $operation, float $duration, array $metrics = [], array $context = []): void;
+
+    /**
+     * Log audit trail
+     */
+    public function logAudit(string $action, string $model, int $modelId, array $changes = [], array $context = []): void;
+
+    /**
+     * Log Telegram bot events
+     */
+    public function logTelegramEvent(string $event, array $data, string $level = 'info', array $context = []): void;
+
+    /**
+     * Log WhatsApp events
+     */
+    public function logWhatsAppEvent(string $event, array $data, string $level = 'info', array $context = []): void;
+
+    /**
+     * Log exceptions with context
+     */
+    public function logException(\Throwable $exception, array $context = []): void;
+
+    /**
+     * Get log statistics
+     */
+    public function getLogStats(): array;
+}
+
+</code>
+
+# Verificar se o service existe e está funcionando
+ActivityLoggingService
+
+**se não existir implementar Interface (`ActivityLoggingService`):**
+
+**Métodos principais do `ActivityLoggingService` atual:**
+<code php>
+<?php
+
+namespace App\Services;
+
+use App\Contracts\LoggingServiceInterface;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
+use Spatie\Activitylog\ActivityLogger;
+
+class ActivityLoggingService implements LoggingServiceInterface
+{
+    /**
+     * Check if a specific log type should be recorded
+     */
+    private function shouldLog(string $type, string $operation = ''): bool
+    {
+        try {
+            $filters = config('unified-logging.filters', []);
+            return $filters[$type] ?? false;
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::shouldLog failed', [
+                'type' => $type,
+                'operation' => $operation,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Log API requests and responses
+     */
+    public function logApiRequest(Request $request, array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('api_requests')) {
+                return;
+            }
+
+            activity()
+                ->causedBy($request->user())
+                ->withProperties([
+                    'request_id' => uniqid('api_', true),
+                    'method' => $request->method(),
+                    'url' => $request->fullUrl(),
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'headers' => $this->sanitizeHeaders($request->headers->all()),
+                    'body' => $request->method() !== 'GET' ? $this->sanitizeBody($request->all()) : null,
+                    'context' => $context,
+                    'log_type' => 'api_requests',
+                ])
+                ->log('API Request: ' . $request->method() . ' ' . $request->path());
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logApiRequest failed', [
+                'request_method' => $request->method(),
+                'request_url' => $request->fullUrl(),
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log API responses
+     */
+    public function logApiResponse(int $statusCode, array $response, float $duration, array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('api_responses')) {
+                return;
+            }
+
+            $logData = [
+                'status_code' => $statusCode,
+                'duration_ms' => round($duration, 2),
+                'response_size' => strlen(json_encode($response)),
+                'context' => $context,
+            ];
+
+            if ($statusCode >= 400) {
+                $logData['error_response'] = $response;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties(array_merge($logData, ['log_type' => 'api_responses']))
+                ->log('API Response: ' . $statusCode . ' (' . round($duration, 2) . 'ms)');
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logApiResponse failed', [
+                'status_code' => $statusCode,
+                'duration' => $duration,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log business operations
+     */
+    public function logBusinessOperation(string $operation, array $data, string $status = 'success', array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('business_operations')) {
+                return;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'operation' => $operation,
+                    'status' => $status,
+                    'data' => $this->sanitizeBusinessData($data),
+                    'context' => $context,
+                    'log_type' => 'business_operations',
+                ])
+                ->log('Business Operation: ' . $operation . ' (' . $status . ')');
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logBusinessOperation failed', [
+                'operation' => $operation,
+                'status' => $status,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log security events
+     */
+    public function logSecurityEvent(string $event, array $data, string $level = 'warning', array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('security_events')) {
+                return;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'event' => $event,
+                    'level' => $level,
+                    'ip' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'data' => $this->sanitizeSecurityData($data),
+                    'context' => $context,
+                    'log_type' => 'security_events',
+                ])
+                ->log('Security Event: ' . $event . ' (' . $level . ')');
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logSecurityEvent failed', [
+                'event' => $event,
+                'level' => $level,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log performance metrics
+     */
+    public function logPerformance(string $operation, float $duration, array $metrics = [], array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('performance')) {
+                return;
+            }
+
+            $logData = [
+                'operation' => $operation,
+                'duration_ms' => round($duration, 2),
+                'memory_usage' => memory_get_usage(true),
+                'peak_memory' => memory_get_peak_usage(true),
+                'metrics' => $metrics,
+                'context' => $context,
+            ];
+
+            $description = 'Performance: ' . $operation . ' (' . round($duration, 2) . 'ms)';
+
+            $slowThreshold = config('unified-logging.performance.slow_operation_threshold', 1000);
+            $criticalThreshold = config('unified-logging.performance.critical_operation_threshold', 5000);
+
+            if ($duration > $criticalThreshold) {
+                $description .= ' [CRITICAL]';
+            } elseif ($duration > $slowThreshold) {
+                $description .= ' [SLOW]';
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties(array_merge($logData, ['log_type' => 'performance']))
+                ->log($description);
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logPerformance failed', [
+                'operation' => $operation,
+                'duration' => $duration,
+                'metrics' => $metrics,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log audit trail
+     */
+    public function logAudit(string $action, string $model, int $modelId, array $changes = [], array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('audit')) {
+                return;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'action' => $action,
+                    'model' => $model,
+                    'model_id' => $modelId,
+                    'changes' => $changes,
+                    'context' => $context,
+                    'log_type' => 'audit_trail',
+                ])
+                ->log('Audit: ' . $action . ' on ' . $model . ' (ID: ' . $modelId . ')');
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logAudit failed', [
+                'action' => $action,
+                'model' => $model,
+                'model_id' => $modelId,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log Telegram bot events
+     */
+    public function logTelegramEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('telegram_event')) {
+                return;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'event' => $event,
+                    'level' => $level,
+                    'chat_id' => $data['chat_id'] ?? null,
+                    'user_id' => $data['user_id'] ?? null,
+                    'message_type' => $data['message_type'] ?? null,
+                    'data' => $this->sanitizeTelegramData($data),
+                    'context' => $context,
+                    'log_type' => 'telegram_events',
+                ])
+                ->log('Telegram Event: ' . $event . ' (' . $level . ')');
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logTelegramEvent failed', [
+                'event' => $event,
+                'level' => $level,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log WhatsApp events
+     */
+    public function logWhatsAppEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('whatsapp')) {
+                return;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'event' => $event,
+                    'level' => $level,
+                    'phone' => $data['phone'] ?? null,
+                    'message_type' => $data['message_type'] ?? null,
+                    'data' => $this->sanitizeWhatsAppData($data),
+                    'context' => $context,
+                    'log_type' => 'whatsapp_events',
+                ])
+                ->log('WhatsApp Event: ' . $event . ' (' . $level . ')');
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logWhatsAppEvent failed', [
+                'event' => $event,
+                'level' => $level,
+                'context' => $context,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Log exceptions with context
+     */
+    public function logException(\Throwable $exception, array $context = []): void
+    {
+        try {
+            if (!$this->shouldLog('exceptions')) {
+                return;
+            }
+
+            activity()
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'exception' => get_class($exception),
+                    'message' => $exception->getMessage(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'trace' => $exception->getTraceAsString(),
+                    'request_url' => request()->fullUrl(),
+                    'request_method' => request()->method(),
+                    'context' => $context,
+                    'log_type' => 'exceptions',
+                ])
+                ->log('Exception: ' . get_class($exception) . ' - ' . $exception->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::logException failed', [
+                'original_exception' => get_class($exception),
+                'original_message' => $exception->getMessage(),
+                'context' => $context,
+                'logging_error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+        }
+    }
+
+    /**
+     * Get log statistics from Activity Log
+     */
+    public function getLogStats(): array
+    {
+        try {
+            $activityModel = \Spatie\Activitylog\Models\Activity::class;
+
+            $stats = [
+                'total_logs' => $activityModel::count(),
+                'logs_by_type' => $activityModel::select('log_name', DB::raw('count(*) as count'))
+                    ->groupBy('log_name')
+                    ->orderBy('count', 'desc')
+                    ->get()
+                    ->pluck('count', 'log_name')
+                    ->toArray(),
+                'recent_activity' => $activityModel::latest()
+                    ->take(5)
+                    ->get()
+                    ->map(function ($activity) {
+                        return [
+                            'id' => $activity->id,
+                            'description' => $activity->description,
+                            'log_name' => $activity->log_name,
+                            'log_type' => $activity->properties['log_type'] ?? 'default',
+                            'created_at' => $activity->created_at->toISOString(),
+                        ];
+                    })
+                    ->toArray(),
+            ];
+
+            return $stats;
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::getLogStats failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return [
+                'total_logs' => 0,
+                'logs_by_type' => [],
+                'recent_activity' => [],
+                'error' => 'Failed to retrieve log statistics'
+            ];
+        }
+    }
+
+    /**
+     * Sanitize headers to remove sensitive information
+     */
+    private function sanitizeHeaders(array $headers): array
+    {
+        try {
+            $sensitiveHeaders = config('unified-logging.sanitization.sensitive_headers', [
+                'authorization', 'cookie', 'x-csrf-token', 'x-api-key'
+            ]);
+
+            return collect($headers)->map(function ($value, $key) use ($sensitiveHeaders) {
+                $key = strtolower($key);
+                if (in_array($key, $sensitiveHeaders)) {
+                    return '[REDACTED]';
+                }
+                return $value;
+            })->toArray();
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::sanitizeHeaders failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return ['error' => 'Failed to sanitize headers'];
+        }
+    }
+
+    /**
+     * Sanitize request body to remove sensitive information
+     */
+    private function sanitizeBody(array $body): array
+    {
+        try {
+            $sensitiveFields = config('unified-logging.sanitization.sensitive_fields', [
+                'password', 'password_confirmation', 'current_password',
+                'token', 'api_key', 'secret', 'credit_card', 'ssn'
+            ]);
+
+            return collect($body)->map(function ($value, $key) use ($sensitiveFields) {
+                if (in_array($key, $sensitiveFields)) {
+                    return '[REDACTED]';
+                }
+                return $value;
+            })->toArray();
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::sanitizeBody failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return ['error' => 'Failed to sanitize body'];
+        }
+    }
+
+    /**
+     * Sanitize business data
+     */
+    private function sanitizeBusinessData(array $data): array
+    {
+        try {
+            // Remove sensitive business data if needed
+            return $data;
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::sanitizeBusinessData failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return ['error' => 'Failed to sanitize business data'];
+        }
+    }
+
+    /**
+     * Sanitize security data
+     */
+    private function sanitizeSecurityData(array $data): array
+    {
+        try {
+            // Remove sensitive security data if needed
+            return $data;
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::sanitizeSecurityData failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return ['error' => 'Failed to sanitize security data'];
+        }
+    }
+
+    /**
+     * Sanitize Telegram data
+     */
+    private function sanitizeTelegramData(array $data): array
+    {
+        try {
+            $sensitiveFields = config('unified-logging.sanitization.sensitive_integration_fields.telegram', [
+                'token', 'webhook_secret'
+            ]);
+
+            foreach ($sensitiveFields as $field) {
+                unset($data[$field]);
+            }
+
+            return $data;
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::sanitizeTelegramData failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return ['error' => 'Failed to sanitize Telegram data'];
+        }
+    }
+
+    /**
+     * Sanitize WhatsApp data
+     */
+    private function sanitizeWhatsAppData(array $data): array
+    {
+        try {
+            $sensitiveFields = config('unified-logging.sanitization.sensitive_integration_fields.whatsapp', [
+                'token', 'webhook_secret'
+            ]);
+
+            foreach ($sensitiveFields as $field) {
+                unset($data[$field]);
+            }
+
+            return $data;
+        } catch (\Throwable $e) {
+            Log::error('ActivityLoggingService::sanitizeWhatsAppData failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return ['error' => 'Failed to sanitize WhatsApp data'];
+        }
+    }
+}
+
+</code>
+
+
+==== Passo 5: Verificar Variáveis de Ambiente (Opcional) ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se as variáveis já estão configuradas.
+
+<code bash>
+# Verificar variáveis existentes
+grep -E "ACTIVITY_LOGGER" .env
+
+# Verificar se as variáveis estão no .env.example
+grep -E "ACTIVITY_LOGGER" .env.example
+
+# Verificar configuração atual
+php artisan config:show activitylog
+</code>
+
+**Importante:** se o arquivo unified-logging.php não tiver o trecho abaixo, por favor, adicionar:
+    'driver' => env('LOGGING_DRIVER', 'activity'),
+
+**Nota:** As variáveis de ambiente são opcionais, pois o sistema já está funcionando com as configurações padrão.
+
+==== Passo 6: Criar Arquivo de Configuração Unified Logging ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se o arquivo de configuração já existe.
+
+<code bash>
+# Verificar se o arquivo já existe
+ls -la config/unified-logging.php
+
+# Verificar se está sendo carregado
+php artisan config:show unified-logging
+</code>
+
+**Se não existir, criar o arquivo de configuração:**
+
+<code bash>
+# Criar o arquivo de configuração
+touch config/unified-logging.php
+</code>
+
+**Conteúdo do arquivo `config/unified-logging.php`:**
+
+<code php>
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Unified Logging Configuration
+    |--------------------------------------------------------------------------
+    |
+    | This configuration file controls the unified logging system that uses
+    | Activity Log for all application logs with intelligent filtering.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Driver
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default logging driver used by the application.
+    | Available drivers: "activity", "laravel", "file"
+    |
+    */
+
+    'driver' => env('LOGGING_DRIVER', 'activity'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log Filters
+    |--------------------------------------------------------------------------
+    |
+    | These options control which types of logs are recorded. Set to true
+    | to enable logging for that type, false to disable.
+    |
+    */
+
+    'filters' => [
+        // API Logging
+        'api_requests' => env('LOG_API_REQUESTS', false),
+        'api_responses' => env('LOG_API_RESPONSES', false),
+
+        // Business Operations
+        'business_operations' => env('LOG_BUSINESS_OPERATIONS', true),
+
+        // Security Events
+        'security_events' => env('LOG_SECURITY_EVENTS', true),
+
+        // Performance Monitoring
+        'performance' => env('LOG_PERFORMANCE', false),
+
+        // Audit Trail
+        'audit_events' => env('LOG_AUDIT_EVENTS', true),
+
+        // Integration Events
+        'telegram_events' => env('LOG_TELEGRAM_EVENTS', true),
+        'whatsapp_events' => env('LOG_WHATSAPP_EVENTS', true),
+
+        // System Events
+        'exceptions' => env('LOG_EXCEPTIONS', true),
+
+        'telegram_event' => env('LOG_TELEGRAM_EVENT', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log Retention
+    |--------------------------------------------------------------------------
+    |
+    | Configure how long logs should be retained before automatic cleanup.
+    | Values are in days.
+    |
+    */
+
+    'retention' => [
+        'default' => env('LOG_RETENTION_DAYS', 365),
+        'api_requests' => env('LOG_API_RETENTION_DAYS', 30),
+        'business_operations' => env('LOG_BUSINESS_RETENTION_DAYS', 90),
+        'security_events' => env('LOG_SECURITY_RETENTION_DAYS', 365),
+        'performance' => env('LOG_PERFORMANCE_RETENTION_DAYS', 30),
+        'audit_events' => env('LOG_AUDIT_RETENTION_DAYS', 365),
+        'telegram_events' => env('LOG_TELEGRAM_RETENTION_DAYS', 30),
+        'whatsapp_events' => env('LOG_WHATSAPP_RETENTION_DAYS', 30),
+        'exceptions' => env('LOG_EXCEPTIONS_RETENTION_DAYS', 90),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Performance Thresholds
+    |--------------------------------------------------------------------------
+    |
+    | Configure thresholds for performance monitoring and alerting.
+    | Values are in milliseconds.
+    |
+    */
+
+    'performance' => [
+        'slow_operation_threshold' => env('LOG_SLOW_OPERATION_THRESHOLD', 1000), // 1 second
+        'critical_operation_threshold' => env('LOG_CRITICAL_OPERATION_THRESHOLD', 5000), // 5 seconds
+        'memory_warning_threshold' => env('LOG_MEMORY_WARNING_THRESHOLD', 128 * 1024 * 1024), // 128MB
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure security-related logging settings.
+    |
+    */
+
+    'security' => [
+        'log_failed_logins' => env('LOG_FAILED_LOGINS', true),
+        'log_successful_logins' => env('LOG_SUCCESSFUL_LOGINS', false),
+        'log_sensitive_operations' => env('LOG_SENSITIVE_OPERATIONS', true),
+        'log_permission_changes' => env('LOG_PERMISSION_CHANGES', true),
+        'log_data_access' => env('LOG_DATA_ACCESS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Data Sanitization
+    |--------------------------------------------------------------------------
+    |
+    | Configure which fields should be sanitized (redacted) in logs.
+    |
+    */
+
+    'sanitization' => [
+        'sensitive_headers' => [
+            'authorization',
+            'cookie',
+            'x-csrf-token',
+            'x-api-key',
+            'x-auth-token',
+        ],
+
+        'sensitive_fields' => [
+            'password',
+            'password_confirmation',
+            'current_password',
+            'token',
+            'api_key',
+            'secret',
+            'credit_card',
+            'ssn',
+            'cpf',
+            'cnpj',
+        ],
+
+        'sensitive_integration_fields' => [
+            'telegram' => ['token', 'webhook_secret'],
+            'whatsapp' => ['token', 'webhook_secret'],
+            'payment' => ['card_number', 'cvv', 'expiry'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Batch Processing
+    |--------------------------------------------------------------------------
+    |
+    | Configure batch processing for high-volume logging scenarios.
+    |
+    */
+
+    'batch' => [
+        'enabled' => env('LOG_BATCH_ENABLED', false),
+        'size' => env('LOG_BATCH_SIZE', 100),
+        'timeout' => env('LOG_BATCH_TIMEOUT', 30), // seconds
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Alerting Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure alerting for critical log events.
+    |
+    */
+
+    'alerting' => [
+        'enabled' => env('LOG_ALERTING_ENABLED', false),
+        'channels' => [
+            'slack' => env('LOG_ALERT_SLACK_WEBHOOK'),
+            'email' => env('LOG_ALERT_EMAIL'),
+            'telegram' => env('LOG_ALERT_TELEGRAM_CHAT_ID'),
+        ],
+        'events' => [
+            'security_violations' => true,
+            'performance_critical' => true,
+            'system_errors' => true,
+            'data_breaches' => true,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Environment-Specific Configurations
+    |--------------------------------------------------------------------------
+    |
+    | Pre-configured settings for different environments.
+    |
+    */
+
+    'environments' => [
+        'production' => [
+            'filters' => [
+                'api_requests' => false,
+                'api_responses' => false,
+                'business_operations' => true,
+                'security_events' => true,
+                'performance' => false,
+                'audit_events' => true,
+                'telegram_events' => true,
+                'whatsapp_events' => true,
+                'exceptions' => true,
+            ],
+            'retention' => [
+                'default' => 90,
+                'security_events' => 365,
+                'audit_events' => 365,
+            ],
+        ],
+
+        'development' => [
+            'filters' => [
+                'api_requests' => true,
+                'api_responses' => true,
+                'business_operations' => true,
+                'security_events' => true,
+                'performance' => true,
+                'audit_events' => true,
+                'telegram_events' => true,
+                'whatsapp_events' => true,
+                'exceptions' => true,
+            ],
+            'retention' => [
+                'default' => 30,
+                'security_events' => 90,
+                'audit_events' => 90,
+            ],
+        ],
+
+        'testing' => [
+            'filters' => [
+                'api_requests' => false,
+                'api_responses' => false,
+                'business_operations' => false,
+                'security_events' => false,
+                'performance' => false,
+                'audit_events' => false,
+                'telegram_events' => false,
+                'whatsapp_events' => false,
+                'exceptions' => true,
+            ],
+            'retention' => [
+                'default' => 7,
+            ],
+        ],
+    ],
+];
+</code>
+
+**Verificar se o arquivo foi criado corretamente:**
+
+<code bash>
+# Verificar se o arquivo existe
+ls -la config/unified-logging.php
+
+# Verificar se está sendo carregado
+php artisan config:show unified-logging
+
+# Verificar se as configurações estão corretas
+php artisan tinker
+# >>> config('unified-logging.filters');
+# >>> config('unified-logging.driver');
+</code>
+
+==== Passo 7: Criar LoggingServiceProvider ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se o provider já existe.
+
+<code bash>
+# Verificar se o provider já existe
+ls -la app/Providers/LoggingServiceProvider.php
+
+# Verificar se está registrado no config/app.php
+grep -n "LoggingServiceProvider" config/app.php
+</code>
+
+**Se não existir, criar o provider:**
+
+<code bash>
+# Criar o arquivo do provider
+touch app/Providers/LoggingServiceProvider.php
+</code>
+
+**Conteúdo do arquivo `app/Providers/LoggingServiceProvider.php`:**
+
+<code php>
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App\Contracts\LoggingServiceInterface;
+use App\Services\LoggingService;
+use App\Services\FileLoggingService;
+use App\Services\ActivityLoggingService;
+use App\Services\SafeLoggingService;
+
+class LoggingServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        // Bind the interface to the appropriate implementation based on configuration
+        $this->app->bind(LoggingServiceInterface::class, function ($app) {
+            $loggingDriver = config('unified-logging.driver', 'activity');
+
+            // Create the primary logger based on configuration
+            $primaryLogger = match ($loggingDriver) {
+                'file' => new FileLoggingService(),
+                'laravel' => new LoggingService(),
+                'activity', 'default' => new ActivityLoggingService(),
+                default => new ActivityLoggingService(),
+            };
+
+            // For now, return the primary logger directly (without SafeLoggingService wrapper)
+            // since ActivityLoggingService has its own filtering mechanism
+            return $primaryLogger;
+        });
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        // Publish configuration if needed
+        $this->publishes([
+            __DIR__ . '/../../config/logging.php' => config_path('logging.php'),
+        ], 'logging-config');
+    }
+}
+</code>
+
+**Registrar o provider no `config/app.php`:**
+
+<code bash>
+# Verificar se já está registrado
+grep -n "LoggingServiceProvider" config/app.php
+
+# Se não estiver, adicionar na seção 'providers'
+# Adicionar a linha: App\Providers\LoggingServiceProvider::class,
+</code>
+
+**Conteúdo para adicionar no `config/app.php` na seção `providers`:**
+
+<code php>
+/*
+ * Application Service Providers...
+ */
+App\Providers\AppServiceProvider::class,
+App\Providers\AuthServiceProvider::class,
+// App\Providers\BroadcastServiceProvider::class,
+App\Providers\EventServiceProvider::class,
+App\Providers\RouteServiceProvider::class,
+App\Providers\LoggingServiceProvider::class, // ← Adicionar esta linha
+</code>
+
+**Verificar se o provider foi registrado corretamente:**
+
+<code bash>
+# Verificar se o provider está registrado
+php artisan config:show app | grep -i logging
+
+# Verificar se o service está sendo resolvido corretamente
+php artisan tinker
+# >>> $service = app(\App\Contracts\LoggingServiceInterface::class);
+# >>> get_class($service);
+
+# Testar se o service está funcionando
+# >>> $service->getLogStats();
+</code>
+
+==== Passo 8: Criar FileLoggingService ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se o service já existe.
+
+<code bash>
+# Verificar se o service já existe
+ls -la app/Services/FileLoggingService.php
+
+# Verificar se está sendo usado no LoggingServiceProvider
+grep -n "FileLoggingService" app/Providers/LoggingServiceProvider.php
+</code>
+
+**Se não existir, criar o service:**
+
+<code bash>
+# Criar o arquivo do service
+touch app/Services/FileLoggingService.php
+</code>
+
+**Conteúdo do arquivo `app/Services/FileLoggingService.php`:**
+
+<code php>
+<?php
+
+namespace App\Services;
+
+use App\Contracts\LoggingServiceInterface;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+
+class FileLoggingService implements LoggingServiceInterface
+{
+    private string $logPath;
+
+    public function __construct()
+    {
+        $this->logPath = storage_path('logs/custom');
+
+        // Create log directory if it doesn't exist
+        if (!File::exists($this->logPath)) {
+            File::makeDirectory($this->logPath, 0755, true);
+        }
+    }
+
+    /**
+     * Log API requests and responses
+     */
+    public function logApiRequest(Request $request, array $context = []): void
+    {
+        $logData = array_merge([
+            'request_id' => uniqid('api_', true),
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'user_id' => $request->user()?->id,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('api_requests.log', $logData);
+    }
+
+    /**
+     * Log API responses
+     */
+    public function logApiResponse(int $statusCode, array $response, float $duration, array $context = []): void
+    {
+        $logData = array_merge([
+            'status_code' => $statusCode,
+            'duration_ms' => round($duration, 2),
+            'response_size' => strlen(json_encode($response)),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('api_responses.log', $logData);
+    }
+
+    /**
+     * Log business operations
+     */
+    public function logBusinessOperation(string $operation, array $data, string $status = 'success', array $context = []): void
+    {
+        $logData = array_merge([
+            'operation' => $operation,
+            'status' => $status,
+            'user_id' => Auth::id(),
+            'data' => $data,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('business_operations.log', $logData);
+    }
+
+    /**
+     * Log security events
+     */
+    public function logSecurityEvent(string $event, array $data, string $level = 'warning', array $context = []): void
+    {
+        $logData = array_merge([
+            'event' => $event,
+            'level' => $level,
+            'user_id' => Auth::id(),
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'data' => $data,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('security_events.log', $logData);
+    }
+
+    /**
+     * Log performance metrics
+     */
+    public function logPerformance(string $operation, float $duration, array $metrics = [], array $context = []): void
+    {
+        $logData = array_merge([
+            'operation' => $operation,
+            'duration_ms' => round($duration, 2),
+            'memory_usage' => memory_get_usage(true),
+            'peak_memory' => memory_get_peak_usage(true),
+            'metrics' => $metrics,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('performance_metrics.log', $logData);
+    }
+
+    /**
+     * Log audit trail
+     */
+    public function logAudit(string $action, string $model, int $modelId, array $changes = [], array $context = []): void
+    {
+        $logData = array_merge([
+            'action' => $action,
+            'model' => $model,
+            'model_id' => $modelId,
+            'user_id' => Auth::id(),
+            'changes' => $changes,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('audit_trail.log', $logData);
+    }
+
+    /**
+     * Log Telegram bot events
+     */
+    public function logTelegramEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        $logData = array_merge([
+            'event' => $event,
+            'level' => $level,
+            'chat_id' => $data['chat_id'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'message_type' => $data['message_type'] ?? null,
+            'data' => $data,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('telegram_events.log', $logData);
+    }
+
+    /**
+     * Log WhatsApp events
+     */
+    public function logWhatsAppEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        $logData = array_merge([
+            'event' => $event,
+            'level' => $level,
+            'phone' => $data['phone'] ?? null,
+            'message_type' => $data['message_type'] ?? null,
+            'data' => $data,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('whatsapp_events.log', $logData);
+    }
+
+    /**
+     * Log exceptions with context
+     */
+    public function logException(\Throwable $exception, array $context = []): void
+    {
+        $logData = array_merge([
+            'exception' => get_class($exception),
+            'message' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString(),
+            'user_id' => Auth::id(),
+            'request_url' => request()->fullUrl(),
+            'request_method' => request()->method(),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        $this->writeToFile('exceptions.log', $logData);
+    }
+
+    /**
+     * Get log statistics
+     */
+    public function getLogStats(): array
+    {
+        $logFiles = [
+            'api_requests' => $this->logPath . '/api_requests.log',
+            'api_responses' => $this->logPath . '/api_responses.log',
+            'business_operations' => $this->logPath . '/business_operations.log',
+            'security_events' => $this->logPath . '/security_events.log',
+            'performance_metrics' => $this->logPath . '/performance_metrics.log',
+            'audit_trail' => $this->logPath . '/audit_trail.log',
+            'telegram_events' => $this->logPath . '/telegram_events.log',
+            'whatsapp_events' => $this->logPath . '/whatsapp_events.log',
+            'exceptions' => $this->logPath . '/exceptions.log',
+        ];
+
+        $stats = [];
+        foreach ($logFiles as $channel => $file) {
+            if (File::exists($file)) {
+                $stats[$channel] = [
+                    'size' => File::size($file),
+                    'last_modified' => File::lastModified($file),
+                    'lines' => count(File::lines($file)),
+                ];
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Write log data to file
+     */
+    private function writeToFile(string $filename, array $data): void
+    {
+        $filePath = $this->logPath . '/' . $filename;
+        $logEntry = json_encode($data) . "\n";
+
+        File::append($filePath, $logEntry);
+    }
+}
+</code>
+
+**Verificar se o service foi criado corretamente:**
+
+<code bash>
+# Verificar se o arquivo existe
+ls -la app/Services/FileLoggingService.php
+
+# Verificar se está sendo usado no LoggingServiceProvider
+grep -n "FileLoggingService" app/Providers/LoggingServiceProvider.php
+
+# Testar o service diretamente
+php artisan tinker
+# >>> $service = new \App\Services\FileLoggingService();
+# >>> $service->logBusinessOperation('test_operation', ['test' => 'data'], 'success');
+# >>> $service->getLogStats();
+
+# Verificar se os arquivos de log foram criados
+ls -la storage/logs/custom/
+</code>
+
+==== Passo 9: Criar LoggingService ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se o service já existe.
+
+<code bash>
+# Verificar se o service já existe
+ls -la app/Services/LoggingService.php
+
+# Verificar se está sendo usado no LoggingServiceProvider
+grep -n "LoggingService" app/Providers/LoggingServiceProvider.php
+</code>
+
+**Se não existir, criar o service:**
+
+<code bash>
+# Criar o arquivo do service
+touch app/Services/LoggingService.php
+</code>
+
+**Conteúdo do arquivo `app/Services/LoggingService.php`:**
+
+<code php>
+<?php
+
+namespace App\Services;
+
+use App\Contracts\LoggingServiceInterface;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Spatie\Activitylog\ActivityLogger;
+
+class LoggingService implements LoggingServiceInterface
+{
+    /**
+     * Log API requests and responses
+     */
+    public function logApiRequest(Request $request, array $context = []): void
+    {
+        $logData = array_merge([
+            'request_id' => uniqid('api_', true),
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'user_id' => $request->user()?->id,
+            'headers' => $this->sanitizeHeaders($request->headers->all()),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        if ($request->method() !== 'GET') {
+            $logData['body'] = $this->sanitizeBody($request->all());
+        }
+
+        Log::channel('api')->info('API Request', $logData);
+    }
+
+    /**
+     * Log API responses
+     */
+    public function logApiResponse(int $statusCode, array $response, float $duration, array $context = []): void
+    {
+        $logData = array_merge([
+            'status_code' => $statusCode,
+            'duration_ms' => round($duration, 2),
+            'response_size' => strlen(json_encode($response)),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        if ($statusCode >= 400) {
+            $logData['error_response'] = $response;
+            Log::channel('api')->error('API Error Response', $logData);
+        } else {
+            Log::channel('api')->info('API Response', $logData);
+        }
+    }
+
+    /**
+     * Log business operations
+     */
+    public function logBusinessOperation(string $operation, array $data, string $status = 'success', array $context = []): void
+    {
+        $logData = array_merge([
+            'operation' => $operation,
+            'status' => $status,
+            'user_id' => Auth::id(),
+            'data' => $this->sanitizeBusinessData($data),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        Log::channel('business')->info('Business Operation', $logData);
+    }
+
+    /**
+     * Log security events
+     */
+    public function logSecurityEvent(string $event, array $data, string $level = 'warning', array $context = []): void
+    {
+        $logData = array_merge([
+            'event' => $event,
+            'user_id' => Auth::id(),
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'data' => $this->sanitizeSecurityData($data),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        Log::channel('security')->$level('Security Event', $logData);
+    }
+
+    /**
+     * Log performance metrics
+     */
+    public function logPerformance(string $operation, float $duration, array $metrics = [], array $context = []): void
+    {
+        $logData = array_merge([
+            'operation' => $operation,
+            'duration_ms' => round($duration, 2),
+            'memory_usage' => memory_get_usage(true),
+            'peak_memory' => memory_get_peak_usage(true),
+            'metrics' => $metrics,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        if ($duration > 1000) { // Log slow operations as warnings
+            Log::channel('performance')->warning('Slow Operation', $logData);
+        } else {
+            Log::channel('performance')->info('Performance Metric', $logData);
+        }
+    }
+
+    /**
+     * Log audit trail
+     */
+    public function logAudit(string $action, string $model, int $modelId, array $changes = [], array $context = []): void
+    {
+        $logData = array_merge([
+            'action' => $action,
+            'model' => $model,
+            'model_id' => $modelId,
+            'user_id' => Auth::id(),
+            'changes' => $changes,
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        Log::channel('audit')->info('Audit Trail', $logData);
+    }
+
+    /**
+     * Log Telegram bot events
+     */
+    public function logTelegramEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        $logData = array_merge([
+            'event' => $event,
+            'chat_id' => $data['chat_id'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+            'message_type' => $data['message_type'] ?? null,
+            'data' => $this->sanitizeTelegramData($data),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        Log::channel('telegram')->$level('Telegram Event', $logData);
+    }
+
+    /**
+     * Log WhatsApp events
+     */
+    public function logWhatsAppEvent(string $event, array $data, string $level = 'info', array $context = []): void
+    {
+        $logData = array_merge([
+            'event' => $event,
+            'phone' => $data['phone'] ?? null,
+            'message_type' => $data['message_type'] ?? null,
+            'data' => $this->sanitizeWhatsAppData($data),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        Log::channel('whatsapp')->$level('WhatsApp Event', $logData);
+    }
+
+    /**
+     * Log exceptions with context
+     */
+    public function logException(\Throwable $exception, array $context = []): void
+    {
+        $logData = array_merge([
+            'exception' => get_class($exception),
+            'message' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString(),
+            'user_id' => Auth::id(),
+            'request_url' => request()->fullUrl(),
+            'request_method' => request()->method(),
+            'timestamp' => now()->toISOString(),
+        ], $context);
+
+        Log::channel('api')->error('Exception', $logData);
+    }
+
+    /**
+     * Sanitize headers to remove sensitive information
+     */
+    private function sanitizeHeaders(array $headers): array
+    {
+        $sensitiveHeaders = ['authorization', 'cookie', 'x-csrf-token', 'x-api-key'];
+
+        return collect($headers)->map(function ($value, $key) use ($sensitiveHeaders) {
+            $key = strtolower($key);
+            if (in_array($key, $sensitiveHeaders)) {
+                return '[REDACTED]';
+            }
+            return $value;
+        })->toArray();
+    }
+
+    /**
+     * Sanitize request body to remove sensitive information
+     */
+    private function sanitizeBody(array $body): array
+    {
+        $sensitiveFields = [
+            'password', 'password_confirmation', 'current_password',
+            'token', 'api_key', 'secret', 'credit_card', 'ssn'
+        ];
+
+        return collect($body)->map(function ($value, $key) use ($sensitiveFields) {
+            if (in_array($key, $sensitiveFields)) {
+                return '[REDACTED]';
+            }
+            return $value;
+        })->toArray();
+    }
+
+    /**
+     * Sanitize business data
+     */
+    private function sanitizeBusinessData(array $data): array
+    {
+        // Remove sensitive business data if needed
+        return $data;
+    }
+
+    /**
+     * Sanitize security data
+     */
+    private function sanitizeSecurityData(array $data): array
+    {
+        // Remove sensitive security data if needed
+        return $data;
+    }
+
+    /**
+     * Sanitize Telegram data
+     */
+    private function sanitizeTelegramData(array $data): array
+    {
+        // Remove sensitive Telegram data if needed
+        unset($data['token'], $data['webhook_secret']);
+        return $data;
+    }
+
+    /**
+     * Sanitize WhatsApp data
+     */
+    private function sanitizeWhatsAppData(array $data): array
+    {
+        // Remove sensitive WhatsApp data if needed
+        unset($data['token'], $data['webhook_secret']);
+        return $data;
+    }
+
+    /**
+     * Get log statistics
+     */
+    public function getLogStats(): array
+    {
+        $logFiles = [
+            'api' => storage_path('logs/api.log'),
+            'business' => storage_path('logs/business.log'),
+            'security' => storage_path('logs/security.log'),
+            'performance' => storage_path('logs/performance.log'),
+            'telegram' => storage_path('logs/telegram.log'),
+            'whatsapp' => storage_path('logs/whatsapp.log'),
+            'audit' => storage_path('logs/audit.log'),
+        ];
+
+        $stats = [];
+        foreach ($logFiles as $channel => $file) {
+            if (file_exists($file)) {
+                $stats[$channel] = [
+                    'size' => filesize($file),
+                    'last_modified' => filemtime($file),
+                    'lines' => count(file($file)),
+                ];
+            }
+        }
+
+        return $stats;
+    }
+}
+</code>
+
+**Verificar se o service foi criado corretamente:**
+
+<code bash>
+# Verificar se o arquivo existe
+ls -la app/Services/LoggingService.php
+
+# Verificar se está sendo usado no LoggingServiceProvider
+grep -n "LoggingService" app/Providers/LoggingServiceProvider.php
+
+# Testar o service diretamente
+php artisan tinker
+# >>> $service = new \App\Services\LoggingService();
+# >>> $service->logBusinessOperation('test_operation', ['test' => 'data'], 'success');
+# >>> $service->getLogStats();
+
+# Verificar se os arquivos de log foram criados
+ls -la storage/logs/
+</code>
+
+===== 🧪 Testes =====
+
+=== Teste do Service Existente ===
+
+**✅ VERIFICAR PRIMEIRO** - O service já está funcionando em produção.
+
+<code bash>
+# Testar o service existente
+php artisan tinker
+# >>> $service = app(\App\Services\ActivityLoggingService::class);
+# >>> $service->getLogStats();
+
+# Testar métodos específicos do Telegram
+# >>> $service->logTelegramEvent('test_event', ['chat_id' => 123456, 'user_id' => 789012]);
+
+# Verificar se está logando corretamente
+# >>> \Spatie\Activitylog\Models\Activity::latest()->take(5)->get();
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] Pacote `spatie/laravel-activitylog` instalado ✅ **JÁ EXISTE**
+  - [ ] Migrations executadas ✅ **JÁ EXISTE**
+  - [ ] Configuração `activitylog.php` criada ✅ **JÁ EXISTE**
+  - [ ] Configuração `unified-logging.php` criada ✅ **NOVO**
+  - [ ] Provider `LoggingServiceProvider` criado ✅ **NOVO**
+  - [ ] Provider registrado no `config/app.php` ✅ **NOVO**
+  - [ ] Service `LoggingService` criado ✅ **NOVO**
+  - [ ] Service `FileLoggingService` criado ✅ **NOVO**
+  - [ ] Service `ActivityLoggingService` implementado ✅ **JÁ EXISTE**
+  - [ ] Service funcionando em produção ✅ **JÁ EXISTE**
+
+=== Comandos de Validação ===
+
+<code bash>
+# Verificar se o pacote foi instalado
+composer show spatie/laravel-activitylog
+
+# Verificar migrations
+php artisan migrate:status | grep activity_log
+
+# Testar service existente
+php artisan tinker
+# >>> $service = app(\App\Services\ActivityLoggingService::class);
+# >>> $service->getLogStats();
+
+# Testar métodos específicos do Telegram
+# >>> $service->logTelegramEvent('test_event', ['chat_id' => 123456, 'user_id' => 789012]);
+
+# Testar log de operação de negócio
+# >>> $service->logBusinessOperation('test_operation', ['test' => 'data'], 'success');
+
+# Testar log de performance
+# >>> $service->logPerformance('test_operation', 100.5, ['memory' => '1MB']);
+
+# Verificar se está logando corretamente
+# >>> \Spatie\Activitylog\Models\Activity::latest()->take(5)->get();
+
+# Verificar estatísticas
+# >>> $service->getLogStats();
+
+# Verificar configuração
+php artisan config:show activitylog
+
+# Verificar configuração unified-logging
+php artisan config:show unified-logging
+
+# Verificar se o arquivo de configuração existe
+ls -la config/unified-logging.php
+
+# Verificar se o service está funcionando
+php artisan tinker
+# >>> $service = app('activity-logger');
+# >>> $service->getLogStats();
+
+# Testar configuração unified-logging
+# >>> config('unified-logging.driver');
+# >>> config('unified-logging.filters.telegram_events');
+# >>> config('unified-logging.retention.default');
+
+# Verificar se o LoggingServiceProvider existe
+ls -la app/Providers/LoggingServiceProvider.php
+
+# Verificar se está registrado no config/app.php
+grep -n "LoggingServiceProvider" config/app.php
+
+# Testar resolução do service via interface
+# >>> $service = app(\App\Contracts\LoggingServiceInterface::class);
+# >>> get_class($service);
+# >>> $service->getLogStats();
+
+# Verificar se o FileLoggingService existe
+ls -la app/Services/FileLoggingService.php
+
+# Testar FileLoggingService diretamente
+# >>> $fileService = new \App\Services\FileLoggingService();
+# >>> $fileService->logBusinessOperation('test_file_operation', ['test' => 'data'], 'success');
+# >>> $fileService->getLogStats();
+
+# Verificar se os arquivos de log foram criados
+ls -la storage/logs/custom/
+
+# Verificar se o LoggingService existe
+ls -la app/Services/LoggingService.php
+
+# Testar LoggingService diretamente
+# >>> $service = new \App\Services\LoggingService();
+# >>> $service->logBusinessOperation('test_operation', ['test' => 'data'], 'success');
+# >>> $service->getLogStats();
+
+# Verificar se os arquivos de log do Laravel foram criados
+ls -la storage/logs/
+</code>
