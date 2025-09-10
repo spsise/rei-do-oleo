@@ -1,0 +1,936 @@
+[[:templates_ai:funcionalidades:laravel:hostinger_deploy_automation|{{wiki:user:undo_24.png}}]]
+
+====== Passo 00: Configurar Deploy Automático na Hostinger ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Sistema completo de deploy automático para Hostinger usando webhooks do GitHub. Este sistema permite deploy automático quando há push para a branch `hostinger-deploy-auto`, incluindo backup automático, rollback e limpeza de arquivos antigos.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar deploy automático hostinger
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
+  - **Composer** para dependências
+  - **MySQL/PostgreSQL** para banco de dados
+  - **Redis** para cache (recomendado)
+  - **Acesso SSH** à Hostinger
+  - **Repositório GitHub** configurado
+  - **Sistema de Logging** implementado (Activity Log)
+
+===== 🔧 Implementação Passo a Passo =====
+
+==== Passo 1: Criar Rotas do Webhook ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se as rotas já existem.
+
+<code bash>
+# Verificar se as rotas já existem
+grep -n "hostinger/webhook" routes/api.php
+grep -n "DeployWebhookController" routes/api.php
+</code>
+
+**Se não existir, adicionar as rotas no `routes/api.php`:**
+
+<code php>
+// Adicionar no final do arquivo routes/api.php, antes do fechamento
+
+// Rotas para Deploy Automático na Hostinger
+Route::prefix('hostinger')->group(function () {
+    Route::prefix('webhook')->group(function () {
+        Route::post('/deploy', [DeployWebhookController::class, 'deploy']);     // POST /api/hostinger/webhook/deploy
+        Route::get('/health', [DeployWebhookController::class, 'health']);      // GET /api/hostinger/webhook/health
+        Route::get('/test', [DeployWebhookController::class, 'testDeploy']);    // GET /api/hostinger/webhook/test
+        Route::get('/status', [DeployWebhookController::class, 'getStatus']);   // GET /api/hostinger/webhook/status
+    });
+});
+</code>
+
+**Verificar se as rotas foram adicionadas corretamente:**
+
+<code bash>
+# Verificar se as rotas foram adicionadas
+grep -A 10 "hostinger" routes/api.php
+
+# Testar se as rotas estão funcionando
+php artisan route:list | grep hostinger
+</code>
+
+==== Passo 2: Criar DeployWebhookController ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se o controller já existe.
+
+<code bash>
+# Verificar se o controller já existe
+ls -la app/Http/Controllers/Api/DeployWebhookController.php
+</code>
+
+**Se não existir, criar o controller:**
+
+<code bash>
+# Criar o arquivo do controller
+touch app/Http/Controllers/Api/DeployWebhookController.php
+</code>
+
+**Conteúdo do arquivo `app/Http/Controllers/Api/DeployWebhookController.php`:**
+
+<code php>
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Services\UnifiedNotificationService;
+use App\Contracts\LoggingServiceInterface;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\File;
+
+class DeployWebhookController extends Controller
+{
+    public function __construct(
+        private LoggingServiceInterface $loggingService
+    ) {}
+
+    /**
+     * Handle GitHub webhook for automatic deployment
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function deploy(Request $request): JsonResponse
+    {
+        $startTime = microtime(true);
+
+        try {
+            // Log the webhook request
+            $this->loggingService->logApiRequest($request, [
+                'webhook_type' => 'github_deploy_hostinger',
+                'operation' => 'deploy_webhook'
+            ]);
+
+            // Get the payload
+            $payload = $request->all();
+
+            // Verify if it's a push to the hostinger-deploy-auto branch
+            if (!isset($payload['ref']) || $payload['ref'] !== 'refs/heads/hostinger-deploy-auto') {
+                $this->loggingService->logBusinessOperation('deploy_webhook_ignored', [
+                    'reason' => 'not_hostinger_hom_branch',
+                    'ref' => $payload['ref'] ?? 'not set'
+                ], 'info');
+
+                return response()->json([
+                    'status' => 'ignored',
+                    'message' => 'Ignored - not hostinger-deploy-auto branch',
+                    'ref' => $payload['ref'] ?? 'not set'
+                ]);
+            }
+
+            // Verify repository
+            if (!isset($payload['repository']['full_name']) ||
+                $payload['repository']['full_name'] !== 'spsise/project-name') {
+                $this->loggingService->logSecurityEvent('deploy_webhook_wrong_repository', [
+                    'repository' => $payload['repository']['full_name'] ?? 'not set',
+                    'expected' => 'spsise/project-name'
+                ], 'warning');
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Wrong repository'
+                ], 400);
+            }
+
+            $this->loggingService->logBusinessOperation('deploy_webhook_started', [
+                'branch' => 'hostinger-deploy-auto',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                'message' => $payload['head_commit']['message'] ?? 'no message',
+                'repository' => $payload['repository']['full_name']
+            ], 'info');
+
+            // Execute deployment script
+            $deployResult = $this->executeDeployScript($payload);
+
+            if (!$deployResult['success']) {
+                $this->sendDeployNotification('error', $payload, $deployResult['error']);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Deploy process failed',
+                    'error' => $deployResult['error']
+                ], 500);
+            }
+
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $this->loggingService->logBusinessOperation('deploy_process_completed', [
+                'output' => $deployResult['output'],
+                'processing_time_ms' => round($duration, 2)
+            ], 'success');
+
+            // Log performance metric
+            $this->loggingService->logPerformance('hostinger_deploy_webhook', $duration, [
+                'branch' => 'hostinger-deploy-auto',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown'
+            ]);
+
+            // Send notification for successful deploy
+            $this->sendDeployNotification('success', $payload, $deployResult['output']);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Deployment completed successfully',
+                'processing_time_ms' => round($duration, 2)
+            ]);
+
+        } catch (\Exception $e) {
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $this->loggingService->logException($e, [
+                'operation' => 'hostinger_deploy_webhook',
+                'processing_time_ms' => round($duration, 2)
+            ]);
+
+            // Send notification for exception
+            $this->sendDeployNotification('error', $payload ?? [], $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Exception during deployment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Execute deployment script
+     *
+     * @param array $payload
+     * @return array
+     */
+    private function executeDeployScript(array $payload): array
+    {
+        try {
+            $deployScript = base_path('../deploy.sh');
+
+            if (!file_exists($deployScript)) {
+                return [
+                    'success' => false,
+                    'error' => 'Deploy script not found at: ' . $deployScript
+                ];
+            }
+
+            // Check if script is executable
+            if (!is_executable($deployScript)) {
+                chmod($deployScript, 0755);
+            }
+
+            // Create process to run deploy script
+            $process = new Process(['bash', $deployScript]);
+            $process->setWorkingDirectory(dirname($deployScript));
+            $process->setTimeout(300); // 5 minutes timeout
+            $process->setIdleTimeout(60); // 1 minute idle timeout
+
+            // Start the process and capture output
+            $process->start(function ($type, $buffer) {
+                if ($type === Process::ERR) {
+                    $this->loggingService->logBusinessOperation('deploy_process_error', [
+                        'output' => trim($buffer)
+                    ], 'error');
+                } else {
+                    $this->loggingService->logBusinessOperation('deploy_process_output', [
+                        'output' => trim($buffer)
+                    ], 'info');
+                }
+            });
+
+            // Wait for process to complete
+            $process->wait();
+
+            if (!$process->isSuccessful()) {
+                return [
+                    'success' => false,
+                    'error' => $process->getErrorOutput(),
+                    'output' => $process->getOutput()
+                ];
+            }
+
+            return [
+                'success' => true,
+                'output' => $process->getOutput()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send deploy notification via unified service
+     *
+     * @param string $status
+     * @param array $payload
+     * @param string $output
+     * @return void
+     */
+    private function sendDeployNotification(string $status, array $payload, string $output = ''): void
+    {
+        try {
+            $deployData = [
+                'status' => $status,
+                'branch' => $payload['ref'] ?? 'unknown',
+                'commit' => $payload['head_commit']['id'] ?? 'unknown',
+                'message' => $payload['head_commit']['message'] ?? 'no message',
+                'timestamp' => now()->format('d/m/Y H:i:s'),
+                'output' => $output
+            ];
+
+            // Send notification using unified service
+            $notificationService = app(UnifiedNotificationService::class);
+            $result = $notificationService->sendDeployNotification($deployData);
+
+            if ($result['success']) {
+                $this->loggingService->logBusinessOperation('deploy_notification_sent', [
+                    'status' => $status,
+                    'sent_to_channels' => $result['sent_to_channels'],
+                    'total_channels' => $result['total_channels']
+                ], 'success');
+            } else {
+                $this->loggingService->logBusinessOperation('deploy_notification_failed', [
+                    'status' => $status,
+                    'results' => $result['results']
+                ], 'error');
+            }
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_deploy_notification',
+                'status' => $status
+            ]);
+        }
+    }
+
+    /**
+     * Health check for webhook endpoint
+     *
+     * @return JsonResponse
+     */
+    public function health(): JsonResponse
+    {
+        $deployScript = base_path('../deploy.sh');
+
+        $this->loggingService->logBusinessOperation('webhook_health_check', [
+            'deploy_script_exists' => file_exists($deployScript),
+            'deploy_script_executable' => file_exists($deployScript) ? is_executable($deployScript) : false
+        ], 'info');
+
+        return response()->json([
+            'status' => 'healthy',
+            'message' => 'Webhook endpoint is working',
+            'timestamp' => now()->toISOString(),
+            'deploy_script_exists' => file_exists($deployScript),
+            'deploy_script_executable' => file_exists($deployScript) ? is_executable($deployScript) : false,
+            'deploy_script_path' => $deployScript
+        ]);
+    }
+
+    /**
+     * Test deploy functionality
+     *
+     * @return JsonResponse
+     */
+    public function testDeploy(): JsonResponse
+    {
+        $this->loggingService->logBusinessOperation('test_deploy_triggered', [
+            'type' => 'manual_test'
+        ], 'info');
+
+        $testPayload = [
+            'ref' => 'refs/heads/hostinger-deploy-auto',
+            'repository' => ['full_name' => 'spsise/project-name'],
+            'head_commit' => [
+                'id' => 'test-commit-id',
+                'message' => 'Test deploy from webhook'
+            ]
+        ];
+
+        $this->sendDeployNotification('test', $testPayload, 'Test notification sent');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Test deploy notification sent',
+            'payload' => $testPayload
+        ]);
+    }
+
+    /**
+     * Get deployment status
+     *
+     * @return JsonResponse
+     */
+    public function getStatus(): JsonResponse
+    {
+        $deployScript = base_path('../deploy.sh');
+        $deployLog = base_path('../deploy.log');
+
+        $status = [
+            'deploy_script_exists' => file_exists($deployScript),
+            'deploy_script_executable' => file_exists($deployScript) ? is_executable($deployScript) : false,
+            'deploy_log_exists' => file_exists($deployLog),
+            'last_deploy' => null,
+            'system_info' => [
+                'php_version' => PHP_VERSION,
+                'laravel_version' => app()->version(),
+                'memory_limit' => ini_get('memory_limit'),
+                'max_execution_time' => ini_get('max_execution_time')
+            ]
+        ];
+
+        // Get last deploy info from log
+        if (file_exists($deployLog)) {
+            $logContent = File::get($deployLog);
+            $lines = explode("\n", $logContent);
+            $lastLine = end(array_filter($lines));
+            $status['last_deploy'] = $lastLine;
+        }
+
+        return response()->json($status);
+    }
+}
+</code>
+
+**Verificar se o controller foi criado corretamente:**
+
+<code bash>
+# Verificar se o arquivo existe
+ls -la app/Http/Controllers/Api/DeployWebhookController.php
+
+# Verificar se está sendo usado nas rotas
+grep -n "DeployWebhookController" routes/api.php
+
+# Testar se o controller está funcionando
+php artisan route:list | grep DeployWebhookController
+</code>
+
+==== Passo 3: Criar Script de Deploy ====
+
+**✅ VERIFICAR PRIMEIRO** - Verificar se o script já existe.
+
+<code bash>
+# Verificar se o script já existe
+ls -la ../deploy.sh
+</code>
+
+**Se não existir, criar o script:**
+
+<code bash>
+# Criar o arquivo do script
+touch ../deploy.sh
+</code>
+
+**Conteúdo do arquivo `../deploy.sh`:**
+
+<code bash>
+#!/bin/bash
+
+set -e
+
+echo "🚀 Iniciando deploy automático para Hostinger..."
+
+# Configurações
+PROJECT_ROOT="/home/$(whoami)/project-name"
+API_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/api-hom"
+FRONTEND_DIR="/home/$(whoami)/domains/virtualt.com.br/public_html/app-hom"
+BACKUP_DIR="/home/$(whoami)/project-name/backups"
+
+# Criar diretório de backup se não existir
+mkdir -p "$BACKUP_DIR"
+
+# Criar e configurar arquivo de log
+if [ ! -f "$PROJECT_ROOT/deploy.log" ]; then
+    touch "$PROJECT_ROOT/deploy.log"
+    echo "✅ Arquivo de log criado: $PROJECT_ROOT/deploy.log"
+fi
+chmod 644 "$PROJECT_ROOT/deploy.log"
+
+cd "$PROJECT_ROOT"
+
+# ATUALIZAR REPOSITÓRIO LOCAL COM AS MUDANÇAS DO GITHUB
+echo "📥 Atualizando repositório local..."
+git fetch origin
+git reset --hard origin/hostinger-deploy-auto
+echo "✅ Repositório atualizado com sucesso"
+
+# Log do deploy
+echo "$(date): Deploy iniciado - repositório atualizado" >> "$PROJECT_ROOT/deploy.log"
+
+# FUNÇÃO PARA LIMPAR BACKUPS ANTIGOS
+cleanup_old_backups() {
+    echo "🧹 Limpando backups antigos..."
+
+    if [ -d "$BACKUP_DIR" ]; then
+        # Limpar backups de API (manter apenas os 2 mais recentes)
+        api_backups=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null || true)
+        if [ -n "$api_backups" ]; then
+            total_api=$(echo "$api_backups" | wc -l)
+            if [ "$total_api" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_api - 2)) backups antigos de API..."
+                echo "$api_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        # Limpar backups de frontend (manter apenas os 2 mais recentes)
+        frontend_backups=$(ls -t "$BACKUP_DIR"/frontend_backup_* 2>/dev/null || true)
+        if [ -n "$frontend_backups" ]; then
+            total_frontend=$(echo "$frontend_backups" | wc -l)
+            if [ "$total_frontend" -gt 2 ]; then
+                echo "🗑️ Removendo $(($total_frontend - 2)) backups antigos de frontend..."
+                echo "$frontend_backups" | tail -n +3 | xargs rm -rf 2>/dev/null || true
+            fi
+        fi
+
+        echo "✅ Limpeza de backups antigos concluída"
+    fi
+}
+
+# EXECUTAR LIMPEZA DE BACKUPS ANTIGOS
+cleanup_old_backups
+
+# Função para fazer backup de arquivos importantes
+backup_important_files() {
+    local target_dir="$1"
+    local backup_name="$2"
+    local backup_path="$BACKUP_DIR/${backup_name}_$(date +%Y%m%d_%H%M%S)"
+
+    echo "💾 Fazendo backup de arquivos importantes..."
+    mkdir -p "$backup_path"
+
+    # Backup de arquivos importantes do Laravel
+    if [ -d "$target_dir/vendor" ]; then
+        echo "📦 Backup do vendor..."
+        cp -r "$target_dir/vendor" "$backup_path/"
+    fi
+
+    if [ -f "$target_dir/.env" ]; then
+        echo "⚙️ Backup do .env..."
+        cp "$target_dir/.env" "$backup_path/"
+    fi
+
+    if [ -d "$target_dir/storage/app" ]; then
+        echo "📁 Backup do storage/app..."
+        cp -r "$target_dir/storage/app" "$backup_path/"
+    fi
+
+    if [ -d "$target_dir/storage/logs" ]; then
+        echo "📝 Backup dos logs..."
+        cp -r "$target_dir/storage/logs" "$backup_path/"
+    fi
+
+    echo "✅ Backup salvo em: $backup_path"
+}
+
+# Deploy Backend (Laravel) - API Subdomain
+if [ -d "backend" ]; then
+    echo "🔧 Configurando Laravel API..."
+
+    # Backup dos arquivos importantes se o diretório já existe
+    if [ -d "$API_DIR" ]; then
+        backup_important_files "$API_DIR" "api_backup"
+    fi
+
+    # Criar diretório temporário para o novo deploy
+    TEMP_API_DIR="$API_DIR.temp"
+    rm -rf "$TEMP_API_DIR"
+    mkdir -p "$TEMP_API_DIR"
+
+    # Copiar arquivos do backend para diretório temporário
+    echo "📋 Copiando arquivos do backend..."
+    cp -r backend/* "$TEMP_API_DIR/"
+
+    # Copiar arquivos ocultos importantes
+    echo "📋 Copiando arquivos ocultos importantes..."
+    cp backend/.env.example "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/.gitignore "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/phpunit.xml "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/vite.config.js "$TEMP_API_DIR/" 2>/dev/null || true
+    cp backend/package.json "$TEMP_API_DIR/" 2>/dev/null || true
+
+    # Copiar vendor do diretório original (se existir)
+    if [ -d "$API_DIR/vendor" ]; then
+        echo "📦 Copiando vendor do diretório original..."
+        cp -r "$API_DIR/vendor" "$TEMP_API_DIR/"
+    fi
+
+    # Restaurar outros arquivos importantes do backup (se existir)
+    if [ -d "$API_DIR" ]; then
+        latest_backup=$(ls -t "$BACKUP_DIR"/api_backup_* 2>/dev/null | head -1)
+        if [ -n "$latest_backup" ]; then
+            echo "🔄 Restaurando outros arquivos importantes do backup..."
+            if [ -f "$latest_backup/.env" ]; then
+                cp "$latest_backup/.env" "$TEMP_API_DIR/"
+            fi
+            if [ -d "$latest_backup/storage/app" ]; then
+                rm -rf "$TEMP_API_DIR/storage/app"
+                cp -r "$latest_backup/storage/app" "$TEMP_API_DIR/"
+            fi
+            if [ -d "$latest_backup/storage/logs" ]; then
+                rm -rf "$TEMP_API_DIR/storage/logs"
+                cp -r "$latest_backup/storage/logs" "$TEMP_API_DIR/"
+            fi
+        fi
+    fi
+
+    # Verificar se vendor foi copiado com sucesso
+    echo "📦 Verificando dependências..."
+    if [ -d "$TEMP_API_DIR/vendor" ]; then
+        echo "✅ Vendor copiado com sucesso para nova versão"
+    else
+        echo "⚠️ Vendor não encontrado"
+        echo "❌ Deploy interrompido - vendor é obrigatório para continuar"
+        exit 1
+    fi
+
+    # Mudar para o diretório temporário para executar comandos Laravel
+    cd "$TEMP_API_DIR"
+
+    # Verificar se o vendor está funcionando
+    echo "🔍 Testando se o vendor está funcionando..."
+    if php artisan --version > /dev/null 2>&1; then
+        echo "✅ Vendor funcionando corretamente"
+    else
+        echo "❌ Vendor não está funcionando - verifique as dependências"
+        exit 1
+    fi
+
+    # Verificar se .env foi restaurado do backup, senão criar um novo
+    if [ ! -f ".env" ]; then
+        echo "⚙️ Criando arquivo .env..."
+        cp .env.example .env
+        php artisan key:generate
+    else
+        echo "✅ Usando .env existente do backup"
+    fi
+
+    # Otimizar para produção
+    echo "⚡ Otimizando para produção..."
+    mkdir -p storage/framework/views
+    chmod -R 755 storage
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+
+    # Criar link simbólico para storage
+    echo "🔗 Criando link simbólico para storage..."
+    mkdir -p public
+    mkdir -p storage/app/public
+
+    if [ ! -L "public/storage" ]; then
+        if php artisan storage:link > /dev/null 2>&1; then
+            echo "✅ Link simbólico criado via Laravel"
+        else
+            echo "⚠️ Tentando criar link simbólico manualmente..."
+            ln -sf "../storage/app/public" public/storage 2>/dev/null || echo "⚠️ Erro ao criar link simbólico"
+        fi
+    else
+        echo "✅ Link simbólico para storage já existe"
+    fi
+
+    # Executar migrações
+    echo "🗄️ Executando migrações..."
+    php artisan migrate --force
+
+    # Limpar arquivos de desenvolvimento
+    echo "🧹 Limpando arquivos de desenvolvimento..."
+    rm -rf tests/ 2>/dev/null || true
+    rm -rf .phpunit.cache/ 2>/dev/null || true
+    rm -rf storage/framework/cache/* 2>/dev/null || true
+    rm -rf storage/framework/sessions/* 2>/dev/null || true
+    rm -rf storage/framework/views/* 2>/dev/null || true
+
+    # Garantir permissões corretas
+    mkdir -p storage/logs
+    chmod -R 755 storage/logs
+    chmod -R 755 bootstrap/cache
+    chmod 644 .env
+
+    # Configurar .htaccess para API
+    cat > .htaccess << 'HTACCESS'
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ public/index.php [L]
+</IfModule>
+HTACCESS
+
+    # Fazer swap dos diretórios (deploy atômico)
+    echo "🔄 Fazendo swap dos diretórios..."
+    if [ -d "$API_DIR" ]; then
+        mv "$API_DIR" "$API_DIR.old"
+    fi
+    mv "$TEMP_API_DIR" "$API_DIR"
+
+    # Remover diretório antigo após alguns segundos
+    if [ -d "$API_DIR.old" ]; then
+        echo "🗑️ Removendo versão anterior em 5 segundos..."
+        (sleep 5 && rm -rf "$API_DIR.old") &
+    fi
+
+    echo "✅ Backend Laravel configurado em api-hom.virtualt.com.br"
+fi
+
+cd "$PROJECT_ROOT"
+
+# Deploy Frontend (React) - App Subdomain
+if [ -d "frontend" ]; then
+    echo "⚛️ Configurando React App..."
+
+    # Criar diretório temporário para o novo deploy
+    TEMP_FRONTEND_DIR="$FRONTEND_DIR.temp"
+    rm -rf "$TEMP_FRONTEND_DIR"
+    mkdir -p "$TEMP_FRONTEND_DIR"
+
+    # Criar diretório temporário para build
+    TEMP_BUILD_DIR="/tmp/frontend-build-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$TEMP_BUILD_DIR"
+
+    # Copiar arquivos do frontend para diretório temporário de build
+    echo "📋 Copiando arquivos do frontend para build temporário..."
+    cp -r frontend/* "$TEMP_BUILD_DIR/"
+
+    cd "$TEMP_BUILD_DIR"
+
+    # Verificar se existe build local do frontend
+    if [ -d "dist" ]; then
+        echo "📋 Usando build local existente..."
+        cp -r dist/* "$TEMP_FRONTEND_DIR/"
+    else
+        echo "⚠️ Build local não encontrado. Execute npm run build no frontend antes do deploy."
+        echo "❌ Deploy do frontend interrompido - build necessário"
+        cd "$PROJECT_ROOT"
+        rm -rf "$TEMP_BUILD_DIR"
+        exit 1
+    fi
+
+    # Limpar diretório temporário de build
+    echo "🧹 Limpando diretório temporário de build..."
+    cd "$PROJECT_ROOT"
+    rm -rf "$TEMP_BUILD_DIR"
+
+    # Configurar .htaccess para frontend
+    cat > "$TEMP_FRONTEND_DIR/.htaccess" << 'HTACCESS'
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [QSA,L]
+HTACCESS
+
+    # Configurar permissões
+    chmod -R 755 "$TEMP_FRONTEND_DIR"
+
+    # Fazer swap dos diretórios (deploy atômico)
+    echo "🔄 Fazendo swap dos diretórios..."
+    if [ -d "$FRONTEND_DIR" ]; then
+        mv "$FRONTEND_DIR" "$FRONTEND_DIR.old"
+    fi
+    mv "$TEMP_FRONTEND_DIR" "$FRONTEND_DIR"
+
+    # Remover diretório antigo após alguns segundos
+    if [ -d "$FRONTEND_DIR.old" ]; then
+        echo "🗑️ Removendo versão anterior em 5 segundos..."
+        (sleep 5 && rm -rf "$FRONTEND_DIR.old") &
+    fi
+
+    echo "✅ Frontend React configurado em app-hom.virtualt.com.br"
+fi
+
+echo "🎉 Deploy automático concluído com sucesso!"
+echo "🌐 Frontend: https://app-hom.virtualt.com.br"
+echo "🔗 API: https://api-hom.virtualt.com.br"
+
+# Log do deploy
+echo "$(date): Deploy automático realizado com sucesso" >> "$PROJECT_ROOT/deploy.log"
+
+echo "✅ Deploy concluído com zero downtime!"
+</code>
+
+**Tornar o script executável:**
+
+<code bash>
+# Tornar o script executável
+chmod +x ../deploy.sh
+
+# Verificar se está executável
+ls -la ../deploy.sh
+</code>
+
+===== 🧪 Testes =====
+
+=== Teste das Rotas ===
+
+<code bash>
+# Testar se as rotas estão funcionando
+php artisan route:list | grep hostinger
+
+# Testar endpoint de health
+curl -X GET "http://localhost:8000/api/hostinger/webhook/health"
+
+# Testar endpoint de status
+curl -X GET "http://localhost:8000/api/hostinger/webhook/status"
+
+# Testar endpoint de teste
+curl -X GET "http://localhost:8000/api/hostinger/webhook/test"
+</code>
+
+=== Teste do Controller ===
+
+<code bash>
+# Testar se o controller está funcionando
+php artisan tinker
+# >>> $controller = new \App\Http\Controllers\Api\DeployWebhookController(app(\App\Contracts\LoggingServiceInterface::class));
+# >>> $controller->health();
+</code>
+
+=== Teste do Script de Deploy ===
+
+<code bash>
+# Testar se o script de deploy está funcionando
+cd ..
+./deploy.sh
+
+# Verificar se o log foi criado
+cat deploy.log
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] Rotas do webhook criadas em `routes/api.php` ✅
+  - [ ] Controller `DeployWebhookController` criado ✅
+  - [ ] Script `deploy.sh` criado e executável ✅
+  - [ ] Sistema de logging integrado ✅
+  - [ ] Sistema de notificações integrado ✅
+  - [ ] Deploy atômico implementado ✅
+  - [ ] Sistema de backup implementado ✅
+  - [ ] Limpeza automática de backups ✅
+
+=== Comandos de Validação ===
+
+<code bash>
+# Verificar rotas
+php artisan route:list | grep hostinger
+
+# Verificar controller
+ls -la app/Http/Controllers/Api/DeployWebhookController.php
+
+# Verificar script
+ls -la ../deploy.sh
+
+# Testar endpoints
+curl -X GET "http://localhost:8000/api/hostinger/webhook/health"
+curl -X GET "http://localhost:8000/api/hostinger/webhook/status"
+curl -X GET "http://localhost:8000/api/hostinger/webhook/test"
+
+# Verificar logs
+tail -f ../deploy.log
+</code>
+
+===== 📋 Próximos Passos =====
+
+1. **Configurar Webhook no GitHub:**
+   - URL: `https://api-hom.virtualt.com.br/api/hostinger/webhook/deploy`
+   - Branch: `hostinger-deploy-auto`
+   - Event: `push`
+
+2. **Configurar Variáveis de Ambiente:**
+   - Configurar `.env` na Hostinger
+   - Configurar banco de dados
+   - Configurar URLs dos subdomínios
+
+3. **Testar Deploy Completo:**
+   - Fazer push para branch `hostinger-deploy-auto`
+   - Verificar se o deploy foi executado
+   - Verificar se os subdomínios estão funcionando
+
+4. **Monitorar Logs:**
+   - Verificar logs de deploy
+   - Verificar logs da aplicação
+   - Verificar notificações enviadas
+
+===== 🔧 Troubleshooting =====
+
+=== Problemas Comuns ===
+
+**1. Script não executável:**
+<code bash>
+chmod +x ../deploy.sh
+</code>
+
+**2. Permissões incorretas:**
+<code bash>
+chmod -R 755 storage/
+chmod -R 755 bootstrap/cache/
+</code>
+
+**3. Vendor não encontrado:**
+<code bash
+# Copiar vendor do ambiente local para a Hostinger
+scp -r vendor/ user@hostinger:/path/to/api/
+</code>
+
+**4. Deploy falha:**
+<code bash
+# Verificar logs
+tail -f ../deploy.log
+tail -f storage/logs/laravel.log
+</code>
+
+=== Comandos de Debug ===
+
+<code bash
+# Verificar status do sistema
+curl -X GET "http://localhost:8000/api/hostinger/webhook/status"
+
+# Testar deploy manual
+curl -X GET "http://localhost:8000/api/hostinger/webhook/test"
+
+# Verificar logs em tempo real
+tail -f ../deploy.log
+</code>
