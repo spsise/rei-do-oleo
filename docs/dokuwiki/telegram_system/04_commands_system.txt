@@ -80,16 +80,30 @@ implementar sistema comandos unificado telegram
     - Construção de menus inline
     - Geração de teclados
 
-=== 🔗 Contracts ===
+=== 🗄️ Models ===
 
-  * **`app/Contracts/Telegram/Commands/CommandMatch.php`** ✅
-    - Interface para matching de comandos
+  * **`app/Models/Telegram/TelegramCommand.php`** ✅
+    - Modelo Eloquent para comandos
+    - Implementa CommandInterface
+    - Métodos de matching e confiança
+
+=== 📊 Database ===
+
+  * **`database/migrations/xxxx_xx_xx_xxxxxx_create_telegram_commands_table.php`** ✅
+    - Migration para tabela de comandos
+    - Campos JSON para configurações
+    - Índices para performance
+
+=== 🔗 Contracts ===
 
   * **`app/Contracts/Telegram/Commands/CommandInterface.php`** ✅
     - Interface base para comandos
 
   * **`app/Contracts/Telegram/Commands/CommandRegistryInterface.php`** ✅
     - Interface para registro de comandos
+
+  * **`app/Contracts/Telegram/Commands/CommandMatch.php`** ✅
+    - Classe para matching de comandos
 
 === ⚙️ Configurações ===
 
@@ -198,7 +212,114 @@ return [
 ];
 </code>
 
-=== Passo 2: Criar CommandMatch ===
+=== Passo 2: Criar CommandInterface ===
+
+<code php>
+<?php
+
+namespace App\Contracts\Telegram\Commands;
+
+interface CommandInterface
+{
+    /**
+     * Get command ID
+     */
+    public function getId(): string;
+
+    /**
+     * Get command description
+     */
+    public function getDescription(): string;
+
+    /**
+     * Get command aliases
+     */
+    public function getAliases(): array;
+
+    /**
+     * Get command category
+     */
+    public function getCategory(): string;
+
+    /**
+     * Get required permissions
+     */
+    public function getRequiredPermissions(): array;
+
+    /**
+     * Check if command is enabled
+     */
+    public function isEnabled(): bool;
+
+    /**
+     * Execute command
+     */
+    public function execute(array $context): array;
+
+    /**
+     * Get command usage examples
+     */
+    public function getUsageExamples(): array;
+
+    /**
+     * Get command help text
+     */
+    public function getHelpText(): string;
+}
+</code>
+
+=== Passo 3: Criar CommandRegistryInterface ===
+
+<code php>
+<?php
+
+namespace App\Contracts\Telegram\Commands;
+
+interface CommandRegistryInterface
+{
+    /**
+     * Find command by input
+     */
+    public function findCommand(string $input, array $context = []): ?CommandMatch;
+
+    /**
+     * Register a command
+     */
+    public function registerCommand(CommandInterface $command): void;
+
+    /**
+     * Get all registered commands
+     */
+    public function getAllCommands(): array;
+
+    /**
+     * Get commands by category
+     */
+    public function getCommandsByCategory(string $category): array;
+
+    /**
+     * Check if command exists
+     */
+    public function hasCommand(string $commandId): bool;
+
+    /**
+     * Get command by ID
+     */
+    public function getCommand(string $commandId): ?CommandInterface;
+
+    /**
+     * Get command suggestions
+     */
+    public function getSuggestions(string $input, int $limit = 3): array;
+
+    /**
+     * Get command statistics
+     */
+    public function getStatistics(): array;
+}
+</code>
+
+=== Passo 4: Criar CommandMatch ===
 
 <code php>
 <?php
@@ -251,7 +372,7 @@ class CommandMatch
 }
 </code>
 
-=== Passo 3: Criar CommandRegistry ===
+=== Passo 5: Criar CommandRegistry ===
 
 <code php>
 <?php
@@ -717,7 +838,7 @@ class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistr
 }
 </code>
 
-=== Passo 4: Criar UnifiedCommandSystem ===
+=== Passo 6: Criar UnifiedCommandSystem ===
 
 <code php>
 <?php
@@ -1167,7 +1288,7 @@ class CommandResult
 }
 </code>
 
-=== Passo 5: Criar CommandCache ===
+=== Passo 7: Criar CommandCache ===
 
 <code php>
 <?php
@@ -1487,7 +1608,7 @@ class CommandCache
 }
 </code>
 
-=== Passo 6: Criar CommandLearning ===
+=== Passo 8: Criar CommandLearning ===
 
 <code php>
 <?php
@@ -1844,7 +1965,229 @@ class CommandLearning
 }
 </code>
 
-=== Passo 7: Criar CommandConfigRepository ===
+=== Passo 9: Criar TelegramCommand Model ===
+
+<code php>
+<?php
+
+namespace App\Models\Telegram;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Contracts\Telegram\Commands\CommandInterface;
+
+class TelegramCommand extends Model implements CommandInterface
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'command_id',
+        'aliases',
+        'description',
+        'action_handler',
+        'action_method',
+        'action_parameters',
+        'permissions',
+        'category',
+        'voice_settings',
+        'natural_language',
+        'fallback',
+        'is_active',
+        'priority'
+    ];
+
+    protected $casts = [
+        'aliases' => 'array',
+        'action_parameters' => 'array',
+        'permissions' => 'array',
+        'voice_settings' => 'array',
+        'natural_language' => 'array',
+        'fallback' => 'array',
+        'is_active' => 'boolean',
+        'priority' => 'integer'
+    ];
+
+    public function getId(): string
+    {
+        return $this->command_id;
+    }
+
+    public function getAliases(): array
+    {
+        return $this->aliases ?? [];
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description ?? '';
+    }
+
+    public function getAction(): array
+    {
+        return [
+            'handler' => $this->action_handler,
+            'method' => $this->action_method,
+            'parameters' => $this->action_parameters ?? []
+        ];
+    }
+
+    public function getPermissions(): array
+    {
+        return $this->permissions ?? ['all'];
+    }
+
+    public function getCategory(): string
+    {
+        return $this->category ?? 'general';
+    }
+
+    public function getVoiceSettings(): array
+    {
+        return $this->voice_settings ?? [
+            'enabled' => false,
+            'priority' => 1,
+            'noise_reduction' => false,
+            'language' => ['pt']
+        ];
+    }
+
+    public function getNaturalLanguage(): array
+    {
+        return $this->natural_language ?? [];
+    }
+
+    public function getFallback(): array
+    {
+        return $this->fallback ?? [
+            'message' => 'Desculpe, não entendi esse comando.',
+            'suggestions' => []
+        ];
+    }
+
+    public function canHandle(string $input): bool
+    {
+        $input = strtolower(trim($input));
+
+        // Check exact aliases
+        foreach ($this->getAliases() as $alias) {
+            if (strtolower($alias) === $input) {
+                return true;
+            }
+        }
+
+        // Check natural language patterns
+        foreach ($this->getNaturalLanguage() as $pattern) {
+            if (str_contains(strtolower($pattern), $input) ||
+                str_contains($input, strtolower($pattern))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getConfidence(string $input): float
+    {
+        $input = strtolower(trim($input));
+        $maxConfidence = 0.0;
+
+        // Exact match - highest confidence
+        foreach ($this->getAliases() as $alias) {
+            if (strtolower($alias) === $input) {
+                return 1.0;
+            }
+        }
+
+        // Natural language match - calculate similarity
+        foreach ($this->getNaturalLanguage() as $pattern) {
+            $similarity = $this->calculateSimilarity($input, strtolower($pattern));
+            $maxConfidence = max($maxConfidence, $similarity);
+        }
+
+        return $maxConfidence;
+    }
+
+    private function calculateSimilarity(string $input, string $pattern): float
+    {
+        // Simple similarity calculation using Levenshtein distance
+        $levenshtein = levenshtein($input, $pattern);
+        $maxLength = max(strlen($input), strlen($pattern));
+
+        if ($maxLength === 0) return 1.0;
+
+        return 1 - ($levenshtein / $maxLength);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeByCategory($query, string $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    public function scopeByPermission($query, array $userPermissions)
+    {
+        return $query->where(function ($q) use ($userPermissions) {
+            $q->whereJsonContains('permissions', 'all')
+              ->orWhereJsonContains('permissions', $userPermissions);
+        });
+    }
+}
+</code>
+
+=== Passo 10: Criar Migration para TelegramCommand ===
+
+<code php>
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('telegram_commands', function (Blueprint $table) {
+            $table->id();
+            $table->string('command_id')->unique();
+            $table->json('aliases');
+            $table->text('description');
+            $table->string('action_handler');
+            $table->string('action_method');
+            $table->json('action_parameters')->nullable();
+            $table->json('permissions');
+            $table->string('category');
+            $table->json('voice_settings')->nullable();
+            $table->json('natural_language')->nullable();
+            $table->json('fallback')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->integer('priority')->default(1);
+            $table->timestamps();
+
+            $table->index(['category', 'is_active']);
+            $table->index(['command_id', 'is_active']);
+            $table->index('priority');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('telegram_commands');
+    }
+};
+</code>
+
+=== Passo 11: Criar CommandConfigRepository ===
 
 <code php>
 <?php
@@ -2035,7 +2378,7 @@ class CommandConfigRepository
 }
 </code>
 
-=== Passo 8: Criar TelegramMenuBuilder ===
+=== Passo 12: Criar TelegramMenuBuilder ===
 
 <code php>
 <?php
@@ -2776,11 +3119,15 @@ class UnifiedCommandSystemTest extends TestCase
 
 === Checklist de Implementação ===
 
+  - [ ] `CommandInterface` implementado
+  - [ ] `CommandRegistryInterface` implementado
   - [ ] `CommandMatch` implementado
   - [ ] `CommandRegistry` implementado
   - [ ] `UnifiedCommandSystem` implementado
   - [ ] `CommandCache` implementado
   - [ ] `CommandLearning` implementado
+  - [ ] `TelegramCommand` model implementado
+  - [ ] Migration `create_telegram_commands_table` criada
   - [ ] `CommandConfigRepository` implementado
   - [ ] `TelegramMenuBuilder` implementado
   - [ ] Configuração `telegram-commands.php` criada
@@ -2790,6 +3137,9 @@ class UnifiedCommandSystemTest extends TestCase
 === Comandos de Validação ===
 
 <code bash>
+# Executar migration
+php artisan migrate
+
 # Executar testes
 php artisan test tests/Unit/UnifiedCommandSystemTest.php
 
@@ -2802,6 +3152,12 @@ php artisan tinker
 # >>> $system = app(\App\Services\Telegram\Commands\UnifiedCommandSystem::class);
 # >>> $result = $system->processCommand('/start');
 # >>> $result->isSuccess();
+
+# Verificar modelo TelegramCommand
+# >>> $command = new \App\Models\Telegram\TelegramCommand();
+# >>> $command->command_id = 'test';
+# >>> $command->description = 'Test command';
+# >>> $command->save();
 
 # Verificar cache de comandos
 # >>> $cache = app(\App\Services\Telegram\Commands\Cache\CommandCache::class);
