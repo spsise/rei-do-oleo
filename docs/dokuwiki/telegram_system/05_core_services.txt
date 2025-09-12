@@ -1,0 +1,2120 @@
+[[:templates_ai:funcionalidades:laravel:telegram_bot_passos|{{wiki:user:undo_24.png}}]]
+
+====== Passo 05: Services Core do Telegram - Telegram Webhook ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Services core do Telegram que implementam a lógica principal de processamento de mensagens, comandos e interações. Depende de todos os sistemas anteriores (logging, rastreamento, canais, validação) e serve como base para o processamento de webhooks.
+
+**IMPORTANTE**: Este passo **atualiza** o `TelegramServiceProvider` já criado no Passo 02, adicionando os novos services core. Não cria um novo provider.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar services core telegram
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+  - **Sistema de Logging** implementado
+  - **Sistema de Rastreamento de Fluxo** implementado
+  - **Sistema de Canais de Notificação** implementado
+  - **Sistema de Validação e Middleware** implementado
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
+
+===== 📁 Arquivos do Módulo =====
+
+=== 🔧 Core Services ===
+
+  * **`app/Services/Telegram/TelegramMessageProcessorService.php`**
+    - Processamento principal de webhooks
+    - Roteamento de mensagens por tipo
+    - Integração com sistemas de logging e tracking
+
+  * **`app/Services/Telegram/TelegramBotService.php`**
+    - Lógica principal do bot
+    - Processamento de comandos
+    - Gerenciamento de estado do usuário
+
+  * **`app/Services/Telegram/TelegramWebhookService.php`**
+    - Gerenciamento de webhooks
+    - Configuração e validação
+    - Health checks
+
+=== 🎯 Command Services ===
+
+  * **`app/Services/Telegram/Commands/CommandRegistry.php`**
+    - Registro e gerenciamento de comandos
+    - Descoberta automática de comandos
+    - Cache de comandos disponíveis
+
+  * **`app/Services/Telegram/Commands/UnifiedCommandSystem.php`**
+    - Sistema unificado de comandos
+    - Processamento de comandos complexos
+    - Integração com IA
+
+=== 📝 Controllers ===
+
+  * **`app/Http/Controllers/Api/TelegramWebhookController.php`**
+    - Controller principal do webhook
+    - Integração com todos os services
+    - Tratamento de exceções
+
+===== 🔧 Implementação Passo a Passo =====
+
+=== Passo 1: Criar TelegramMessageProcessorService ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram;
+
+use App\Services\Telegram\Commands\UnifiedCommandSystem;
+use App\Services\Telegram\Commands\CommandResult;
+use App\Services\Channels\TelegramChannel;
+use App\Services\SpeechToTextService;
+use App\Contracts\LoggingServiceInterface;
+
+class TelegramMessageProcessorService
+{
+    public function __construct(
+        private UnifiedCommandSystem $commandSystem,
+        private TelegramAuthorizationService $authorizationService,
+        private ?SpeechToTextService $speechService = null,
+        private ?TelegramChannel $telegramChannel = null,
+        private ?LoggingServiceInterface $loggingService = null
+    ) {}
+
+    public function processMessage(array $payload): array
+    {
+        try {
+            // Check if it's a callback query (button click)
+            if (isset($payload['callback_query'])) {
+                return $this->processCallbackQuery($payload['callback_query']);
+            }
+
+            // Verify if it's a message
+            if (!isset($payload['message'])) {
+                $result = [
+                    'success' => false,
+                    'status' => 'ignored',
+                    'message' => 'No message in payload'
+                ];
+
+                return $result;
+            }
+
+            $message = $payload['message'];
+
+            // Process different message types
+            if (isset($message['text'])) {
+                return $this->processTextMessage($message);
+            }
+
+            if (isset($message['voice'])) {
+                return $this->processVoiceMessage($message);
+            }
+
+            if (isset($message['audio'])) {
+                return $this->processAudioMessage($message);
+            }
+
+            return $this->createIgnoredResult('Unsupported message type');
+
+        } catch (\Exception $e) {
+            $result = [
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
+            ];
+
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'telegram_webhook_processing',
+                    'payload' => $payload
+                ]);
+            }
+
+            return $result;
+        }
+    }
+
+    private function processTextMessage(array $message): array
+    {
+        $chatId = $message['chat']['id'];
+        $text = $message['text'] ?? '';
+
+        if (empty($text)) {
+            return $this->createEmptyMessageResponse($chatId);
+        }
+
+        // Process command through unified system
+        $result = $this->commandSystem->processCommand($text, $this->getContextFromMessage($message));
+
+        if ($result->isSuccess()) {
+            return $this->createSuccessResponse($chatId, $result);
+        } else {
+            return $this->createCommandNotFoundResponse($chatId, $result);
+        }
+    }
+
+    private function processVoiceMessage(array $message): array
+    {
+        try {
+            $chatId = $message['chat']['id'];
+            $voice = $message['voice'];
+
+            // Check if speech service is available
+            if (!$this->speechService) {
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Serviço de reconhecimento de voz não está disponível. Envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            // Send processing message
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎤 Processando mensagem de voz...",
+                    (string) $chatId
+                );
+            }
+
+            // Download voice file
+            $voiceFilePath = $this->downloadVoiceFile($voice['file_id']);
+
+            if (!$voiceFilePath) {
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            // Convert voice to text with error handling
+            try {
+                $text = $this->speechService->convertVoiceToText($voiceFilePath);
+            } catch (\Exception $speechException) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException($speechException, [
+                        'operation' => 'speech_to_text_conversion',
+                        'chat_id' => $chatId,
+                        'file_path' => $voiceFilePath
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Erro ao processar mensagem de voz. Tente novamente ou envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            if (!$text) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to convert voice to text'), [
+                        'chat_id' => $chatId,
+                        'file_path' => $voiceFilePath
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Não foi possível reconhecer o texto da mensagem de voz. Tente novamente.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createVoiceConversionErrorResponse($chatId);
+            }
+
+            // Clean up voice file
+            if (file_exists($voiceFilePath)) {
+                unlink($voiceFilePath);
+            }
+
+            // Send recognized text to user
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎯 Texto reconhecido: *{$text}*",
+                    (string) $chatId
+                );
+            }
+
+            // Update context for voice processing
+            $context = $this->getContextFromMessage($message);
+            $context['type'] = 'voice';
+            $context['original_voice'] = $text;
+
+            // Process converted text through unified system
+            $result = $this->commandSystem->processCommand($text, $context);
+
+            if ($result->isSuccess()) {
+                return $this->createSuccessResponse($chatId, $result);
+            } else {
+                return $this->createCommandNotFoundResponse($chatId, $result);
+            }
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'voice_message_processing',
+                    'chat_id' => $message['chat']['id'] ?? null,
+                    'message' => $message
+                ]);
+            }
+
+            return $this->createVoiceConversionErrorResponse($chatId);
+        }
+    }
+
+    private function processCallbackQuery(array $callbackQuery): array
+    {
+        $chatId = $callbackQuery['message']['chat']['id'] ?? 0;
+        $callbackData = $callbackQuery['data'] ?? '';
+
+        if (empty($callbackData)) {
+            return $this->createEmptyCallbackResponse($chatId);
+        }
+
+        // Process callback through unified system
+        $result = $this->commandSystem->processCommand($callbackData, $this->getContextFromCallbackQuery($callbackQuery));
+
+        if ($result->isSuccess()) {
+            return $this->createSuccessResponse($chatId, $result);
+        } else {
+            return $this->createCallbackErrorResponse($chatId, $result);
+        }
+    }
+
+    private function getContextFromMessage(array $message): array
+    {
+        // Check if this is a callback query
+        if (isset($message['callback_query'])) {
+            return $this->getContextFromCallbackQuery($message['callback_query']);
+        }
+
+        // Regular message
+        return [
+            'chat_id' => $message['chat']['id'],
+            'user_id' => $message['from']['id'] ?? null,
+            'type' => $this->determineMessageType($message),
+            'timestamp' => $message['date'] ?? time(),
+            'user_permissions' => $this->getUserPermissions($message)
+        ];
+    }
+
+    private function getContextFromCallbackQuery(array $callbackQuery): array
+    {
+        return [
+            'chat_id' => $callbackQuery['message']['chat']['id'] ?? 0,
+            'user_id' => $callbackQuery['from']['id'] ?? null,
+            'type' => 'callback_query',
+            'timestamp' => $callbackQuery['date'] ?? time(),
+            'user_permissions' => $this->getUserPermissions($callbackQuery)
+        ];
+    }
+
+    private function determineMessageType(array $message): string
+    {
+        if (isset($message['callback_query'])) {
+            return 'callback_query';
+        }
+
+        if (isset($message['voice'])) {
+            return 'voice';
+        }
+
+        if (isset($message['audio'])) {
+            return 'audio';
+        }
+
+        if (isset($message['text'])) {
+            return 'text';
+        }
+
+        return 'unknown';
+    }
+
+    private function getUserPermissions(array $message): array
+    {
+        // Extract user permissions from message or callback query
+        $userId = null;
+
+        if (isset($message['from']['id'])) {
+            // Regular message
+            $userId = $message['from']['id'];
+        } elseif (isset($message['callback_query']['from']['id'])) {
+            // Callback query wrapped in payload
+            $userId = $message['callback_query']['from']['id'];
+        }
+
+        if (!$userId) {
+            return ['user'];
+        }
+
+        // TODO: Implement actual permission checking
+        // For now, return default permissions
+        return ['user'];
+    }
+
+    private function convertVoiceToText(array $message): string
+    {
+        // TODO: Implement voice-to-text conversion
+        // This would use your existing SpeechToTextService
+        return '';
+    }
+
+    private function createSuccessResponse(int $chatId, CommandResult $result): array
+    {
+        $data = $result->getData();
+
+        return [
+            'success' => true,
+            'chat_id' => $chatId,
+            'type' => $result->getType(),
+            'data' => $data,
+            'command_info' => $result->getCommandMatch() ? [
+                'command_id' => $result->getCommandMatch()->getCommand()->getId(),
+                'confidence' => $result->getCommandMatch()->getConfidence()
+            ] : null
+        ];
+    }
+
+    private function createCommandNotFoundResponse(int $chatId, CommandResult $result): array
+    {
+        $data = $result->getData();
+        $fallbackMessage = $data['fallback_message'] ?? 'Comando não encontrado';
+
+        // Send the fallback message to the user in Telegram chat
+        if ($this->telegramChannel) {
+            $this->telegramChannel->sendTextMessage(
+                $fallbackMessage,
+                (string) $chatId
+            );
+        }
+
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'command_not_found',
+            'message' => $fallbackMessage,
+            'suggestions' => $data['suggestions'] ?? [],
+            'data' => $data
+        ];
+    }
+
+    private function createUnauthorizedResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'unauthorized',
+            'message' => 'Você não está autorizado a usar este bot.',
+            'data' => []
+        ];
+    }
+
+    private function createUnsupportedMessageResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'unsupported',
+            'message' => 'Tipo de mensagem não suportado.',
+            'data' => []
+        ];
+    }
+
+    private function createEmptyMessageResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'empty_message',
+            'message' => 'Mensagem vazia recebida.',
+            'data' => []
+        ];
+    }
+
+    private function createVoiceConversionErrorResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'voice_conversion_error',
+            'message' => 'Erro ao converter mensagem de voz.',
+            'data' => []
+        ];
+    }
+
+    private function createEmptyCallbackResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'empty_callback',
+            'message' => 'Dados de callback vazios.',
+            'data' => []
+        ];
+    }
+
+    private function createCallbackErrorResponse(int $chatId, CommandResult $result): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'callback_error',
+            'message' => 'Erro ao processar callback.',
+            'data' => $result->getData()
+        ];
+    }
+
+    private function createErrorResponse(int $chatId, string $error): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'error',
+            'message' => 'Erro interno do sistema: ' . $error,
+            'data' => []
+        ];
+    }
+
+    private function createAudioConversionErrorResponse(int $chatId): array
+    {
+        return [
+            'success' => false,
+            'chat_id' => $chatId,
+            'type' => 'audio_conversion_error',
+            'message' => 'Erro ao converter mensagem de áudio.',
+            'data' => []
+        ];
+    }
+
+    /**
+     * Process audio message
+     */
+    private function processAudioMessage(array $message): array
+    {
+        try {
+            $chatId = $message['chat']['id'];
+            $audio = $message['audio'];
+
+            // Check if speech service is available
+            if (!$this->speechService) {
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Serviço de reconhecimento de áudio não está disponível. Envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            // Send processing message
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎵 Processando mensagem de áudio...",
+                    (string) $chatId
+                );
+            }
+
+            // Download audio file
+            $audioFilePath = $this->downloadAudioFile($audio['file_id']);
+
+            if (!$audioFilePath) {
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            // Convert audio to text with error handling
+            try {
+                $text = $this->speechService->convertVoiceToText($audioFilePath);
+            } catch (\Exception $speechException) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException($speechException, [
+                        'operation' => 'speech_to_text_conversion',
+                        'chat_id' => $chatId,
+                        'file_path' => $audioFilePath,
+                        'audio_info' => $audio
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Erro ao processar mensagem de áudio. Tente novamente ou envie uma mensagem de texto.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            if (!$text) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to convert audio to text'), [
+                        'chat_id' => $chatId,
+                        'file_path' => $audioFilePath,
+                        'audio_info' => $audio
+                    ]);
+                }
+
+                // Send error message to user
+                if ($this->telegramChannel) {
+                    $this->telegramChannel->sendTextMessage(
+                        "❌ Não foi possível reconhecer o texto da mensagem de áudio. Tente novamente.",
+                        (string) $chatId
+                    );
+                }
+
+                return $this->createAudioConversionErrorResponse($chatId);
+            }
+
+            // Clean up audio file
+            if (file_exists($audioFilePath)) {
+                unlink($audioFilePath);
+            }
+
+            // Send recognized text to user
+            if ($this->telegramChannel) {
+                $this->telegramChannel->sendTextMessage(
+                    "🎯 Texto reconhecido: *{$text}*",
+                    (string) $chatId
+                );
+            }
+
+            // Update context for audio processing
+            $context = $this->getContextFromMessage($message);
+            $context['type'] = 'audio';
+            $context['original_audio'] = $text;
+
+            // Process converted text through unified system
+            $result = $this->commandSystem->processCommand($text, $context);
+
+            if ($result->isSuccess()) {
+                return $this->createSuccessResponse($chatId, $result);
+            } else {
+                return $this->createCommandNotFoundResponse($chatId, $result);
+            }
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'audio_message_processing',
+                    'chat_id' => $message['chat']['id'] ?? null,
+                    'message' => $message
+                ]);
+            }
+
+            return $this->createAudioConversionErrorResponse($chatId);
+        }
+    }
+
+    /**
+     * Download voice file from Telegram
+     */
+    private function downloadVoiceFile(string $fileId): ?string
+    {
+        try {
+            if (!$this->telegramChannel) {
+                return null;
+            }
+
+            $fileInfo = $this->telegramChannel->getFile($fileId);
+
+            if (!$fileInfo['success']) {
+                return null;
+            }
+
+            $filePath = $fileInfo['file_path'];
+            $fileName = basename($filePath);
+            $localPath = storage_path("app/temp/voice_{$fileName}");
+
+            // Ensure temp directory exists
+            if (!is_dir(dirname($localPath))) {
+                mkdir(dirname($localPath), 0755, true);
+            }
+
+            // Download file
+            $fileUrl = "https://api.telegram.org/file/bot" . config('services.telegram.bot_token') . "/{$filePath}";
+            $fileContent = file_get_contents($fileUrl);
+
+            if ($fileContent === false) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to download voice file'), [
+                        'file_id' => $fileId,
+                        'file_url' => $fileUrl
+                    ]);
+                }
+
+                return null;
+            }
+
+            file_put_contents($localPath, $fileContent);
+
+            return $localPath;
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'voice_file_download',
+                    'file_id' => $fileId
+                ]);
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Download audio file from Telegram
+     */
+    private function downloadAudioFile(string $fileId): ?string
+    {
+        try {
+            if (!$this->telegramChannel) {
+                return null;
+            }
+
+            $fileInfo = $this->telegramChannel->getFile($fileId);
+
+            if (!$fileInfo['success']) {
+                return null;
+            }
+
+            $filePath = $fileInfo['file_path'];
+            $fileName = basename($filePath);
+            $localPath = storage_path("app/temp/audio_{$fileName}");
+
+            // Ensure temp directory exists
+            if (!is_dir(dirname($localPath))) {
+                mkdir(dirname($localPath), 0755, true);
+            }
+
+            // Download file
+            $fileUrl = "https://api.telegram.org/file/bot" . config('services.telegram.bot_token') . "/{$filePath}";
+            $fileContent = file_get_contents($fileUrl);
+
+            if ($fileContent === false) {
+                if ($this->loggingService) {
+                    $this->loggingService->logException(new \Exception('Failed to download audio file'), [
+                        'file_id' => $fileId,
+                        'file_url' => $fileUrl
+                    ]);
+                }
+
+                return null;
+            }
+
+            file_put_contents($localPath, $fileContent);
+
+            return $localPath;
+
+        } catch (\Exception $e) {
+            if ($this->loggingService) {
+                $this->loggingService->logException($e, [
+                    'operation' => 'audio_file_download',
+                    'file_id' => $fileId
+                ]);
+            }
+
+            return null;
+        }
+    }
+
+    private function createIgnoredResult(string $message): array
+    {
+        return [
+            'success' => false,
+            'status' => 'ignored',
+            'message' => $message
+        ];
+    }
+
+
+}
+</code>
+
+=== Passo 2: Criar TelegramBotService ===
+
+<code php>
+<?php
+
+namespace App\Services;
+
+use App\Services\Telegram\Commands\UnifiedCommandSystem;
+use App\Services\Telegram\TelegramAuthorizationService;
+use App\Services\Telegram\TelegramMenuBuilder;
+use App\Contracts\LoggingServiceInterface;
+use App\Contracts\MessageFlowTrackerInterface;
+use App\Contracts\MessageTrackingInterface;
+
+class TelegramBotService implements MessageTrackingInterface
+{
+    public function __construct(
+        private UnifiedCommandSystem $commandSystem,
+        private TelegramAuthorizationService $authorizationService,
+        private TelegramMenuBuilder $menuBuilder,
+        private LoggingServiceInterface $loggingService,
+        private MessageFlowTrackerInterface $flowTracker
+    ) {
+        $this->initializeTracking();
+    }
+
+    /**
+     * Process incoming message from Telegram webhook
+     */
+    public function processMessage(array $message): array
+    {
+        $this->trackMethod('processMessage', ['message' => $message]);
+
+        try {
+            $chatId = $message['chat']['id'];
+            $text = $message['text'] ?? '';
+            $from = $message['from'] ?? [];
+
+            // Check if user is authorized
+            if (!$this->authorizationService->isAuthorizedUser($chatId)) {
+                $result = $this->menuBuilder->buildUnauthorizedMessage($chatId);
+                $this->endMethod('processMessage', ['result' => $result, 'status' => 'unauthorized']);
+                return $result;
+            }
+
+            // Process command using UnifiedCommandSystem
+            $context = [
+                'chat_id' => $chatId,
+                'user_id' => $from['id'] ?? null,
+                'type' => 'text',
+                'timestamp' => time(),
+                'user_permissions' => ['user'] // TODO: Get real permissions
+            ];
+
+            $result = $this->commandSystem->processCommand($text, $context);
+
+            if ($result->isSuccess()) {
+                $data = $result->getData();
+                $response = [
+                    'success' => true,
+                    'chat_id' => $chatId,
+                    'type' => $result->getType(),
+                    'data' => $data,
+                    'command_info' => $result->getCommandMatch() ? [
+                        'command_id' => $result->getCommandMatch()->getCommand()->getId(),
+                        'confidence' => $result->getCommandMatch()->getConfidence()
+                    ] : null
+                ];
+
+                $this->endMethod('processMessage', ['result' => $response, 'status' => 'success']);
+                return $response;
+            } else {
+                $data = $result->getData();
+                $fallbackMessage = $data['fallback_message'] ?? 'Comando não encontrado';
+
+                $response = [
+                    'success' => false,
+                    'chat_id' => $chatId,
+                    'type' => 'command_not_found',
+                    'message' => $fallbackMessage,
+                    'suggestions' => $data['suggestions'] ?? [],
+                    'data' => $data
+                ];
+
+                $this->endMethod('processMessage', ['result' => $response, 'status' => 'command_not_found']);
+                return $response;
+            }
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_message_processing',
+                'chat_id' => $message['chat']['id'] ?? null,
+                'user_id' => $message['from']['id'] ?? null,
+                'message' => $message
+            ]);
+
+            $errorResponse = [
+                'success' => false,
+                'chat_id' => $chatId,
+                'type' => 'error',
+                'message' => 'Erro interno do sistema',
+                'data' => []
+            ];
+
+            $this->endMethod('processMessage', ['result' => $errorResponse, 'error' => $e->getMessage()]);
+            return $errorResponse;
+        }
+    }
+
+    /**
+     * Process callback query from inline keyboard buttons
+     */
+    public function processCallbackQuery(array $callbackQuery): array
+    {
+        try {
+            $chatId = $callbackQuery['message']['chat']['id'];
+            $messageId = $callbackQuery['message']['message_id'] ?? null;
+            $callbackData = $callbackQuery['data'] ?? '';
+            $from = $callbackQuery['from'] ?? [];
+
+            // Check if user is authorized
+            if (!$this->authorizationService->isAuthorizedUser($chatId)) {
+                return $this->menuBuilder->buildUnauthorizedMessage($chatId);
+            }
+
+            // Process callback using UnifiedCommandSystem
+            $context = [
+                'chat_id' => $chatId,
+                'user_id' => $from['id'] ?? null,
+                'type' => 'callback_query',
+                'timestamp' => time(),
+                'user_permissions' => ['user'], // TODO: Get real permissions
+                'callback_data' => $callbackData
+            ];
+
+            $result = $this->commandSystem->processCommand($callbackData, $context);
+
+            if ($result->isSuccess()) {
+                $data = $result->getData();
+                return [
+                    'success' => true,
+                    'chat_id' => $chatId,
+                    'type' => $result->getType(),
+                    'data' => $data,
+                    'command_info' => $result->getCommandMatch() ? [
+                        'command_id' => $result->getCommandMatch()->getCommand()->getId(),
+                        'confidence' => $result->getCommandMatch()->getConfidence()
+                    ] : null
+                ];
+            } else {
+                $data = $result->getData();
+                $fallbackMessage = $data['fallback_message'] ?? 'Ação não encontrada';
+
+                return [
+                    'success' => false,
+                    'chat_id' => $chatId,
+                    'type' => 'callback_not_found',
+                    'message' => $fallbackMessage,
+                    'suggestions' => $data['suggestions'] ?? [],
+                    'data' => $data
+                ];
+            }
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_callback_processing',
+                'chat_id' => $callbackQuery['message']['chat']['id'] ?? null,
+                'user_id' => $callbackQuery['from']['id'] ?? null,
+                'callback_query' => $callbackQuery
+            ]);
+
+            return [
+                'success' => false,
+                'chat_id' => $chatId,
+                'type' => 'error',
+                'message' => 'Erro interno do sistema',
+                'data' => []
+            ];
+        }
+    }
+
+    /**
+     * Send error message to user via Telegram
+     */
+    public function sendErrorMessage(int $chatId, string $errorMessage): array
+    {
+        try {
+            // Create keyboard with helpful options
+            $keyboard = [
+                [
+                    ['text' => '❓ Ajuda', 'callback_data' => 'help'],
+                    ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+                ],
+                [
+                    ['text' => '📋 Comandos', 'callback_data' => 'commands_list'],
+                    ['text' => '🔄 Tentar Novamente', 'callback_data' => 'retry']
+                ]
+            ];
+
+            // Send error message with helpful keyboard using menuBuilder
+            $result = $this->menuBuilder->buildMainMenu($chatId);
+
+            $this->loggingService->logTelegramEvent('telegram_error_message_sent', [
+                'chat_id' => $chatId,
+                'error_message' => $errorMessage,
+                'result' => $result
+            ], 'info');
+
+            return [
+                'success' => true,
+                'chat_id' => $chatId,
+                'type' => 'error_message_sent',
+                'message' => 'Error message sent to user',
+                'data' => $result
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_error_message',
+                'chat_id' => $chatId,
+                'error_message' => $errorMessage
+            ]);
+
+            return [
+                'success' => false,
+                'chat_id' => $chatId,
+                'type' => 'error_message_failed',
+                'message' => 'Failed to send error message',
+                'data' => []
+            ];
+        }
+    }
+
+    /**
+     * Send generic error message with fallback
+     */
+    public function sendGenericErrorMessage(int $chatId, string $reason = 'unknown'): array
+    {
+        $errorMessages = [
+            'validation_failed' => "❌ Sua mensagem não pôde ser processada.\n\nVerifique se está correta e tente novamente.",
+            'unauthorized' => "🚫 Você não tem permissão para usar este comando.\n\nEntre em contato com o administrador.",
+            'command_not_found' => "🤔 Comando não reconhecido.\n\nUse /help para ver os comandos disponíveis.",
+            'timeout' => "⏰ A operação demorou muito.\n\nTente novamente em alguns instantes.",
+            'internal_error' => "💥 Ocorreu um erro interno.\n\nNossa equipe foi notificada.",
+            'webhook_error' => "🔌 Erro na conexão.\n\nTente novamente em alguns instantes.",
+            'unknown' => "❓ Ocorreu um erro inesperado.\n\nTente novamente ou use /help para ajuda."
+        ];
+
+        $errorMessage = $errorMessages[$reason] ?? $errorMessages['unknown'];
+
+        return $this->sendErrorMessage($chatId, $errorMessage);
+    }
+
+    // ========================================
+    // MessageTrackingInterface Implementation
+    // ========================================
+
+    /**
+     * Inicializa o sistema de tracking
+     */
+    public function initializeTracking(): void
+    {
+        // Tracking já é inicializado no construtor
+    }
+
+    /**
+     * Inicia o tracking de um método
+     */
+    public function trackMethod(string $methodName, array $inputData = [], array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->trackMethod($className, $methodName, $inputData, $outputData);
+    }
+
+    /**
+     * Finaliza o tracking de um método
+     */
+    public function endMethod(string $methodName, array $outputData = []): void
+    {
+        $className = class_basename($this);
+        $this->flowTracker->endMethod($className, $methodName, $outputData);
+    }
+}
+</code>
+
+=== Passo 3: Criar TelegramWebhookService ===
+
+<code php>
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+use App\Contracts\LoggingServiceInterface;
+
+class TelegramWebhookService
+{
+    private string $botToken;
+    private string $apiUrl;
+
+    public function __construct(
+        private LoggingServiceInterface $loggingService
+    ) {
+        $this->botToken = config('services.telegram.bot_token');
+        $this->apiUrl = "https://api.telegram.org/bot{$this->botToken}";
+    }
+
+    /**
+     * Set webhook URL for Telegram bot
+     */
+    public function setWebhook(string $webhookUrl): array
+    {
+        try {
+            $response = Http::post("{$this->apiUrl}/setWebhook", [
+                'url' => $webhookUrl
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                $result = [
+                    'success' => true,
+                    'message' => 'Webhook set successfully',
+                    'data' => $data
+                ];
+
+                $this->loggingService->logBusinessOperation('telegram_webhook_setup_success', [
+                    'webhook_url' => $webhookUrl,
+                    'result' => $result
+                ], 'success');
+
+                return $result;
+            }
+
+            $result = [
+                'success' => false,
+                'message' => 'Failed to set webhook',
+                'error' => $response->json()
+            ];
+
+            $this->loggingService->logBusinessOperation('telegram_webhook_setup_failed', [
+                'webhook_url' => $webhookUrl,
+                'error' => $result['error']
+            ], 'error');
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $result = [
+                'success' => false,
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
+            ];
+
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_setup',
+                'webhook_url' => $webhookUrl
+            ]);
+
+            return $result;
+        }
+    }
+
+    /**
+     * Get webhook info
+     */
+    public function getWebhookInfo(): array
+    {
+        try {
+            $this->loggingService->logBusinessOperation('telegram_webhook_info_request', [
+                'action' => 'get_webhook_info'
+            ], 'info');
+
+            $response = Http::get("{$this->apiUrl}/getWebhookInfo");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                $result = [
+                    'success' => true,
+                    'data' => $data
+                ];
+
+                $this->loggingService->logBusinessOperation('telegram_webhook_info_success', [
+                    'result' => $result
+                ], 'success');
+
+                return $result;
+            }
+
+            $result = [
+                'success' => false,
+                'message' => 'Failed to get webhook info',
+                'error' => $response->json()
+            ];
+
+            $this->loggingService->logBusinessOperation('telegram_webhook_info_failed', [
+                'error' => $result['error']
+            ], 'error');
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_info'
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Delete webhook
+     */
+    public function deleteWebhook(): array
+    {
+        try {
+            $this->loggingService->logBusinessOperation('telegram_webhook_deletion_attempt', [
+                'action' => 'delete_webhook'
+            ], 'info');
+
+            $response = Http::post("{$this->apiUrl}/deleteWebhook");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                $result = [
+                    'success' => true,
+                    'message' => 'Webhook deleted successfully',
+                    'data' => $data
+                ];
+
+                $this->loggingService->logBusinessOperation('telegram_webhook_deletion_success', [
+                    'result' => $result
+                ], 'success');
+
+                return $result;
+            }
+
+            $result = [
+                'success' => false,
+                'message' => 'Failed to delete webhook',
+                'error' => $response->json()
+            ];
+
+            $this->loggingService->logBusinessOperation('telegram_webhook_deletion_failed', [
+                'error' => $result['error']
+            ], 'error');
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $result = [
+                'success' => false,
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
+            ];
+
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_deletion'
+            ]);
+
+            return $result;
+        }
+    }
+
+    /**
+     * Test bot functionality
+     */
+    public function testBot(): array
+    {
+        try {
+            $this->loggingService->logBusinessOperation('telegram_bot_test_attempt', [
+                'action' => 'test_bot'
+            ], 'info');
+
+            $recipients = config('services.telegram.recipients', []);
+
+            if (empty($recipients)) {
+                $result = [
+                    'success' => false,
+                    'message' => 'No recipients configured'
+                ];
+
+                $this->loggingService->logBusinessOperation('telegram_bot_test_failed', [
+                    'error' => 'No recipients configured'
+                ], 'error');
+
+                return $result;
+            }
+
+            $results = [];
+            foreach ($recipients as $recipient) {
+                $result = $this->sendTestMessage($recipient);
+                $results[$recipient] = $result;
+            }
+
+            $successCount = count(array_filter($results, fn($r) => $r['success']));
+
+            $result = [
+                'success' => $successCount > 0,
+                'message' => 'Test completed',
+                'sent_to' => $successCount,
+                'total_recipients' => count($recipients),
+                'results' => $results
+            ];
+
+            $this->loggingService->logBusinessOperation('telegram_bot_test_success', [
+                'sent_to' => $successCount,
+                'total_recipients' => count($recipients),
+                'result' => $result
+            ], 'success');
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $result = [
+                'success' => false,
+                'message' => 'Test failed: ' . $e->getMessage()
+            ];
+
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_bot_test'
+            ]);
+
+            return $result;
+        }
+    }
+
+    /**
+     * Send test message to specific recipient
+     */
+    private function sendTestMessage(string $recipient): array
+    {
+        try {
+            $testMessage = "🧪 *Teste do Bot*\n\n" .
+                          "Este é um teste do bot de relatórios do Rei do Óleo.\n" .
+                          "Se você recebeu esta mensagem, o bot está funcionando!\n\n" .
+                          "Use `/help` para ver os comandos disponíveis.\n\n" .
+                          "⏰ Teste realizado em: " . now()->format('d/m/Y H:i:s');
+
+            $response = Http::post("{$this->apiUrl}/sendMessage", [
+                'chat_id' => $recipient,
+                'text' => $testMessage,
+                'parse_mode' => 'Markdown'
+            ]);
+
+            if ($response->successful()) {
+                $this->loggingService->logBusinessOperation('test_message_sent_successfully', [
+                    'chat_id' => $recipient,
+                    'message_type' => 'test'
+                ], 'info');
+
+                return [
+                    'success' => true,
+                    'message' => 'Test message sent successfully'
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json()['description'] ?? 'Unknown error'
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_test_message_send',
+                'recipient' => $recipient
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Validate webhook payload
+     */
+    public function validatePayload(array $payload): array
+    {
+        if (!isset($payload['update_id'])) {
+            return [
+                'valid' => false,
+                'message' => 'Missing update_id in payload'
+            ];
+        }
+
+        if (!isset($payload['message']) && !isset($payload['callback_query'])) {
+            return [
+                'valid' => false,
+                'message' => 'No message or callback_query in payload'
+            ];
+        }
+
+        // Check if it's a message and validate message structure
+        if (isset($payload['message'])) {
+            $message = $payload['message'];
+
+            // Check if message has required fields
+            if (!isset($message['chat']['id']) || !isset($message['from']['id'])) {
+                return [
+                    'valid' => false,
+                    'message' => 'Message missing required chat or user information'
+                ];
+            }
+
+            // Check if message has any content (text, voice, audio, photo, etc.)
+            $hasContent = isset($message['text']) ||
+                         isset($message['voice']) ||
+                         isset($message['audio']) ||
+                         isset($message['photo']) ||
+                         isset($message['document']) ||
+                         isset($message['video']) ||
+                         isset($message['sticker']) ||
+                         isset($message['location']) ||
+                         isset($message['contact']);
+
+            if (!$hasContent) {
+                return [
+                    'valid' => false,
+                    'message' => 'Message has no recognizable content'
+                ];
+            }
+        }
+
+        return [
+            'valid' => true,
+            'type' => isset($payload['callback_query']) ? 'callback_query' : 'message'
+        ];
+    }
+}
+</code>
+
+=== Passo 4: Criar TelegramWebhookController ===
+
+<code php>
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\TelegramWebhookRequest;
+use App\Http\Requests\TelegramWebhookSetupRequest;
+use App\Http\Resources\TelegramWebhookResource;
+use App\Services\TelegramBotService;
+use App\Services\TelegramWebhookService;
+use App\Services\TelegramMessageProcessorService;
+use App\Services\Telegram\TelegramWebhookValidationService;
+use App\Services\Channels\TelegramChannel;
+use App\Contracts\LoggingServiceInterface;
+use App\Contracts\MessageFlowTrackerInterface;
+use Illuminate\Http\JsonResponse;
+
+class TelegramWebhookController extends Controller
+{
+    public function __construct(
+        private TelegramBotService $telegramBotService,
+        private TelegramChannel $telegramChannel,
+        private TelegramWebhookService $webhookService,
+        private TelegramMessageProcessorService $messageProcessor,
+        private TelegramWebhookValidationService $webhookValidationService,
+        private LoggingServiceInterface $loggingService,
+        private MessageFlowTrackerInterface $flowTracker
+    ) {}
+
+    /**
+     * Handle Telegram webhook
+     */
+    public function handle(TelegramWebhookRequest $request): JsonResponse
+    {
+        $startTime = microtime(true);
+
+        // Inicializa o tracker com ID único
+        $this->flowTracker->startTracking(uniqid('webhook_', true));
+
+        try {
+            // Check if validation failed
+            if ($request->has('validation_errors')) {
+                $validationErrors = $request->input('validation_errors');
+                $errorMessage = $this->createValidationErrorMessage($validationErrors);
+
+                // Send friendly error message to user via Telegram
+                $this->sendFriendlyErrorMessage($request->all(), $errorMessage);
+
+                return TelegramWebhookResource::ignored('Validation failed - friendly message sent to user')
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            $payload = $request->validated();
+
+            // Validate payload structure first
+            $validation = $this->webhookService->validatePayload($payload);
+
+            if (!$validation['valid']) {
+                // Send friendly error message to user via Telegram
+                $this->sendFriendlyErrorMessage($payload, $validation['message']);
+
+                return TelegramWebhookResource::ignored($validation['message'])
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Validate webhook and mark as processing (after payload validation)
+            $updateId = $payload['update_id'] ?? null;
+            $skipDuplicateCheck = app()->environment('testing');
+            if (!$this->webhookValidationService->validateAndMarkProcessing($updateId, $skipDuplicateCheck)) {
+                return TelegramWebhookResource::success('Duplicate webhook ignored', [
+                    'success' => true,
+                    'status' => 'ignored',
+                    'message' => 'Duplicate webhook ignored',
+                    'update_id' => $updateId
+                ])
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Process the webhook payload with timeout protection
+            $result = $this->processWithTimeout(function () use ($payload) {
+                return $this->messageProcessor->processWebhookPayload($payload);
+            }, 25); // 25 seconds timeout
+
+            // Gera relatório do fluxo APÓS o processamento
+            $flowReport = $this->flowTracker->generateFlowReport($payload);
+            $userReport = $this->flowTracker->generateUserReport($payload);
+
+            // Finaliza o tracking
+            $this->flowTracker->endTracking();
+
+            // Se habilitado, envia relatório para o usuário
+            if (config('message-flow.tracking.send_to_user', false)) {
+                $this->sendFlowReportToUser($payload, $userReport);
+            }
+
+            if (config('message-flow.enabled', false)) {
+                $this->loggingService->logTelegramEvent('message_flow_report', [
+                    'flow_report' => $flowReport,
+                    'user_report' => $userReport,
+                    'payload' => $payload
+                ], 'info');
+            }
+
+            // Check if the result is valid and has the expected structure
+            if (!is_array($result) || !isset($result['success'])) {
+                $this->loggingService->logTelegramEvent('telegram_webhook_invalid_result', [
+                    'error' => 'Invalid result structure from message processor',
+                    'result' => $result,
+                    'payload' => $payload,
+                    'telegram_update_id' => $request->input('update_id'),
+                    'timestamp' => now()->toISOString()
+                ], 'error');
+
+                // Send friendly error message to user
+                $this->sendFriendlyErrorMessage($payload, 'Desculpe, ocorreu um erro interno. Tente novamente em alguns instantes.');
+
+                return TelegramWebhookResource::error('Invalid processing result')
+                    ->response()
+                    ->setStatusCode(500);
+            }
+
+            // Check if this is a normal response (not an error) - check status first
+            $isNormalResponse = isset($result['type']) && in_array($result['type'], [
+                'command_not_found',
+                'ignored',
+                'unauthorized',
+                'unsupported',
+                'empty_message',
+                'voice_conversion_error',
+                'audio_conversion_error'
+            ]);
+
+            if ($isNormalResponse) {
+                // Send fallback message to user for command_not_found
+                if ($result['type'] === 'command_not_found') {
+                    $fallbackMessage = $this->createCommandNotFoundFallbackMessage($result);
+                    $this->sendFriendlyErrorMessage($payload, $fallbackMessage);
+                }
+
+                // Use appropriate resource method based on status
+                if (isset($result['status']) && $result['status'] === 'ignored') {
+                    return TelegramWebhookResource::ignored($result['message'] ?? 'Message ignored', $result)
+                        ->response()
+                        ->setStatusCode(200);
+                }
+
+                return TelegramWebhookResource::success($result['message'] ?? 'Message processed', $result)
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Check if the message was processed successfully
+            if ($result['success']) {
+                // $duration = (microtime(true) - $startTime) * 1000;
+
+                // $this->loggingService->logTelegramEvent('webhook_processed_successfully', [
+                //     'processing_time_ms' => round($duration, 2),
+                //     'chat_id' => $request->input('message.chat.id'),
+                //     'user_id' => $request->input('message.from.id'),
+                // ], 'info');
+
+                return TelegramWebhookResource::success($result['message'] ?? 'Message processed successfully', $result)
+                    ->response()
+                    ->setStatusCode(200);
+            }
+
+            // Handle actual errors (return 500)
+            $this->loggingService->logTelegramEvent('telegram_webhook_processing_failed', [
+                'error' => 'Message processing failed',
+                'error_message' => $result['message'] ?? 'Unknown error',
+                'result' => $result,
+                'payload' => $payload,
+                'telegram_update_id' => $request->input('update_id'),
+                'timestamp' => now()->toISOString()
+            ], 'error');
+
+            // Send friendly error message to user
+            $this->sendFriendlyErrorMessage($payload, $result['message'] ?? 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.');
+
+            return TelegramWebhookResource::error($result['message'] ?? 'Message processing failed', $result)
+                ->response()
+                ->setStatusCode(500);
+
+        } catch (\Exception $e) {
+            $duration = (microtime(true) - $startTime) * 1000;
+
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_processing',
+                'chat_id' => $request->input('message.chat.id'),
+                'user_id' => $request->input('message.from.id'),
+                'processing_time_ms' => round($duration, 2)
+            ]);
+
+            // Send friendly error message to user even for exceptions
+            $this->sendFriendlyErrorMessage($request->all(), 'Desculpe, ocorreu um erro inesperado. Nossa equipe foi notificada.');
+
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Send flow report to user via Telegram
+     */
+    private function sendFlowReportToUser(array $payload, string $report): void
+    {
+        try {
+            $chatId = $this->extractChatId($payload);
+            if ($chatId) {
+                // Send plain text report directly to the user without triggering menus
+                $this->telegramChannel->sendTextMessage($report, (string) $chatId);
+            }
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_flow_report_to_user',
+                'chat_id' => $chatId ?? 'unknown',
+                'report' => $report
+            ]);
+        }
+    }
+
+    /**
+     * Process with timeout protection
+     */
+    private function processWithTimeout(callable $callback, int $timeoutSeconds): array
+    {
+        $result = null;
+        $exception = null;
+
+        // Set up signal handler for timeout
+        if (function_exists('pcntl_signal')) {
+            pcntl_signal(SIGALRM, function () {
+                throw new \Exception('Processing timeout');
+            });
+            pcntl_alarm($timeoutSeconds);
+        }
+
+        try {
+            $result = $callback();
+        } catch (\Exception $e) {
+            $exception = $e;
+        } finally {
+            if (function_exists('pcntl_alarm')) {
+                pcntl_alarm(0); // Cancel alarm
+            }
+        }
+
+        if ($exception) {
+            throw $exception;
+        }
+
+        // Ensure we always return an array
+        if (!is_array($result)) {
+            return [
+                'success' => false,
+                'type' => 'invalid_result',
+                'message' => 'Invalid result from message processor',
+                'data' => []
+            ];
+        }
+
+        return $result;
+    }
+
+
+
+    /**
+     * Set webhook URL for Telegram bot
+     */
+    public function setWebhook(TelegramWebhookSetupRequest $request): JsonResponse
+    {
+        try {
+            $webhookUrl = $request->validated()['webhook_url'];
+            $result = $this->webhookService->setWebhook($webhookUrl);
+
+            if (!$result['success']) {
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
+            }
+
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_setup',
+                'webhook_url' => $request->validated()['webhook_url'] ?? 'unknown'
+            ]);
+
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Get webhook info
+     */
+    public function getWebhookInfo(): JsonResponse
+    {
+        try {
+            $this->loggingService->logTelegramEvent('telegram_webhook_info_request', [
+                'action' => 'get_webhook_info'
+            ], 'info');
+
+            $result = $this->webhookService->getWebhookInfo();
+
+            if (!$result['success']) {
+                $this->loggingService->logTelegramEvent('telegram_webhook_info_failed', [
+                    'error' => $result['message'],
+                    'result' => $result
+                ], 'error');
+
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
+            }
+
+            return TelegramWebhookResource::success('Webhook info retrieved', $result)
+                ->response()
+                ->setStatusCode(200);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_info'
+            ]);
+
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Delete webhook
+     */
+    public function deleteWebhook(): JsonResponse
+    {
+        try {
+            $this->loggingService->logTelegramEvent('telegram_webhook_deletion', [
+                'action' => 'delete_webhook'
+            ], 'info');
+
+            $result = $this->webhookService->deleteWebhook();
+
+            if (!$result['success']) {
+                $this->loggingService->logTelegramEvent('telegram_webhook_deletion_failed', [
+                    'error' => $result['message'],
+                    'result' => $result
+                ], 'error');
+
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
+            }
+
+            $this->loggingService->logTelegramEvent('telegram_webhook_deletion_success', [
+                'result' => $result
+            ], 'success');
+
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_webhook_deletion'
+            ]);
+
+            return TelegramWebhookResource::error('Internal server error')
+                ->response()
+                ->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Test bot functionality
+     */
+    public function test(): JsonResponse
+    {
+        try {
+            $this->loggingService->logTelegramEvent('telegram_bot_test', [
+                'action' => 'test_bot'
+            ], 'info');
+
+            $result = $this->webhookService->testBot();
+
+            if (!$result['success']) {
+                $this->loggingService->logTelegramEvent('telegram_bot_test_failed', [
+                    'error' => $result['message'],
+                    'result' => $result
+                ], 'error');
+
+                return TelegramWebhookResource::error($result['message'], $result)
+                    ->response()
+                    ->setStatusCode(400);
+            }
+
+            $this->loggingService->logTelegramEvent('telegram_bot_test_success', [
+                'result' => $result
+            ], 'success');
+
+            return TelegramWebhookResource::success($result['message'], $result)
+                ->response()
+                ->setStatusCode(200);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'telegram_bot_test'
+            ]);
+
+            return TelegramWebhookResource::error('Test failed: ' . $e->getMessage())
+                ->response()
+                ->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Send friendly error message to user via Telegram
+     */
+    private function sendFriendlyErrorMessage(array $payload, string $errorMessage): void
+    {
+        try {
+            $chatId = $this->extractChatId($payload);
+
+            if (!$chatId) {
+                $this->loggingService->logTelegramEvent('telegram_error_message_failed', [
+                    'error' => 'Could not extract chat ID from payload',
+                    'payload' => $payload,
+                    'error_message' => $errorMessage
+                ], 'warning');
+                return;
+            }
+
+            // Create friendly error message with suggestions
+            $friendlyMessage = $this->createFriendlyErrorMessage($errorMessage);
+
+            // Send via Telegram API
+            $this->telegramBotService->sendErrorMessage($chatId, $friendlyMessage);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'send_friendly_error_message',
+                'payload' => $payload,
+                'error_message' => $errorMessage
+            ]);
+        }
+    }
+
+    /**
+     * Extract chat ID from various payload types
+     */
+    private function extractChatId(array $payload): ?int
+    {
+        // Try to get chat ID from message
+        if (isset($payload['message']['chat']['id'])) {
+            return (int) $payload['message']['chat']['id'];
+        }
+
+        // Try to get chat ID from callback query
+        if (isset($payload['callback_query']['message']['chat']['id'])) {
+            return (int) $payload['callback_query']['message']['chat']['id'];
+        }
+
+        // Try to get chat ID from channel post
+        if (isset($payload['channel_post']['chat']['id'])) {
+            return (int) $payload['channel_post']['chat']['id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a friendly error message with helpful suggestions
+     */
+    private function createFriendlyErrorMessage(string $technicalError): string
+    {
+        $baseMessage = "❌ Ops! Algo deu errado.\n\n";
+
+        // Map technical errors to friendly messages
+        $friendlyMessages = [
+            'validation_failed' => "Sua mensagem não pôde ser processada. Verifique se está correta e tente novamente.",
+            'unauthorized' => "Você não tem permissão para usar este comando. Entre em contato com o administrador.",
+            'command_not_found' => "Comando não reconhecido. Use /help para ver os comandos disponíveis.",
+            'timeout' => "A operação demorou muito. Tente novamente em alguns instantes.",
+            'internal_error' => "Ocorreu um erro interno. Nossa equipe foi notificada.",
+            'webhook_validation_failed' => "Mensagem recebida com formato inválido. Tente enviar novamente.",
+            'payload_validation_failed' => "Não foi possível processar sua mensagem. Tente novamente.",
+        ];
+
+        // Find the most appropriate friendly message
+        $friendlyMessage = "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente ou use /help para ver os comandos disponíveis.";
+
+        foreach ($friendlyMessages as $key => $message) {
+            if (stripos($technicalError, $key) !== false) {
+                $friendlyMessage = $message;
+                break;
+            }
+        }
+
+        $suggestions = "\n💡 Sugestões:\n";
+        $suggestions .= "• Use /help para ver comandos disponíveis\n";
+        $suggestions .= "• Tente novamente em alguns instantes\n";
+        $suggestions .= "• Se o problema persistir, entre em contato com o suporte\n";
+
+        return $baseMessage . $friendlyMessage . $suggestions;
+    }
+
+    /**
+     * Create user-friendly validation error message
+     */
+    private function createValidationErrorMessage(array $validationErrors): string
+    {
+        $baseMessage = "❌ Sua mensagem não pôde ser processada.\n\n";
+
+        $errorDescriptions = [
+            'update_id' => 'ID de atualização inválido',
+            'message.chat.id' => 'ID do chat inválido',
+            'message.from.id' => 'ID do usuário inválido',
+            'message.text' => 'Texto da mensagem inválido',
+            'message.voice.file_id' => 'Arquivo de voz inválido',
+            'message.audio.file_id' => 'Arquivo de áudio inválido',
+            'callback_query.id' => 'ID da consulta inválido',
+            'callback_query.data' => 'Dados da consulta inválidos'
+        ];
+
+        $friendlyErrors = [];
+        foreach ($validationErrors as $field => $errors) {
+            $description = $errorDescriptions[$field] ?? 'Campo inválido';
+            $friendlyErrors[] = "• {$description}";
+        }
+
+        $message = $baseMessage . "Problemas encontrados:\n" . implode("\n", $friendlyErrors);
+        $message .= "\n\n💡 Sugestões:\n";
+        $message .= "• Verifique se sua mensagem está correta\n";
+        $message .= "• Tente novamente\n";
+        $message .= "• Use /help para ver comandos disponíveis\n";
+
+        return $message;
+    }
+
+    /**
+     * Create a friendly fallback message for command_not_found
+     */
+    private function createCommandNotFoundFallbackMessage(array $result): string
+    {
+        $baseMessage = "❌ Comando não reconhecido.\n\n";
+        $fallbackMessage = $baseMessage . "Desculpe, mas o comando que você tentou usar não foi encontrado. ";
+
+        if (isset($result['message'])) {
+            $fallbackMessage .= "A mensagem enviada foi: " . $result['message'] . "\n\n";
+        }
+
+        $fallbackMessage .= "Aqui estão alguns comandos que você pode usar:\n";
+        $fallbackMessage .= "• /help - Para ver todos os comandos disponíveis\n";
+        $fallbackMessage .= "• /start - Para iniciar o bot\n";
+        $fallbackMessage .= "• /status - Para verificar o status do bot\n";
+        $fallbackMessage .= "• /settings - Para configurar o bot\n";
+        $fallbackMessage .= "• /about - Para saber mais sobre o bot\n";
+
+        return $fallbackMessage;
+    }
+}
+</code>
+
+=== Passo 5: Atualizar TelegramServiceProvider (Continuação do Passo 02) ===
+
+**ATENÇÃO**: Este passo atualiza o `TelegramServiceProvider` já criado no Passo 02, adicionando os novos services core.
+
+<code php>
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Log;
+use App\Services\Telegram\TelegramCommandParser;
+use App\Services\Telegram\TelegramCommandHandlerManager;
+use App\Services\Telegram\TelegramAuthorizationService;
+
+use App\Services\Telegram\Reports\GeneralReportGenerator;
+use App\Services\Telegram\Reports\ServicesReportGenerator;
+use App\Services\Telegram\Reports\ProductsReportGenerator;
+
+use App\Services\TelegramBotService;
+use App\Services\TelegramWebhookService;
+use App\Services\SpeechToTextService;
+use App\Services\Channels\TelegramChannel;
+
+// ===== NOVOS SERVICES CORE (ADICIONADOS NESTE PASSO) =====
+use App\Services\Telegram\TelegramMessageProcessorService;
+
+
+class TelegramServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        // Register core Telegram services
+        $this->app->singleton(TelegramAuthorizationService::class);
+        $this->app->singleton(TelegramBotService::class);
+        $this->app->singleton(TelegramWebhookService::class);
+        $this->app->singleton(TelegramChannel::class);
+
+        // Register legacy services (used by deprecated TelegramMessageProcessorService and debug commands)
+        //$this->app->singleton(TelegramCommandParser::class);  // @deprecated - only used in old service + debug commands
+
+        // Register report generators
+        $this->app->singleton(GeneralReportGenerator::class);
+        $this->app->singleton(ServicesReportGenerator::class);
+        $this->app->singleton(ProductsReportGenerator::class);
+
+        // Register command handler manager (used by debug commands)
+        //$this->app->singleton(TelegramCommandHandlerManager::class);  // @deprecated - only used in debug commands
+
+        // Register speech-to-text service
+        $this->app->singleton(SpeechToTextService::class);
+
+        // ===== REGISTRO DOS NOVOS SERVICES CORE =====
+        // Register the NEW TelegramMessageProcessorService (with database integration)
+        $this->app->singleton(TelegramMessageProcessorService::class, function ($app) {
+            $speechService = null;
+
+            try {
+                // Try to resolve SpeechToTextService, but don't fail if it's not available
+                if (class_exists(SpeechToTextService::class)) {
+                    $speechService = $app->make(SpeechToTextService::class);
+                }
+            } catch (\Exception $e) {
+                // Log the error but continue without speech service
+                Log::warning('SpeechToTextService not available for TelegramMessageProcessorService', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            return new TelegramMessageProcessorService(
+                $app->make(\App\Services\Telegram\Commands\UnifiedCommandSystem::class),
+                $app->make(TelegramAuthorizationService::class),
+                $speechService,
+                $app->make(TelegramChannel::class),
+                $app->make(\App\Contracts\LoggingServiceInterface::class)
+            );
+        });
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] Service `TelegramMessageProcessorService` criado
+  - [ ] Service `TelegramBotService` criado
+  - [ ] Service `TelegramWebhookService` criado
+  - [ ] Controller `TelegramWebhookController` criado
+  - [ ] **`TelegramServiceProvider` atualizado** (continuação do Passo 02)
+  - [ ] Integração com todos os sistemas anteriores
+  - [ ] Sistema de tracking implementado
+  - [ ] Sistema de logging integrado
+
+=== Comandos de Validação ===
+
+<code bash>
+# Verificar se os services foram criados
+ls -la app/Services/Telegram/TelegramMessageProcessorService.php
+ls -la app/Services/Telegram/TelegramBotService.php
+ls -la app/Services/Telegram/TelegramWebhookService.php
+
+# Verificar controller
+ls -la app/Http/Controllers/Api/TelegramWebhookController.php
+
+# Verificar se o provider existente foi atualizado
+ls -la app/Providers/TelegramServiceProvider.php
+
+# Testar services
+php artisan tinker
+# >>> $service = app(\App\Services\TelegramWebhookService::class);
+# >>> $service->getWebhookInfo();
+
+# >>> $processor = app(\App\Services\Telegram\TelegramMessageProcessorService::class);
+# >>> $processor->processMessage(['update_id' => 123, 'message' => ['text' => '/start', 'chat' => ['id' => 123], 'from' => ['id' => 456]]]);
+
+# Testar controller
+# >>> $controller = app(\App\Http\Controllers\Api\TelegramWebhookController::class);
+# >>> $controller->getWebhookInfo();
+</code>
