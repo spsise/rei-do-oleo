@@ -44,66 +44,66 @@ implementar sistema comandos unificado telegram
 
 ===== ⚙️ Pré-requisitos =====
 
-- **Sistema de Logging** implementado
-- **Sistema de Rastreamento de Fluxo** implementado
-- **Sistema de Canais de Notificação** implementado
-- **Sistema de Validação e Middleware** implementado
-- **Laravel 12** instalado
-- **PHP 8.2+** configurado
+  - **Sistema de Logging** implementado
+  - **Sistema de Rastreamento de Fluxo** implementado
+  - **Sistema de Canais de Notificação** implementado
+  - **Sistema de Validação e Middleware** implementado
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
 
 ===== 📁 Arquivos do Módulo =====
 
 === 🔧 Services ===
 
-**`app/Services/Telegram/Commands/UnifiedCommandSystem.php`** ✅
-- Sistema principal de comandos
-- Processamento e execução
-- Cache de comandos
+  * **`app/Services/Telegram/Commands/UnifiedCommandSystem.php`** ✅
+    - Sistema principal de comandos
+    - Processamento e execução
+    - Cache de comandos
 
-**`app/Services/Telegram/Commands/CommandRegistry.php`** ✅
-- Registro e gerenciamento de comandos
-- Carregamento dinâmico
+  * **`app/Services/Telegram/Commands/CommandRegistry.php`** ✅
+    - Registro e gerenciamento de comandos
+    - Carregamento dinâmico
 
-**`app/Services/Telegram/Commands/Cache/CommandCache.php`** ✅
-- Sistema de cache para comandos
-- Gerenciamento de TTL
+  * **`app/Services/Telegram/Commands/Cache/CommandCache.php`** ✅
+    - Sistema de cache para comandos
+    - Gerenciamento de TTL
 
-**`app/Services/Telegram/Commands/Learning/CommandLearning.php`** ✅
-- Sistema de aprendizado de comandos
-- Análise de uso
+  * **`app/Services/Telegram/Commands/Learning/CommandLearning.php`** ✅
+    - Sistema de aprendizado de comandos
+    - Análise de uso
 
-**`app/Services/Telegram/Commands/Repositories/CommandConfigRepository.php`** ✅
-- Repositório de configuração de comandos
-- Persistência de comandos
+  * **`app/Services/Telegram/Commands/Repositories/CommandConfigRepository.php`** ✅
+    - Repositório de configuração de comandos
+    - Persistência de comandos
 
-**`app/Services/Telegram/TelegramMenuBuilder.php`** ✅
-- Construção de menus inline
-- Geração de teclados
+  * **`app/Services/Telegram/TelegramMenuBuilder.php`** ✅
+    - Construção de menus inline
+    - Geração de teclados
 
 === 🔗 Contracts ===
 
-**`app/Contracts/Telegram/Commands/CommandMatch.php`** ✅
-- Interface para matching de comandos
+  * **`app/Contracts/Telegram/Commands/CommandMatch.php`** ✅
+    - Interface para matching de comandos
 
-**`app/Contracts/Telegram/Commands/CommandInterface.php`** ✅
-- Interface base para comandos
+  * **`app/Contracts/Telegram/Commands/CommandInterface.php`** ✅
+    - Interface base para comandos
 
-**`app/Contracts/Telegram/Commands/CommandRegistryInterface.php`** ✅
-- Interface para registro de comandos
+  * **`app/Contracts/Telegram/Commands/CommandRegistryInterface.php`** ✅
+    - Interface para registro de comandos
 
 === ⚙️ Configurações ===
 
-**`config/telegram-commands.php`**
-- Configuração de comandos
-- Definições de comandos padrão
-- Configurações de cache
+  * **`config/telegram-commands.php`**
+    - Configuração de comandos
+    - Definições de comandos padrão
+    - Configurações de cache
 
 === 🧪 Testes ===
 
-**`tests/Unit/UnifiedCommandSystemTest.php`**
-- Testes do sistema de comandos
-- Testes de matching
-- Testes de execução
+  * **`tests/Unit/UnifiedCommandSystemTest.php`**
+    - Testes do sistema de comandos
+    - Testes de matching
+    - Testes de execução
 
 ===== 🔧 Implementação Passo a Passo =====
 
