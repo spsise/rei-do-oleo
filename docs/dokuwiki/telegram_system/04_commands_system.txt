@@ -1,0 +1,2825 @@
+[[:templates_ai:funcionalidades:laravel:telegram_bot_passos|{{wiki:user:undo_24.png}}]]
+
+====== Passo 04: Sistema de Comandos Unificado - Telegram Webhook ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Sistema de comandos unificado que permite processamento inteligente de comandos do Telegram, com sistema de registro, matching e execução. Depende de todos os sistemas anteriores e pode ser reutilizado em outros projetos.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar sistema comandos unificado telegram
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+- **Sistema de Logging** implementado
+- **Sistema de Rastreamento de Fluxo** implementado
+- **Sistema de Canais de Notificação** implementado
+- **Sistema de Validação e Middleware** implementado
+- **Laravel 12** instalado
+- **PHP 8.2+** configurado
+
+===== 📁 Arquivos do Módulo =====
+
+=== 🔧 Services ===
+
+**`app/Services/Telegram/Commands/UnifiedCommandSystem.php`** ✅
+- Sistema principal de comandos
+- Processamento e execução
+- Cache de comandos
+
+**`app/Services/Telegram/Commands/CommandRegistry.php`** ✅
+- Registro e gerenciamento de comandos
+- Carregamento dinâmico
+
+**`app/Services/Telegram/Commands/Cache/CommandCache.php`** ✅
+- Sistema de cache para comandos
+- Gerenciamento de TTL
+
+**`app/Services/Telegram/Commands/Learning/CommandLearning.php`** ✅
+- Sistema de aprendizado de comandos
+- Análise de uso
+
+**`app/Services/Telegram/Commands/Repositories/CommandConfigRepository.php`** ✅
+- Repositório de configuração de comandos
+- Persistência de comandos
+
+**`app/Services/Telegram/TelegramMenuBuilder.php`** ✅
+- Construção de menus inline
+- Geração de teclados
+
+=== 🔗 Contracts ===
+
+**`app/Contracts/Telegram/Commands/CommandMatch.php`** ✅
+- Interface para matching de comandos
+
+**`app/Contracts/Telegram/Commands/CommandInterface.php`** ✅
+- Interface base para comandos
+
+**`app/Contracts/Telegram/Commands/CommandRegistryInterface.php`** ✅
+- Interface para registro de comandos
+
+=== ⚙️ Configurações ===
+
+**`config/telegram-commands.php`**
+- Configuração de comandos
+- Definições de comandos padrão
+- Configurações de cache
+
+=== 🧪 Testes ===
+
+**`tests/Unit/UnifiedCommandSystemTest.php`**
+- Testes do sistema de comandos
+- Testes de matching
+- Testes de execução
+
+===== 🔧 Implementação Passo a Passo =====
+
+  * **Importante orientação:** implemente apenas as primeiras linhas de cada classe, pois, serão completadas posteriormente.
+
+=== Passo 1: Criar Arquivo de Configuração ===
+
+#config/telegram-commands.php
+
+<code php>
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Telegram Commands Configuration
+    |--------------------------------------------------------------------------
+    |
+    | This file contains configuration for the unified command system
+    | including cache settings, learning parameters, and voice processing.
+    |
+    */
+
+    'cache' => [
+        'enabled' => env('TELEGRAM_COMMANDS_CACHE_ENABLED', true),
+        'ttl' => env('TELEGRAM_COMMANDS_CACHE_TTL', 1800), // 30 minutes
+        'max_size' => env('TELEGRAM_COMMANDS_CACHE_MAX_SIZE', 1000),
+        'prefix' => env('TELEGRAM_COMMANDS_CACHE_PREFIX', 'telegram_command_cache'),
+    ],
+
+    'learning' => [
+        'enabled' => env('TELEGRAM_COMMANDS_LEARNING_ENABLED', true),
+        'max_data_points' => env('TELEGRAM_COMMANDS_LEARNING_MAX_DATA', 10000),
+        'confidence_threshold' => env('TELEGRAM_COMMANDS_CONFIDENCE_THRESHOLD', 0.7),
+        'training_interval' => env('TELEGRAM_COMMANDS_TRAINING_INTERVAL', 3600), // 1 hour
+    ],
+
+    'voice' => [
+        'enabled' => env('TELEGRAM_VOICE_ENABLED', true),
+        'noise_reduction' => env('TELEGRAM_VOICE_NOISE_REDUCTION', true),
+        'similarity_threshold' => env('TELEGRAM_VOICE_SIMILARITY_THRESHOLD', 0.6),
+        'priority_boost' => env('TELEGRAM_VOICE_PRIORITY_BOOST', 1.1),
+    ],
+
+    'matching' => [
+        'fuzzy_threshold' => env('TELEGRAM_FUZZY_THRESHOLD', 0.6),
+        'natural_language_threshold' => env('TELEGRAM_NL_THRESHOLD', 0.8),
+        'exact_match_priority' => env('TELEGRAM_EXACT_MATCH_PRIORITY', 1.0),
+        'jaro_winkler_weight' => env('TELEGRAM_JARO_WINKLER_WEIGHT', 0.6),
+        'levenshtein_weight' => env('TELEGRAM_LEVENSHTEIN_WEIGHT', 0.4),
+    ],
+
+    'fallback' => [
+        'enabled' => env('TELEGRAM_FALLBACK_ENABLED', true),
+        'suggestions_limit' => env('TELEGRAM_FALLBACK_SUGGESTIONS', 3),
+        'default_message' => env('TELEGRAM_FALLBACK_MESSAGE', 'Desculpe, não entendi esse comando.'),
+    ],
+
+    'permissions' => [
+        'default' => ['all'],
+        'admin' => ['admin', 'manager', 'user'],
+        'manager' => ['manager', 'user'],
+        'user' => ['user'],
+    ],
+
+    'categories' => [
+        'navigation' => 'Navigation commands',
+        'reports' => 'Report generation commands',
+        'system' => 'System management commands',
+        'help' => 'Help and support commands',
+        'general' => 'General purpose commands',
+    ],
+
+    'providers' => [
+        'command_registry' => App\Services\Telegram\Commands\CommandRegistry::class,
+        'command_cache' => App\Services\Telegram\Commands\Cache\CommandCache::class,
+        'command_learning' => App\Services\Telegram\Commands\Learning\CommandLearning::class,
+        'command_repository' => App\Services\Telegram\Commands\Repositories\CommandConfigRepository::class,
+    ],
+
+    'logging' => [
+        'enabled' => env('TELEGRAM_COMMANDS_LOGGING', true),
+        'level' => env('TELEGRAM_COMMANDS_LOG_LEVEL', 'info'),
+        'channels' => ['daily'],
+    ],
+
+    'performance' => [
+        'batch_size' => env('TELEGRAM_COMMANDS_BATCH_SIZE', 100),
+        'timeout' => env('TELEGRAM_COMMANDS_TIMEOUT', 30),
+        'memory_limit' => env('TELEGRAM_COMMANDS_MEMORY_LIMIT', '256M'),
+    ],
+];
+</code>
+
+=== Passo 2: Criar CommandMatch ===
+
+<code php>
+<?php
+
+namespace App\Contracts\Telegram\Commands;
+
+class CommandMatch
+{
+    public function __construct(
+        private CommandInterface $command,
+        private float $confidence,
+        private string $matchedInput,
+        private array $context = []
+    ) {}
+
+    public function getCommand(): CommandInterface
+    {
+        return $this->command;
+    }
+
+    public function getConfidence(): float
+    {
+        return $this->confidence;
+    }
+
+    public function getMatchedInput(): string
+    {
+        return $this->matchedInput;
+    }
+
+    public function getContext(): array
+    {
+        return $this->context;
+    }
+
+    public function isHighConfidence(): bool
+    {
+        return $this->confidence >= 0.8;
+    }
+
+    public function isMediumConfidence(): bool
+    {
+        return $this->confidence >= 0.6 && $this->confidence < 0.8;
+    }
+
+    public function isLowConfidence(): bool
+    {
+        return $this->confidence < 0.6;
+    }
+}
+</code>
+
+=== Passo 3: Criar CommandRegistry ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands;
+
+use App\Contracts\Telegram\Commands\CommandInterface;
+use App\Contracts\Telegram\Commands\CommandMatch;
+use App\Services\Telegram\Commands\Repositories\CommandConfigRepository;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+
+class CommandRegistry implements \App\Contracts\Telegram\Commands\CommandRegistryInterface
+{
+    private Collection $commands;
+    private array $aliases = [];
+    private array $naturalLanguage = [];
+    private array $voiceCommands = [];
+
+    public function __construct(
+        private CommandConfigRepository $configRepo
+    ) {
+        $this->loadCommands();
+    }
+
+    public function findCommand(string $input, array $context = []): ?CommandMatch
+    {
+        $input = $this->normalizeText($input);
+
+        // 1. Check exact aliases first (highest priority)
+        if (isset($this->aliases[$input])) {
+            $command = $this->aliases[$input];
+            return $this->createMatch($command, 1.0, $input, $context);
+        }
+
+        // 2. Check natural language patterns
+        $bestMatch = $this->findByNaturalLanguage($input, $context);
+        if ($bestMatch && $bestMatch->getConfidence() > 0.8) { // Relaxed from 0.85 to 0.8
+            return $bestMatch;
+        }
+
+        // 3. Check voice commands (if context indicates voice input)
+        if (isset($context['type']) && $context['type'] === 'voice') {
+            $voiceMatch = $this->findByVoiceSimilarity($input, $context);
+            if ($voiceMatch && $voiceMatch->getConfidence() > 0.8) { // Aumentado de 0.7 para 0.8
+                return $voiceMatch;
+            }
+        }
+
+        // 4. Fuzzy matching for low confidence cases
+        $fuzzyMatch = $this->findByFuzzyMatch($input, $context);
+        if ($fuzzyMatch && $fuzzyMatch->getConfidence() > 0.75) { // Aumentado de 0.6 para 0.75
+            return $fuzzyMatch;
+        }
+
+        return null;
+    }
+
+    public function getAllCommands(): array
+    {
+        return $this->commands->all();
+    }
+
+    public function getCommandsByCategory(string $category): array
+    {
+        return $this->commands
+            ->filter(fn($command) => $command->getCategory() === $category)
+            ->all();
+    }
+
+    public function reloadCommands(): void
+    {
+        $this->loadCommands();
+    }
+
+    public function addCommand(array $commandConfig): void
+    {
+        $this->configRepo->addCommand($commandConfig);
+        $this->loadCommands();
+    }
+
+    public function removeCommand(string $commandId): void
+    {
+        $this->configRepo->removeCommand($commandId);
+        $this->loadCommands();
+    }
+
+    private function loadCommands(): void
+    {
+        try {
+            $this->commands = $this->configRepo->getAllCommands();
+            $this->buildIndexes();
+
+            Log::info('Command registry loaded successfully', [
+                'total_commands' => $this->commands->count(),
+                'categories' => $this->commands->pluck('category')->unique()->values()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to load commands', [
+                'error' => $e->getMessage()
+            ]);
+
+            $this->commands = collect([]);
+            $this->aliases = [];
+            $this->naturalLanguage = [];
+            $this->voiceCommands = [];
+        }
+    }
+
+    private function buildIndexes(): void
+    {
+        $this->aliases = [];
+        $this->naturalLanguage = [];
+        $this->voiceCommands = [];
+
+        foreach ($this->commands as $command) {
+            // Build aliases index - only overwrite if current command has higher priority
+            foreach ($command->getAliases() as $alias) {
+                $normalized = $this->normalizeText($alias);
+
+                if (!isset($this->aliases[$normalized]) ||
+                    $command->priority > $this->aliases[$normalized]->priority) {
+                    $this->aliases[$normalized] = $command;
+                }
+
+                // Simple singular/plural handling: also index without trailing 's'
+                if (str_ends_with($normalized, 's')) {
+                    $singular = rtrim($normalized, 's');
+                    if (!isset($this->aliases[$singular]) ||
+                        $command->priority > $this->aliases[$singular]->priority) {
+                        $this->aliases[$singular] = $command;
+                    }
+                }
+            }
+
+            // Build natural language index - only overwrite if current command has higher priority
+            foreach ($command->getNaturalLanguage() as $pattern) {
+                $normalizedPattern = $this->normalizeText($pattern);
+
+                if (!isset($this->naturalLanguage[$normalizedPattern]) ||
+                    $command->priority > $this->naturalLanguage[$normalizedPattern]->priority) {
+                    $this->naturalLanguage[$normalizedPattern] = $command;
+                }
+
+                // Also index simplified singular without trailing 's'
+                if (str_ends_with($normalizedPattern, 's')) {
+                    $singular = rtrim($normalizedPattern, 's');
+                    if (!isset($this->naturalLanguage[$singular]) ||
+                        $command->priority > $this->naturalLanguage[$singular]->priority) {
+                        $this->naturalLanguage[$singular] = $command;
+                    }
+                }
+            }
+
+            // Build voice commands index
+            $voiceSettings = $command->getVoiceSettings();
+            if (isset($voiceSettings['enabled']) && $voiceSettings['enabled']) {
+                $this->voiceCommands[$command->getId()] = $command;
+            }
+        }
+    }
+
+    private function findByNaturalLanguage(string $input, array $context): ?CommandMatch
+    {
+        $bestMatch = null;
+        $highestScore = 0.0;
+
+        foreach ($this->naturalLanguage as $pattern => $command) {
+            $score = $this->calculateSimilarity($input, $pattern);
+
+            if ($score > $highestScore && $score > 0.8) { // Relaxed from 0.85 to 0.8
+                $highestScore = $score;
+                $bestMatch = $command;
+            }
+        }
+
+        if ($bestMatch) {
+            return $this->createMatch($bestMatch, $highestScore, $input, $context);
+        }
+
+        return null;
+    }
+
+    private function findByVoiceSimilarity(string $input, array $context): ?CommandMatch
+    {
+        $bestMatch = null;
+        $highestScore = 0.0;
+
+        foreach ($this->voiceCommands as $command) {
+            $score = $this->calculateVoiceSimilarity($input, $command, $context);
+
+            if ($score > $highestScore && $score > 0.6) {
+                $highestScore = $score;
+                $bestMatch = $command;
+            }
+        }
+
+        if ($bestMatch) {
+            return $this->createMatch($bestMatch, $highestScore, $input, $context);
+        }
+
+        return null;
+    }
+
+    private function findByFuzzyMatch(string $input, array $context): ?CommandMatch
+    {
+        $bestMatch = null;
+        $highestScore = 0.0;
+
+        // Check all commands for fuzzy matching
+        foreach ($this->commands as $command) {
+            $score = $this->calculateFuzzyScore($input, $command);
+
+            if ($score > $highestScore && $score > 0.5) {
+                $highestScore = $score;
+                $bestMatch = $command;
+            }
+        }
+
+        if ($bestMatch) {
+            return $this->createMatch($bestMatch, $highestScore, $input, $context);
+        }
+
+        return null;
+    }
+
+    private function calculateSimilarity(string $input, string $pattern): float
+    {
+        // Normalize to be accent-insensitive
+        $input = $this->normalizeText($input);
+        $pattern = $this->normalizeText($pattern);
+
+        // Levenshtein distance for similarity
+        $levenshtein = levenshtein($input, $pattern);
+        $maxLength = max(strlen($input), strlen($pattern));
+
+        if ($maxLength === 0) return 1.0;
+
+        $levenshteinScore = 1 - ($levenshtein / $maxLength);
+
+        // Jaro-Winkler for better precision
+        $jaroScore = $this->jaroWinkler($input, $pattern);
+
+        // Weighted combination
+        return ($levenshteinScore * 0.4) + ($jaroScore * 0.6);
+    }
+
+    private function calculateVoiceSimilarity(string $input, CommandInterface $command, array $context): float
+    {
+        $maxScore = 0.0;
+
+        // Check aliases with voice-specific adjustments
+        foreach ($command->getAliases() as $alias) {
+            $baseScore = $this->calculateSimilarity($input, $alias);
+
+            // Apply voice-specific adjustments
+            $voiceSettings = $command->getVoiceSettings();
+            if (isset($voiceSettings['noise_reduction']) && $voiceSettings['noise_reduction']) {
+                $baseScore *= 1.1; // Boost score for noise-reduced commands
+            }
+
+            $maxScore = max($maxScore, $baseScore);
+        }
+
+        // Check natural language patterns
+        foreach ($command->getNaturalLanguage() as $pattern) {
+            $score = $this->calculateSimilarity($input, $pattern);
+            $maxScore = max($maxScore, $score);
+        }
+
+        return $maxScore;
+    }
+
+    private function calculateFuzzyScore(string $input, CommandInterface $command): float
+    {
+        $maxScore = 0.0;
+
+        // Check command ID
+        $score = $this->calculateSimilarity($input, $command->getId());
+        $maxScore = max($maxScore, $score);
+
+        // Check aliases
+        foreach ($command->getAliases() as $alias) {
+            $score = $this->calculateSimilarity($input, $alias);
+            $maxScore = max($maxScore, $score);
+        }
+
+        // Check description
+        $score = $this->calculateSimilarity($input, $command->getDescription());
+        $maxScore = max($maxScore, $score * 0.8); // Lower weight for description
+
+        return $maxScore;
+    }
+
+    /**
+     * Normalize text: lowercase, trim, remove diacritics
+     */
+    private function normalizeText(string $text): string
+    {
+        $text = trim(strtolower($text));
+        // Remove diacritics (accents)
+        $normalized = iconv('UTF-8', 'ASCII//TRANSLIT', $text);
+        if ($normalized !== false) {
+            $text = $normalized;
+        }
+        // Remove any remaining non-spacing marks
+        $text = preg_replace('/[^\p{L}\p{Nd}\s]/u', '', $text) ?? $text;
+        return $text;
+    }
+
+    private function jaroWinkler(string $str1, string $str2): float
+    {
+        $str1 = strtolower($str1);
+        $str2 = strtolower($str2);
+
+        if ($str1 === $str2) {
+            return 1.0;
+        }
+
+        $len1 = strlen($str1);
+        $len2 = strlen($str2);
+
+        if ($len1 === 0 || $len2 === 0) {
+            return 0.0;
+        }
+
+        $matchDistance = (int) (max($len1, $len2) / 2) - 1;
+
+        if ($matchDistance < 0) {
+            $matchDistance = 0;
+        }
+
+        $str1Matches = array_fill(0, $len1, false);
+        $str2Matches = array_fill(0, $len2, false);
+
+        $matches = 0;
+        $transpositions = 0;
+
+        for ($i = 0; $i < $len1; $i++) {
+            $start = max(0, $i - $matchDistance);
+            $end = min($i + $matchDistance + 1, $len2);
+
+            for ($j = $start; $j < $end; $j++) {
+                if ($str2Matches[$j] || $str1[$i] !== $str2[$j]) {
+                    continue;
+                }
+
+                $str1Matches[$i] = true;
+                $str2Matches[$j] = true;
+                $matches++;
+                break;
+            }
+        }
+
+        if ($matches === 0) {
+            return 0.0;
+        }
+
+        $k = 0;
+        for ($i = 0; $i < $len1; $i++) {
+            if (!$str1Matches[$i]) {
+                continue;
+            }
+
+            while (!$str2Matches[$k]) {
+                $k++;
+            }
+
+            if ($str1[$i] !== $str2[$k]) {
+                $transpositions++;
+            }
+            $k++;
+        }
+
+        $transpositions /= 2;
+
+        $jaro = (($matches / $len1) + ($matches / $len2) + (($matches - $transpositions) / $matches)) / 3;
+
+        // Jaro-Winkler modification
+        $prefix = 0;
+        $maxPrefix = min(4, min($len1, $len2));
+
+        for ($i = 0; $i < $maxPrefix; $i++) {
+            if ($str1[$i] === $str2[$i]) {
+                $prefix++;
+            } else {
+                break;
+            }
+        }
+
+        $jaroWinkler = $jaro + ($prefix * 0.1 * (1 - $jaro));
+
+        return $jaroWinkler;
+    }
+
+    private function createMatch(CommandInterface $command, float $confidence, string $input, array $context): CommandMatch
+    {
+        return new \App\Contracts\Telegram\Commands\CommandMatch(
+            $command,
+            $confidence,
+            $input,
+            $context
+        );
+    }
+
+    public function getCommandsByPermission(array $userPermissions): array
+    {
+        return $this->commands
+            ->filter(function ($command) use ($userPermissions) {
+                $commandPermissions = $command->getPermissions();
+
+                // Check if command allows all users
+                if (in_array('all', $commandPermissions)) {
+                    return true;
+                }
+
+                // Check if userPermissions is an array
+                if (!is_array($userPermissions)) {
+                    return false;
+                }
+
+                // Check if user has any of the required permissions
+                return !empty(array_intersect($userPermissions, $commandPermissions));
+            })
+            ->all();
+    }
+
+    public function searchCommands(string $query): array
+    {
+        $query = strtolower(trim($query));
+
+        return $this->commands
+            ->filter(function ($command) use ($query) {
+                // Search in command ID
+                if (str_contains(strtolower($command->getId()), $query)) {
+                    return true;
+                }
+
+                // Search in aliases
+                foreach ($command->getAliases() as $alias) {
+                    if (str_contains(strtolower($alias), $query)) {
+                        return true;
+                    }
+                }
+
+                // Search in description
+                if (str_contains(strtolower($command->getDescription()), $query)) {
+                    return true;
+                }
+
+                // Search in natural language patterns
+                foreach ($command->getNaturalLanguage() as $pattern) {
+                    if (str_contains(strtolower($pattern), $query)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->all();
+    }
+}
+</code>
+
+=== Passo 4: Criar UnifiedCommandSystem ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands;
+
+use App\Contracts\Telegram\Commands\CommandMatch;
+use App\Services\Telegram\Commands\Repositories\CommandConfigRepository;
+use App\Services\Telegram\Commands\Cache\CommandCache;
+use App\Services\Telegram\Commands\Learning\CommandLearning;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\App;
+
+class UnifiedCommandSystem
+{
+    public function __construct(
+        private CommandRegistry $registry,
+        private CommandCache $cache,
+        private CommandLearning $learning,
+        private CommandConfigRepository $configRepo
+    ) {}
+
+    public function processCommand(string $input, array $context = []): CommandResult
+    {
+        try {
+            $cacheKey = $this->generateCacheKey($input, $context);
+
+            // 1. Check cache first
+            if ($cached = $this->cache->get($input, $context)) {
+                $this->learning->recordHit($input, $cached);
+                return $this->createResult($cached, 'cache_hit');
+            }
+
+            // 2. Process command through registry
+            $result = $this->registry->findCommand($input, $context);
+
+            if (!$result) {
+                return $this->createFallbackResult($input, $context);
+            }
+
+            // 3. Cache result
+            $this->cache->put($input, $context, $result);
+
+            // 4. Learn from usage
+            $this->learning->recordUsage($input, $result);
+
+            // 5. Execute command
+            $executionResult = $this->executeCommand($result, $context);
+
+            return $this->createResult($result, 'success', $executionResult);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to process command', [
+                'input' => $input,
+                'context' => $context,
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->createErrorResult($input, $e->getMessage());
+        }
+    }
+
+    public function addCommand(array $commandConfig): CommandResult
+    {
+        try {
+            $command = $this->configRepo->addCommand($commandConfig);
+            $this->registry->reloadCommands();
+            $this->cache->clear();
+
+            Log::info('Command added successfully', [
+                'command_id' => $command->getId(),
+                'aliases' => $command->getAliases()
+            ]);
+
+            return $this->createResult(null, 'command_added', [
+                'command_id' => $command->getId(),
+                'message' => 'Command added successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to add command', [
+                'config' => $commandConfig,
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->createErrorResult('add_command', $e->getMessage());
+        }
+    }
+
+    public function updateCommand(string $commandId, array $commandConfig): CommandResult
+    {
+        try {
+            $success = $this->configRepo->updateCommand($commandId, $commandConfig);
+
+            if ($success) {
+                $this->registry->reloadCommands();
+                $this->cache->clearByPattern($commandId);
+
+                Log::info('Command updated successfully', [
+                    'command_id' => $commandId
+                ]);
+
+                return $this->createResult(null, 'command_updated', [
+                    'command_id' => $commandId,
+                    'message' => 'Command updated successfully'
+                ]);
+            } else {
+                return $this->createErrorResult('update_command', 'Command not found');
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update command', [
+                'command_id' => $commandId,
+                'config' => $commandConfig,
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->createErrorResult('update_command', $e->getMessage());
+        }
+    }
+
+    public function removeCommand(string $commandId): CommandResult
+    {
+        try {
+            $success = $this->configRepo->removeCommand($commandId);
+
+            if ($success) {
+                $this->registry->reloadCommands();
+                $this->cache->clearByPattern($commandId);
+
+                Log::info('Command removed successfully', [
+                    'command_id' => $commandId
+                ]);
+
+                return $this->createResult(null, 'command_removed', [
+                    'command_id' => $commandId,
+                    'message' => 'Command removed successfully'
+                ]);
+            } else {
+                return $this->createErrorResult('remove_command', 'Command not found');
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to remove command', [
+                'command_id' => $commandId,
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->createErrorResult('remove_command', $e->getMessage());
+        }
+    }
+
+    public function getCommandStats(): array
+    {
+        try {
+            $cacheStats = $this->cache->getStats();
+            $learningStats = $this->learning->getLearningStats();
+            $commandStats = $this->configRepo->getCommandsStats();
+
+            return [
+                'cache' => $cacheStats,
+                'learning' => $learningStats,
+                'commands' => $commandStats,
+                'total_processed' => $cacheStats['hits'] + $cacheStats['misses'],
+                'cache_efficiency' => $cacheStats['hit_rate'] ?? 0.0
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get command stats', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function getCommandInsights(string $commandId): array
+    {
+        try {
+            $insights = $this->learning->getCommandInsights($commandId);
+            $command = $this->configRepo->findCommandById($commandId);
+
+            if ($command) {
+                $insights['command_info'] = [
+                    'id' => $command->getId(),
+                    'aliases' => $command->getAliases(),
+                    'description' => $command->getDescription(),
+                    'category' => $command->getCategory(),
+                    'permissions' => $command->getPermissions()
+                ];
+            }
+
+            return $insights;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get command insights', [
+                'command_id' => $commandId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function suggestImprovements(): array
+    {
+        try {
+            return $this->learning->suggestImprovements();
+        } catch (\Exception $e) {
+            Log::error('Failed to get improvement suggestions', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    public function trainModel(): CommandResult
+    {
+        try {
+            $this->learning->trainModel();
+
+            Log::info('Command learning model trained successfully');
+
+            return $this->createResult(null, 'model_trained', [
+                'message' => 'Learning model trained successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to train learning model', [
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->createErrorResult('train_model', $e->getMessage());
+        }
+    }
+
+    public function warmUpCache(): CommandResult
+    {
+        try {
+            $commands = $this->registry->getAllCommands();
+            $this->cache->warmUp($commands);
+
+            Log::info('Command cache warmed up successfully', [
+                'commands_count' => count($commands)
+            ]);
+
+            return $this->createResult(null, 'cache_warmed', [
+                'message' => 'Cache warmed up successfully',
+                'commands_count' => count($commands)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to warm up cache', [
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->createErrorResult('warm_cache', $e->getMessage());
+        }
+    }
+
+    public function searchCommands(string $query): array
+    {
+        try {
+            return $this->registry->searchCommands($query);
+        } catch (\Exception $e) {
+            Log::error('Failed to search commands', [
+                'query' => $query,
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    public function getCommandsByCategory(string $category): array
+    {
+        try {
+            return $this->registry->getCommandsByCategory($category);
+        } catch (\Exception $e) {
+            Log::error('Failed to get commands by category', [
+                'category' => $category,
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    public function getCommandsByPermission(array $userPermissions): array
+    {
+        try {
+            return $this->registry->getCommandsByPermission($userPermissions);
+        } catch (\Exception $e) {
+            Log::error('Failed to get commands by permission', [
+                'permissions' => $userPermissions,
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    private function generateCacheKey(string $input, array $context): string
+    {
+        $contextHash = md5(serialize($context));
+        $inputHash = md5(strtolower(trim($input)));
+
+        return 'unified_command:' . $inputHash . ':' . $contextHash;
+    }
+
+    private function executeCommand(CommandMatch $result, array $context): mixed
+    {
+        try {
+            $action = $result->getCommand()->getAction();
+            $handler = $action['handler'];
+            $method = $action['method'];
+            $parameters = $action['parameters'] ?? [];
+
+            // Merge context parameters
+            $parameters = array_merge($parameters, $context);
+
+            // Resolve handler from container
+            $handlerInstance = App::make($handler);
+
+            if (!method_exists($handlerInstance, $method)) {
+                throw new \Exception("Method {$method} not found in handler {$handler}");
+            }
+
+            // Execute handler method with proper signature handling
+            $reflection = new \ReflectionMethod($handlerInstance, $method);
+            $methodParams = $reflection->getParameters();
+
+            if (count($methodParams) >= 1) {
+                $firstParam = $methodParams[0];
+
+                // Check if first parameter expects int (legacy handle signature)
+                if ($firstParam->getType() && $firstParam->getType()->getName() === 'int') {
+                    $chatId = $context['chat_id'] ?? 0;
+                    $params = array_diff_key($parameters, ['chat_id' => null]);
+                    return $handlerInstance->$method($chatId, $params);
+                }
+            }
+
+            // Default: pass full context array (new signature)
+            return $handlerInstance->$method($parameters);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to execute command', [
+                'command_id' => $result->getCommand()->getId(),
+                'action' => $result->getCommand()->getAction(),
+                'error' => $e->getMessage()
+            ]);
+
+            throw $e;
+        }
+    }
+
+    private function createFallbackResult(string $input, array $context): CommandResult
+    {
+        // Try to find similar commands for suggestions
+        $similarCommands = $this->registry->searchCommands($input);
+        $suggestions = array_slice($similarCommands, 0, 3);
+
+        return new CommandResult(
+            success: false,
+            message: 'Command not found',
+            data: [
+                'input' => $input,
+                'suggestions' => $suggestions,
+                'fallback_message' => 'Desculpe, não entendi esse comando. Tente uma das opções sugeridas.'
+            ],
+            type: 'command_not_found'
+        );
+    }
+
+    private function createResult(?CommandMatch $match, string $type, mixed $data = null): CommandResult
+    {
+        return new CommandResult(
+            success: true,
+            message: 'Command processed successfully',
+            data: $data,
+            type: $type,
+            commandMatch: $match
+        );
+    }
+
+    private function createErrorResult(string $operation, string $error): CommandResult
+    {
+        return new CommandResult(
+            success: false,
+            message: "Operation failed: {$operation}",
+            data: ['error' => $error],
+            type: 'error'
+        );
+    }
+}
+
+class CommandResult
+{
+    public function __construct(
+        public bool $success,
+        public string $message,
+        public mixed $data = null,
+        public string $type = 'unknown',
+        public ?CommandMatch $commandMatch = null
+    ) {}
+
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    public function getData(): mixed
+    {
+        return $this->data;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function getCommandMatch(): ?CommandMatch
+    {
+        return $this->commandMatch;
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'success' => $this->success,
+            'message' => $this->message,
+            'type' => $this->type,
+            'data' => $this->data,
+            'command_match' => $this->commandMatch ? [
+                'command_id' => $this->commandMatch->getCommand()->getId(),
+                'confidence' => $this->commandMatch->getConfidence(),
+                'matched_input' => $this->commandMatch->getMatchedInput()
+            ] : null
+        ];
+    }
+}
+</code>
+
+=== Passo 5: Criar CommandCache ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands\Cache;
+
+use Illuminate\Support\Facades\Cache;
+use App\Contracts\Telegram\Commands\CommandMatch;
+use Illuminate\Support\Facades\Log;
+
+class CommandCache
+{
+    private const CACHE_PREFIX = 'telegram_command_cache';
+    private const DEFAULT_TTL = 1800; // 30 minutes
+    private const MAX_CACHE_SIZE = 1000;
+
+    public function get(string $input, array $context = []): ?CommandMatch
+    {
+        $cacheKey = $this->generateCacheKey($input, $context);
+
+        try {
+            $cached = Cache::get($cacheKey);
+
+            if ($cached) {
+                $this->recordCacheHit($input);
+                return $cached;
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to retrieve command from cache', [
+                'input' => $input,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return null;
+    }
+
+    public function put(string $input, array $context, CommandMatch $result, ?int $ttl = null): void
+    {
+        $cacheKey = $this->generateCacheKey($input, $context);
+        $ttl = $ttl ?? $this->calculateTTL($result);
+
+        try {
+            // Check cache size before adding
+            $this->manageCacheSize();
+
+            Cache::put($cacheKey, $result, $ttl);
+
+            $this->recordCacheMiss($input);
+
+            // Store metadata for analytics
+            $this->storeCacheMetadata($input, $context, $result, $ttl);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to store command in cache', [
+                'input' => $input,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function clear(): void
+    {
+        try {
+            $keys = Cache::get(self::CACHE_PREFIX . '_keys', []);
+
+            foreach ($keys as $key) {
+                Cache::forget($key);
+            }
+
+            Cache::forget(self::CACHE_PREFIX . '_keys');
+            Cache::forget(self::CACHE_PREFIX . '_metadata');
+            Cache::forget(self::CACHE_PREFIX . '_stats');
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to clear command cache', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function clearByPattern(string $pattern): void
+    {
+        try {
+            $keys = Cache::get(self::CACHE_PREFIX . '_keys', []);
+            $filteredKeys = array_filter($keys, function ($key) use ($pattern) {
+                return str_contains($key, $pattern);
+            });
+
+            foreach ($filteredKeys as $key) {
+                Cache::forget($key);
+            }
+
+            // Update keys list
+            $remainingKeys = array_diff($keys, $filteredKeys);
+            Cache::put(self::CACHE_PREFIX . '_keys', $remainingKeys, 86400);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to clear command cache by pattern', [
+                'pattern' => $pattern,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getStats(): array
+    {
+        try {
+            $stats = Cache::get(self::CACHE_PREFIX . '_stats', [
+                'hits' => 0,
+                'misses' => 0,
+                'size' => 0,
+                'hit_rate' => 0.0
+            ]);
+
+            $stats['size'] = $this->getCacheSize();
+            $stats['hit_rate'] = $stats['hits'] + $stats['misses'] > 0
+                ? round(($stats['hits'] / ($stats['hits'] + $stats['misses'])) * 100, 2)
+                : 0.0;
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to get cache stats', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'hits' => 0,
+                'misses' => 0,
+                'size' => 0,
+                'hit_rate' => 0.0,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function warmUp(array $commands): void
+    {
+        try {
+            foreach ($commands as $command) {
+                $aliases = $command->getAliases();
+                $naturalLanguage = $command->getNaturalLanguage();
+
+                // Cache common inputs
+                foreach ($aliases as $alias) {
+                    $this->warmUpInput($alias, $command);
+                }
+
+                foreach ($naturalLanguage as $pattern) {
+                    $this->warmUpInput($pattern, $command);
+                }
+            }
+
+            Log::info('Command cache warmed up successfully', [
+                'commands_count' => count($commands)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to warm up command cache', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    private function generateCacheKey(string $input, array $context): string
+    {
+        $contextHash = md5(serialize($context));
+        $inputHash = md5(strtolower(trim($input)));
+
+        return self::CACHE_PREFIX . ':' . $inputHash . ':' . $contextHash;
+    }
+
+    private function calculateTTL(CommandMatch $result): int
+    {
+        $confidence = $result->getConfidence();
+
+        // Higher confidence = longer cache time
+        if ($confidence >= 0.9) {
+            return 3600; // 1 hour
+        } elseif ($confidence >= 0.7) {
+            return 1800; // 30 minutes
+        } else {
+            return 900; // 15 minutes
+        }
+    }
+
+    private function manageCacheSize(): void
+    {
+        $currentSize = $this->getCacheSize();
+
+        if ($currentSize >= self::MAX_CACHE_SIZE) {
+            $this->evictOldestEntries();
+        }
+    }
+
+    private function getCacheSize(): int
+    {
+        try {
+            $keys = Cache::get(self::CACHE_PREFIX . '_keys', []);
+            return count($keys);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private function evictOldestEntries(): void
+    {
+        try {
+            $metadata = Cache::get(self::CACHE_PREFIX . '_metadata', []);
+
+            // Sort by last accessed time
+            uasort($metadata, function ($a, $b) {
+                return $a['last_accessed'] <=> $b['last_accessed'];
+            });
+
+            // Remove oldest 20% of entries
+            $removeCount = (int) (count($metadata) * 0.2);
+            $keysToRemove = array_slice(array_keys($metadata), 0, $removeCount);
+
+            foreach ($keysToRemove as $key) {
+                Cache::forget($key);
+                unset($metadata[$key]);
+            }
+
+            Cache::put(self::CACHE_PREFIX . '_metadata', $metadata, 86400);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to evict cache entries', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    private function recordCacheHit(string $input): void
+    {
+        $this->updateStats('hits');
+        $this->updateLastAccessed($input);
+    }
+
+    private function recordCacheMiss(string $input): void
+    {
+        $this->updateStats('misses');
+    }
+
+    private function updateStats(string $type): void
+    {
+        try {
+            $stats = Cache::get(self::CACHE_PREFIX . '_stats', [
+                'hits' => 0,
+                'misses' => 0
+            ]);
+
+            $stats[$type]++;
+            Cache::put(self::CACHE_PREFIX . '_stats', $stats, 86400);
+
+        } catch (\Exception $e) {
+            // Silently fail for stats updates
+        }
+    }
+
+    private function updateLastAccessed(string $input): void
+    {
+        try {
+            $metadata = Cache::get(self::CACHE_PREFIX . '_metadata', []);
+            $inputHash = md5(strtolower(trim($input)));
+
+            if (isset($metadata[$inputHash])) {
+                $metadata[$inputHash]['last_accessed'] = time();
+                $metadata[$inputHash]['access_count']++;
+            }
+
+            Cache::put(self::CACHE_PREFIX . '_metadata', $metadata, 86400);
+
+        } catch (\Exception $e) {
+            // Silently fail for metadata updates
+        }
+    }
+
+    private function storeCacheMetadata(string $input, array $context, CommandMatch $result, int $ttl): void
+    {
+        try {
+            $metadata = Cache::get(self::CACHE_PREFIX . '_metadata', []);
+            $inputHash = md5(strtolower(trim($input)));
+
+            $metadata[$inputHash] = [
+                'input' => $input,
+                'context' => $context,
+                'command_id' => $result->getCommand()->getId(),
+                'confidence' => $result->getConfidence(),
+                'ttl' => $ttl,
+                'created_at' => time(),
+                'last_accessed' => time(),
+                'access_count' => 1
+            ];
+
+            // Store keys list for management
+            $keys = Cache::get(self::CACHE_PREFIX . '_keys', []);
+            $keys[] = $inputHash;
+            $keys = array_unique($keys);
+
+            Cache::put(self::CACHE_PREFIX . '_keys', $keys, 86400);
+            Cache::put(self::CACHE_PREFIX . '_metadata', $metadata, 86400);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to store cache metadata', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    private function warmUpInput(string $input, $command): void
+    {
+        // This would create a mock CommandMatch for warming up
+        // Implementation depends on how you want to handle this
+    }
+}
+</code>
+
+=== Passo 6: Criar CommandLearning ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands\Learning;
+
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use App\Contracts\Telegram\Commands\CommandMatch;
+
+class CommandLearning
+{
+    private const LEARNING_PREFIX = 'telegram_command_learning';
+    private const MAX_LEARNING_DATA = 10000;
+
+    public function recordUsage(string $input, CommandMatch $result): void
+    {
+        try {
+            $this->storeUsageData($input, $result);
+            $this->updateCommandStats($result->getCommand()->getId());
+            $this->updateInputPatterns($input, $result);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to record command usage', [
+                'input' => $input,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function recordHit(string $input, CommandMatch $result): void
+    {
+        try {
+            $this->updateHitStats($input, $result);
+            $this->reinforcePattern($input, $result);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to record command hit', [
+                'input' => $input,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function recordFeedback(string $input, bool $wasSuccessful, ?string $feedback = null): void
+    {
+        try {
+            $this->storeFeedback($input, $wasSuccessful, $feedback);
+            $this->adjustConfidence($input, $wasSuccessful);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to record command feedback', [
+                'input' => $input,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getLearningStats(): array
+    {
+        try {
+            $stats = Cache::get(self::LEARNING_PREFIX . '_stats', [
+                'total_usage' => 0,
+                'successful_usage' => 0,
+                'failed_usage' => 0,
+                'cache_hits' => 0,
+                'cache_misses' => 0,
+                'top_commands' => [],
+                'top_inputs' => [],
+                'confidence_trends' => []
+            ]);
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to get learning stats', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function getCommandInsights(string $commandId): array
+    {
+        try {
+            $insights = Cache::get(self::LEARNING_PREFIX . '_command_' . $commandId, [
+                'usage_count' => 0,
+                'success_rate' => 0.0,
+                'avg_confidence' => 0.0,
+                'common_inputs' => [],
+                'failure_patterns' => [],
+                'improvement_suggestions' => []
+            ]);
+
+            return $insights;
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to get command insights', [
+                'command_id' => $commandId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function suggestImprovements(): array
+    {
+        try {
+            $suggestions = [];
+            $commandStats = $this->getAllCommandStats();
+
+            foreach ($commandStats as $commandId => $stats) {
+                if ($stats['success_rate'] < 0.8) {
+                    $suggestions[] = [
+                        'command_id' => $commandId,
+                        'issue' => 'Low success rate',
+                        'current_rate' => $stats['success_rate'],
+                        'suggestion' => 'Consider adding more aliases or natural language patterns'
+                    ];
+                }
+
+                if ($stats['avg_confidence'] < 0.7) {
+                    $suggestions[] = [
+                        'command_id' => $commandId,
+                        'issue' => 'Low confidence',
+                        'current_confidence' => $stats['avg_confidence'],
+                        'suggestion' => 'Review and improve natural language patterns'
+                    ];
+                }
+            }
+
+            return $suggestions;
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to generate improvement suggestions', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
+    }
+
+    public function trainModel(): void
+    {
+        try {
+            $usageData = $this->getAllUsageData();
+
+            if (empty($usageData)) {
+                Log::info('No usage data available for training');
+                return;
+            }
+
+            // Simple training: update confidence scores based on usage patterns
+            foreach ($usageData as $input => $data) {
+                $this->updateInputConfidence($input, $data);
+            }
+
+            // Generate insights
+            $this->generateInsights();
+
+            Log::info('Command learning model trained successfully', [
+                'data_points' => count($usageData)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::warning('Failed to train learning model', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    private function storeUsageData(string $input, CommandMatch $result): void
+    {
+        $usageData = Cache::get(self::LEARNING_PREFIX . '_usage', []);
+
+        $usageData[$input] = [
+            'command_id' => $result->getCommand()->getId(),
+            'confidence' => $result->getConfidence(),
+            'timestamp' => time(),
+            'success' => true, // Will be updated later if feedback is provided
+            'usage_count' => ($usageData[$input]['usage_count'] ?? 0) + 1
+        ];
+
+        // Limit data size
+        if (count($usageData) > self::MAX_LEARNING_DATA) {
+            $usageData = array_slice($usageData, -self::MAX_LEARNING_DATA, null, true);
+        }
+
+        Cache::put(self::LEARNING_PREFIX . '_usage', $usageData, 86400 * 30); // 30 days
+    }
+
+    private function updateCommandStats(string $commandId): void
+    {
+        $commandStats = Cache::get(self::LEARNING_PREFIX . '_command_stats', []);
+
+        if (!isset($commandStats[$commandId])) {
+            $commandStats[$commandId] = [
+                'usage_count' => 0,
+                'success_count' => 0,
+                'total_confidence' => 0.0,
+                'last_used' => 0
+            ];
+        }
+
+        $commandStats[$commandId]['usage_count']++;
+        $commandStats[$commandId]['last_used'] = time();
+
+        Cache::put(self::LEARNING_PREFIX . '_command_stats', $commandStats, 86400 * 30);
+    }
+
+    private function updateInputPatterns(string $input, CommandMatch $result): void
+    {
+        $patterns = Cache::get(self::LEARNING_PREFIX . '_patterns', []);
+
+        $inputHash = md5($input);
+        if (!isset($patterns[$inputHash])) {
+            $patterns[$inputHash] = [
+                'input' => $input,
+                'command_id' => $result->getCommand()->getId(),
+                'usage_count' => 0,
+                'avg_confidence' => 0.0,
+                'last_used' => 0
+            ];
+        }
+
+        $patterns[$inputHash]['usage_count']++;
+        $patterns[$inputHash]['last_used'] = time();
+
+        // Update average confidence
+        $currentAvg = $patterns[$inputHash]['avg_confidence'];
+        $currentCount = $patterns[$inputHash]['usage_count'];
+        $newConfidence = $result->getConfidence();
+
+        $patterns[$inputHash]['avg_confidence'] =
+            (($currentAvg * ($currentCount - 1)) + $newConfidence) / $currentCount;
+
+        Cache::put(self::LEARNING_PREFIX . '_patterns', $patterns, 86400 * 30);
+    }
+
+    private function updateHitStats(string $input, CommandMatch $result): void
+    {
+        $hitStats = Cache::get(self::LEARNING_PREFIX . '_hits', []);
+
+        $inputHash = md5($input);
+        if (!isset($hitStats[$inputHash])) {
+            $hitStats[$inputHash] = [
+                'input' => $input,
+                'hit_count' => 0,
+                'last_hit' => 0
+            ];
+        }
+
+        $hitStats[$inputHash]['hit_count']++;
+        $hitStats[$inputHash]['last_hit'] = time();
+
+        Cache::put(self::LEARNING_PREFIX . '_hits', $hitStats, 86400 * 30);
+    }
+
+    private function reinforcePattern(string $input, CommandMatch $result): void
+    {
+        $patterns = Cache::get(self::LEARNING_PREFIX . '_patterns', []);
+        $inputHash = md5($input);
+
+        if (isset($patterns[$inputHash])) {
+            // Increase confidence for successful cache hits
+            $patterns[$inputHash]['avg_confidence'] = min(1.0,
+                $patterns[$inputHash]['avg_confidence'] + 0.01);
+
+            Cache::put(self::LEARNING_PREFIX . '_patterns', $patterns, 86400 * 30);
+        }
+    }
+
+    private function storeFeedback(string $input, bool $wasSuccessful, ?string $feedback): void
+    {
+        $feedbackData = Cache::get(self::LEARNING_PREFIX . '_feedback', []);
+
+        $inputHash = md5($input);
+        if (!isset($feedbackData[$inputHash])) {
+            $feedbackData[$inputHash] = [
+                'input' => $input,
+                'feedback_count' => 0,
+                'success_count' => 0,
+                'failure_count' => 0,
+                'feedback_history' => []
+            ];
+        }
+
+        $feedbackData[$inputHash]['feedback_count']++;
+
+        if ($wasSuccessful) {
+            $feedbackData[$inputHash]['success_count']++;
+        } else {
+            $feedbackData[$inputHash]['failure_count']++;
+        }
+
+        // Store feedback history
+        $feedbackData[$inputHash]['feedback_history'][] = [
+            'success' => $wasSuccessful,
+            'feedback' => $feedback,
+            'timestamp' => time()
+        ];
+
+        // Limit feedback history
+        if (count($feedbackData[$inputHash]['feedback_history']) > 100) {
+            $feedbackData[$inputHash]['feedback_history'] =
+                array_slice($feedbackData[$inputHash]['feedback_history'], -100);
+        }
+
+        Cache::put(self::LEARNING_PREFIX . '_feedback', $feedbackData, 86400 * 30);
+    }
+
+    private function adjustConfidence(string $input, bool $wasSuccessful): void
+    {
+        $patterns = Cache::get(self::LEARNING_PREFIX . '_patterns', []);
+        $inputHash = md5($input);
+
+        if (isset($patterns[$inputHash])) {
+            $adjustment = $wasSuccessful ? 0.02 : -0.05;
+
+            $patterns[$inputHash]['avg_confidence'] = max(0.0, min(1.0,
+                $patterns[$inputHash]['avg_confidence'] + $adjustment));
+
+            Cache::put(self::LEARNING_PREFIX . '_patterns', $patterns, 86400 * 30);
+        }
+    }
+
+    private function getAllCommandStats(): array
+    {
+        return Cache::get(self::LEARNING_PREFIX . '_command_stats', []);
+    }
+
+    private function getAllUsageData(): array
+    {
+        return Cache::get(self::LEARNING_PREFIX . '_usage', []);
+    }
+
+    private function updateInputConfidence(string $input, array $data): void
+    {
+        // This would implement more sophisticated confidence adjustment
+        // based on usage patterns and feedback
+    }
+
+    private function generateInsights(): void
+    {
+        // This would generate insights based on collected data
+        // and store them for quick access
+    }
+}
+</code>
+
+=== Passo 7: Criar CommandConfigRepository ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands\Repositories;
+
+use App\Models\Telegram\TelegramCommand;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+
+class CommandConfigRepository
+{
+    private const CACHE_KEY = 'telegram_commands';
+    private const CACHE_TTL = 3600; // 1 hour
+
+    public function getAllCommands(): Collection
+    {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
+            return TelegramCommand::active()
+                ->orderBy('priority', 'desc')
+                ->orderBy('command_id')
+                ->get();
+        });
+    }
+
+    public function getCommandsByCategory(string $category): Collection
+    {
+        return $this->getAllCommands()->filter(function ($command) use ($category) {
+            return $command->getCategory() === $category;
+        });
+    }
+
+    public function findCommandById(string $commandId): ?TelegramCommand
+    {
+        return $this->getAllCommands()->first(function ($command) use ($commandId) {
+            return $command->getId() === $commandId;
+        });
+    }
+
+    public function findCommandsByAlias(string $alias): Collection
+    {
+        $alias = strtolower(trim($alias));
+
+        return $this->getAllCommands()->filter(function ($command) use ($alias) {
+            return in_array($alias, array_map('strtolower', $command->getAliases()));
+        });
+    }
+
+    public function addCommand(array $commandConfig): TelegramCommand
+    {
+        $command = TelegramCommand::create($commandConfig);
+        $this->clearCache();
+        return $command;
+    }
+
+    public function updateCommand(string $commandId, array $commandConfig): bool
+    {
+        $command = TelegramCommand::where('command_id', $commandId)->first();
+
+        if (!$command) {
+            return false;
+        }
+
+        $command->update($commandConfig);
+        $this->clearCache();
+        return true;
+    }
+
+    public function removeCommand(string $commandId): bool
+    {
+        $command = TelegramCommand::where('command_id', $commandId)->first();
+
+        if (!$command) {
+            return false;
+        }
+
+        $command->delete();
+        $this->clearCache();
+        return true;
+    }
+
+    public function activateCommand(string $commandId): bool
+    {
+        $command = TelegramCommand::where('command_id', $commandId)->first();
+
+        if (!$command) {
+            return false;
+        }
+
+        $command->update(['is_active' => true]);
+        $this->clearCache();
+        return true;
+    }
+
+    public function deactivateCommand(string $commandId): bool
+    {
+        $command = TelegramCommand::where('command_id', $commandId)->first();
+
+        if (!$command) {
+            return false;
+        }
+
+        $command->update(['is_active' => false]);
+        $this->clearCache();
+        return true;
+    }
+
+    public function getCommandsByPermission(array $userPermissions): Collection
+    {
+        return $this->getAllCommands()->filter(function ($command) use ($userPermissions) {
+            $commandPermissions = $command->getPermissions();
+
+            // Check if command allows all users
+            if (in_array('all', $commandPermissions)) {
+                return true;
+            }
+
+            // Check if user has any of the required permissions
+            return !empty(array_intersect($userPermissions, $commandPermissions));
+        });
+    }
+
+    public function searchCommands(string $query): Collection
+    {
+        $query = strtolower(trim($query));
+
+        return $this->getAllCommands()->filter(function ($command) use ($query) {
+            // Search in command ID
+            if (str_contains(strtolower($command->getId()), $query)) {
+                return true;
+            }
+
+            // Search in aliases
+            foreach ($command->getAliases() as $alias) {
+                if (str_contains(strtolower($alias), $query)) {
+                    return true;
+                }
+            }
+
+            // Search in description
+            if (str_contains(strtolower($command->getDescription()), $query)) {
+                return true;
+            }
+
+            // Search in natural language patterns
+            foreach ($command->getNaturalLanguage() as $pattern) {
+                if (str_contains(strtolower($pattern), $query)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    }
+
+    public function getCommandCategories(): array
+    {
+        return $this->getAllCommands()
+            ->pluck('category')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
+    public function getCommandsStats(): array
+    {
+        $commands = $this->getAllCommands();
+
+        return [
+            'total' => $commands->count(),
+            'active' => $commands->where('is_active', true)->count(),
+            'inactive' => $commands->where('is_active', false)->count(),
+            'by_category' => $commands->groupBy('category')->map->count(),
+            'by_permission' => $commands->groupBy('permissions')->map->count(),
+        ];
+    }
+
+    public function clearCache(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    public function warmCache(): void
+    {
+        $this->clearCache();
+        $this->getAllCommands();
+    }
+}
+</code>
+
+=== Passo 8: Criar TelegramMenuBuilder ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram;
+
+use App\Services\Channels\TelegramChannel;
+
+class TelegramMenuBuilder
+{
+    public function __construct(
+        private TelegramChannel $telegramChannel
+    ) {}
+
+    /**
+     * Build main menu
+     */
+    public function buildMainMenu(int $chatId): array
+    {
+        $message = "🤖 *Rei do Óleo - Bot de Relatórios*\n\n" .
+                   "Bem-vindo! Escolha uma opção abaixo:";
+
+        $keyboard = [
+            [
+                ['text' => '📊 Relatórios', 'callback_data' => 'report_menu'],
+                ['text' => '🔧 Serviços', 'callback_data' => 'services_menu']
+            ],
+            [
+                ['text' => '📦 Produtos', 'callback_data' => 'products_menu'],
+                ['text' => '📈 Dashboard', 'callback_data' => 'dashboard_menu']
+            ],
+            [
+                ['text' => '📋 Status do Sistema', 'callback_data' => 'status']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Show main menu (called by command system)
+     */
+    public function showMainMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildMainMenu($chatId);
+    }
+
+    /**
+     * Build report menu
+     */
+    public function buildReportMenu(int $chatId): array
+    {
+        $message = "📊 *Menu de Relatórios*\n\n" .
+                   "Escolha o tipo de relatório:";
+
+        $keyboard = [
+            [
+                ['text' => '📄 Relatórios PDF', 'callback_data' => 'pdf_report_menu'],
+                ['text' => '📱 Relatórios Texto', 'callback_data' => 'text_reports_menu']
+            ],
+            [
+                ['text' => '📋 Relatório Geral', 'callback_data' => 'report_general'],
+                ['text' => '🔧 Relatório de Serviços', 'callback_data' => 'report_services']
+            ],
+            [
+                ['text' => '📦 Relatório de Produtos', 'callback_data' => 'report_products'],
+                ['text' => '📈 Dashboard Completo', 'callback_data' => 'report_dashboard']
+            ],
+            [
+                ['text' => '⬅️ Voltar', 'callback_data' => 'main_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Build text reports menu
+     */
+    public function buildTextReportsMenu(int $chatId): array
+    {
+        $message = "📱 *Relatórios em Texto*\n\n" .
+                   "Escolha o período para o relatório em texto:";
+
+        $keyboard = [
+            [
+                ['text' => '📅 Hoje', 'callback_data' => 'today_report'],
+                ['text' => '📊 Semana', 'callback_data' => 'week_report']
+            ],
+            [
+                ['text' => '📈 Mês', 'callback_data' => 'month_report'],
+                ['text' => '🔧 Serviços', 'callback_data' => 'services_report']
+            ],
+            [
+                ['text' => '📦 Produtos', 'callback_data' => 'products_report'],
+                ['text' => '⬅️ Menu Relatórios', 'callback_data' => 'report_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Show text reports menu (called by command system)
+     */
+    public function showTextReportsMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildTextReportsMenu($chatId);
+    }
+
+    /**
+     * Build services menu
+     */
+    public function buildServicesMenu(int $chatId): array
+    {
+        $message = "🔧 *Menu de Serviços*\n\n" .
+                   "Escolha o que deseja consultar:";
+
+        $keyboard = [
+            [
+                ['text' => '📋 Status Atual', 'callback_data' => 'services_status'],
+                ['text' => '📈 Performance', 'callback_data' => 'services_performance']
+            ],
+            [
+                ['text' => '⬅️ Voltar', 'callback_data' => 'main_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Show services menu (called by command system)
+     */
+    public function showServicesMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildServicesMenu($chatId);
+    }
+
+    /**
+     * Build products menu
+     */
+    public function buildProductsMenu(int $chatId): array
+    {
+        $message = "📦 *Menu de Produtos*\n\n" .
+                   "Escolha o que deseja consultar:";
+
+        $keyboard = [
+            [
+                ['text' => '📋 Status do Estoque', 'callback_data' => 'products_stock'],
+                ['text' => '⚠️ Estoque Baixo', 'callback_data' => 'products_low_stock']
+            ],
+            [
+                ['text' => '⬅️ Voltar', 'callback_data' => 'main_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Show reports menu (called by command system)
+     */
+    public function showReportsMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildReportMenu($chatId);
+    }
+
+    /**
+     * Show products menu (called by command system)
+     */
+    public function showProductsMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildProductsMenu($chatId);
+    }
+
+    /**
+     * Show dashboard menu (called by command system)
+     */
+    public function showDashboardMenu(array $context): array
+    {
+        $chatId = $context['chat_id'] ?? 0;
+
+        if (!$chatId) {
+            return [
+                'success' => false,
+                'message' => 'Chat ID não encontrado no contexto'
+            ];
+        }
+
+        return $this->buildDashboardMenu($chatId);
+    }
+
+    /**
+     * Build dashboard menu
+     */
+    public function buildDashboardMenu(int $chatId): array
+    {
+        $message = "📈 *Dashboard*\n\n" .
+                   "Escolha o período:";
+
+        $keyboard = [
+            [
+                ['text' => '📅 Hoje', 'callback_data' => 'period_today:general'],
+                ['text' => '📅 Esta Semana', 'callback_data' => 'period_week:general']
+            ],
+            [
+                ['text' => '📅 Este Mês', 'callback_data' => 'period_month:general']
+            ],
+            [
+                ['text' => '⬅️ Voltar', 'callback_data' => 'main_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Build report period selection menu
+     */
+    public function buildReportPeriodMenu(int $chatId, string $reportType): array
+    {
+        $reportLabels = [
+            'general' => 'Relatório Geral',
+            'services' => 'Relatório de Serviços',
+            'products' => 'Relatório de Produtos'
+        ];
+
+        $message = "📊 *{$reportLabels[$reportType]}*\n\n" .
+                   "Escolha o período:";
+
+        $keyboard = [
+            [
+                ['text' => '📅 Hoje', 'callback_data' => "period_today:{$reportType}"],
+                ['text' => '📅 Esta Semana', 'callback_data' => "period_week:{$reportType}"]
+            ],
+            [
+                ['text' => '📅 Este Mês', 'callback_data' => "period_month:{$reportType}"]
+            ],
+            [
+                ['text' => '⬅️ Voltar', 'callback_data' => 'report_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Build navigation menu
+     */
+    public function buildNavigationMenu(int $chatId, string $from): array
+    {
+        return match($from) {
+            'report_menu' => $this->buildReportMenu($chatId),
+            'text_reports_menu' => $this->buildTextReportsMenu($chatId),
+            'services_menu' => $this->buildServicesMenu($chatId),
+            'products_menu' => $this->buildProductsMenu($chatId),
+            'dashboard_menu' => $this->buildDashboardMenu($chatId),
+            default => $this->buildMainMenu($chatId)
+        };
+    }
+
+    /**
+     * Build error message with navigation
+     */
+    public function buildErrorMessage(int $chatId): array
+    {
+        $message = "⚠️ *Erro no Sistema*\n\n" .
+                   "Ocorreu um erro ao processar sua solicitação.\n" .
+                   "Tente novamente em alguns instantes.";
+
+        $keyboard = [
+            [
+                ['text' => '🏠 Menu Principal', 'callback_data' => 'main_menu']
+            ]
+        ];
+
+        return $this->telegramChannel->sendMessageWithKeyboard($message, $chatId, $keyboard);
+    }
+
+    /**
+     * Build unauthorized message
+     */
+    public function buildUnauthorizedMessage(int $chatId): array
+    {
+        $message = "❌ *Acesso Negado*\n\n" .
+                   "Você não está autorizado a usar este bot.\n" .
+                   "Entre em contato com o administrador.";
+
+        return $this->telegramChannel->sendTextMessage($message, $chatId);
+    }
+}
+</code>
+
+===== 🧪 Testes =====
+
+=== Teste Unitário do UnifiedCommandSystem ===
+
+<code php>
+<?php
+
+namespace Tests\Unit\Services\Telegram;
+
+use App\Services\Telegram\Commands\UnifiedCommandSystem;
+use App\Services\Telegram\Commands\CommandRegistry;
+use App\Services\Telegram\Commands\Cache\CommandCache;
+use App\Services\Telegram\Commands\Learning\CommandLearning;
+use App\Services\Telegram\Commands\Repositories\CommandConfigRepository;
+use App\Contracts\Telegram\Commands\CommandMatch;
+use App\Contracts\Telegram\Commands\CommandInterface;
+use App\Models\Telegram\TelegramCommand;
+use Mockery;
+use PHPUnit\Framework\TestCase;
+use Exception;
+
+class UnifiedCommandSystemTest extends TestCase
+{
+    private UnifiedCommandSystem $unifiedCommandSystem;
+    private CommandRegistry $mockRegistry;
+    private CommandCache $mockCache;
+    private CommandLearning $mockLearning;
+    private CommandConfigRepository $mockConfigRepo;
+    private CommandMatch $mockCommandMatch;
+    private CommandInterface $mockCommand;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Create mocks for all dependencies
+        $this->mockRegistry = Mockery::mock(CommandRegistry::class);
+        $this->mockCache = Mockery::mock(CommandCache::class);
+        $this->mockLearning = Mockery::mock(CommandLearning::class);
+        $this->mockConfigRepo = Mockery::mock(CommandConfigRepository::class);
+        $this->mockCommand = Mockery::mock(CommandInterface::class);
+        $this->mockCommandMatch = Mockery::mock(CommandMatch::class);
+
+        // Setup mock command with basic methods
+        $this->mockCommand->shouldReceive('getId')->andReturn('test_command');
+        $this->mockCommand->shouldReceive('getAction')->andReturn([
+            'handler' => 'TestHandler',
+            'method' => 'handle',
+            'parameters' => []
+        ]);
+
+        // Setup mock command match
+        $this->mockCommandMatch->shouldReceive('getCommand')->andReturn($this->mockCommand);
+        $this->mockCommandMatch->shouldReceive('getConfidence')->andReturn(0.95);
+        $this->mockCommandMatch->shouldReceive('getMatchedInput')->andReturn('test input');
+
+        // Create the service instance
+        $this->unifiedCommandSystem = new UnifiedCommandSystem(
+            $this->mockRegistry,
+            $this->mockCache,
+            $this->mockLearning,
+            $this->mockConfigRepo
+        );
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
+    /**
+     * Test service instantiation
+     */
+    public function test_service_can_be_instantiated(): void
+    {
+        $this->assertInstanceOf(UnifiedCommandSystem::class, $this->unifiedCommandSystem);
+    }
+
+    /**
+     * Test processCommand with cache hit
+     */
+    public function test_process_command_with_cache_hit(): void
+    {
+        $input = 'test command';
+        $context = ['user_id' => 1];
+
+        // Mock cache returning a result
+        $this->mockCache
+            ->shouldReceive('get')
+            ->once()
+            ->with($input, $context)
+            ->andReturn($this->mockCommandMatch);
+
+        // Mock learning recordHit
+        $this->mockLearning
+            ->shouldReceive('recordHit')
+            ->once()
+            ->with($input, $this->mockCommandMatch);
+
+        $result = $this->unifiedCommandSystem->processCommand($input, $context);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertEquals('cache_hit', $result->getType());
+        $this->assertEquals($this->mockCommandMatch, $result->getCommandMatch());
+    }
+
+    /**
+     * Test processCommand with command not found
+     */
+    public function test_process_command_with_command_not_found(): void
+    {
+        $input = 'unknown command';
+        $context = ['user_id' => 1];
+
+        // Mock cache returning null
+        $this->mockCache
+            ->shouldReceive('get')
+            ->once()
+            ->with($input, $context)
+            ->andReturn(null);
+
+        // Mock registry not finding a command
+        $this->mockRegistry
+            ->shouldReceive('findCommand')
+            ->once()
+            ->with($input, $context)
+            ->andReturn(null);
+
+        // Mock registry searchCommands for suggestions
+        $this->mockRegistry
+            ->shouldReceive('searchCommands')
+            ->once()
+            ->with($input)
+            ->andReturn(['suggestion1', 'suggestion2']);
+
+        $result = $this->unifiedCommandSystem->processCommand($input, $context);
+
+        $this->assertFalse($result->isSuccess());
+        $this->assertEquals('command_not_found', $result->getType());
+        $this->assertArrayHasKey('suggestions', $result->getData());
+        $this->assertArrayHasKey('fallback_message', $result->getData());
+    }
+
+    /**
+     * Test addCommand successfully
+     */
+    public function test_add_command_successfully(): void
+    {
+        $commandConfig = [
+            'command_id' => 'new_command',
+            'aliases' => ['new', 'nc'],
+            'description' => 'New test command'
+        ];
+
+        $mockTelegramCommand = Mockery::mock(TelegramCommand::class);
+        $mockTelegramCommand->shouldReceive('getId')->andReturn('new_command');
+        $mockTelegramCommand->shouldReceive('getAliases')->andReturn(['new', 'nc']);
+
+        // Mock configRepo adding command
+        $this->mockConfigRepo
+            ->shouldReceive('addCommand')
+            ->once()
+            ->with($commandConfig)
+            ->andReturn($mockTelegramCommand);
+
+        // Mock registry reload
+        $this->mockRegistry
+            ->shouldReceive('reloadCommands')
+            ->once();
+
+        // Mock cache clear
+        $this->mockCache
+            ->shouldReceive('clear')
+            ->once();
+
+        $result = $this->unifiedCommandSystem->addCommand($commandConfig);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertEquals('command_added', $result->getType());
+        $this->assertEquals('new_command', $result->getData()['command_id']);
+    }
+
+    /**
+     * Test updateCommand successfully
+     */
+    public function test_update_command_successfully(): void
+    {
+        $commandId = 'existing_command';
+        $commandConfig = [
+            'description' => 'Updated description'
+        ];
+
+        // Mock configRepo updating command
+        $this->mockConfigRepo
+            ->shouldReceive('updateCommand')
+            ->once()
+            ->with($commandId, $commandConfig)
+            ->andReturn(true);
+
+        // Mock registry reload
+        $this->mockRegistry
+            ->shouldReceive('reloadCommands')
+            ->once();
+
+        // Mock cache clearByPattern
+        $this->mockCache
+            ->shouldReceive('clearByPattern')
+            ->once()
+            ->with($commandId);
+
+        $result = $this->unifiedCommandSystem->updateCommand($commandId, $commandConfig);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertEquals('command_updated', $result->getType());
+        $this->assertEquals($commandId, $result->getData()['command_id']);
+    }
+
+    /**
+     * Test removeCommand successfully
+     */
+    public function test_remove_command_successfully(): void
+    {
+        $commandId = 'command_to_remove';
+
+        // Mock configRepo removing command
+        $this->mockConfigRepo
+            ->shouldReceive('removeCommand')
+            ->once()
+            ->with($commandId)
+            ->andReturn(true);
+
+        // Mock registry reload
+        $this->mockRegistry
+            ->shouldReceive('reloadCommands')
+            ->once();
+
+        // Mock cache clearByPattern
+        $this->mockCache
+            ->shouldReceive('clearByPattern')
+            ->once()
+            ->with($commandId);
+
+        $result = $this->unifiedCommandSystem->removeCommand($commandId);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertEquals('command_removed', $result->getType());
+        $this->assertEquals($commandId, $result->getData()['command_id']);
+    }
+
+    /**
+     * Test getCommandStats successfully
+     */
+    public function test_get_command_stats_successfully(): void
+    {
+        $cacheStats = ['hits' => 100, 'misses' => 50, 'hit_rate' => 0.67];
+        $learningStats = ['total_patterns' => 25, 'avg_confidence' => 0.85];
+        $commandStats = ['total' => 15, 'active' => 12, 'inactive' => 3];
+
+        // Mock cache stats
+        $this->mockCache
+            ->shouldReceive('getStats')
+            ->once()
+            ->andReturn($cacheStats);
+
+        // Mock learning stats
+        $this->mockLearning
+            ->shouldReceive('getLearningStats')
+            ->once()
+            ->andReturn($learningStats);
+
+        // Mock configRepo stats
+        $this->mockConfigRepo
+            ->shouldReceive('getCommandsStats')
+            ->once()
+            ->andReturn($commandStats);
+
+        $result = $this->unifiedCommandSystem->getCommandStats();
+
+        $this->assertArrayHasKey('cache', $result);
+        $this->assertArrayHasKey('learning', $result);
+        $this->assertArrayHasKey('commands', $result);
+        $this->assertArrayHasKey('total_processed', $result);
+        $this->assertArrayHasKey('cache_efficiency', $result);
+        $this->assertEquals(150, $result['total_processed']);
+        $this->assertEquals(0.67, $result['cache_efficiency']);
+    }
+
+    /**
+     * Test searchCommands successfully
+     */
+    public function test_search_commands_successfully(): void
+    {
+        $query = 'test';
+        $searchResults = ['command1', 'command2'];
+
+        // Mock registry searchCommands
+        $this->mockRegistry
+            ->shouldReceive('searchCommands')
+            ->once()
+            ->with($query)
+            ->andReturn($searchResults);
+
+        $result = $this->unifiedCommandSystem->searchCommands($query);
+
+        $this->assertEquals($searchResults, $result);
+    }
+
+    /**
+     * Test getCommandsByCategory successfully
+     */
+    public function test_get_commands_by_category_successfully(): void
+    {
+        $category = 'general';
+        $categoryCommands = ['command1', 'command2'];
+
+        // Mock registry getCommandsByCategory
+        $this->mockRegistry
+            ->shouldReceive('getCommandsByCategory')
+            ->once()
+            ->with($category)
+            ->andReturn($categoryCommands);
+
+        $result = $this->unifiedCommandSystem->getCommandsByCategory($category);
+
+        $this->assertEquals($categoryCommands, $result);
+    }
+
+    /**
+     * Test getCommandsByPermission successfully
+     */
+    public function test_get_commands_by_permission_successfully(): void
+    {
+        $userPermissions = ['user', 'admin'];
+        $permissionCommands = ['command1', 'command2'];
+
+        // Mock registry getCommandsByPermission
+        $this->mockRegistry
+            ->shouldReceive('getCommandsByPermission')
+            ->once()
+            ->with($userPermissions)
+            ->andReturn($permissionCommands);
+
+        $result = $this->unifiedCommandSystem->getCommandsByPermission($userPermissions);
+
+        $this->assertEquals($permissionCommands, $result);
+    }
+
+    /**
+     * Test CommandResult class methods
+     */
+    public function test_command_result_class_methods(): void
+    {
+        $commandResult = new \App\Services\Telegram\Commands\CommandResult(
+            success: true,
+            message: 'Test message',
+            data: ['test' => 'data'],
+            type: 'test_type',
+            commandMatch: $this->mockCommandMatch
+        );
+
+        $this->assertTrue($commandResult->isSuccess());
+        $this->assertEquals('Test message', $commandResult->message);
+        $this->assertEquals(['test' => 'data'], $commandResult->getData());
+        $this->assertEquals('test_type', $commandResult->getType());
+        $this->assertEquals($this->mockCommandMatch, $commandResult->getCommandMatch());
+
+        $arrayResult = $commandResult->toArray();
+        $this->assertArrayHasKey('success', $arrayResult);
+        $this->assertArrayHasKey('message', $arrayResult);
+        $this->assertArrayHasKey('type', $arrayResult);
+        $this->assertArrayHasKey('data', $arrayResult);
+        $this->assertArrayHasKey('command_match', $arrayResult);
+    }
+
+    /**
+     * Test CommandResult with null commandMatch
+     */
+    public function test_command_result_with_null_command_match(): void
+    {
+        $commandResult = new \App\Services\Telegram\Commands\CommandResult(
+            success: false,
+            message: 'Error message',
+            data: ['error' => 'test error'],
+            type: 'error',
+            commandMatch: null
+        );
+
+        $this->assertFalse($commandResult->isSuccess());
+        $this->assertNull($commandResult->getCommandMatch());
+
+        $arrayResult = $commandResult->toArray();
+        $this->assertNull($arrayResult['command_match']);
+    }
+}
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] `CommandMatch` implementado
+  - [ ] `CommandRegistry` implementado
+  - [ ] `UnifiedCommandSystem` implementado
+  - [ ] `CommandCache` implementado
+  - [ ] `CommandLearning` implementado
+  - [ ] `CommandConfigRepository` implementado
+  - [ ] `TelegramMenuBuilder` implementado
+  - [ ] Configuração `telegram-commands.php` criada
+  - [ ] Testes unitários implementados
+  - [ ] Integração com sistemas anteriores
+
+=== Comandos de Validação ===
+
+<code bash>
+# Executar testes
+php artisan test tests/Unit/UnifiedCommandSystemTest.php
+
+# Verificar configuração
+php artisan config:cache
+php artisan config:show telegram-commands
+
+# Testar sistema de comandos
+php artisan tinker
+# >>> $system = app(\App\Services\Telegram\Commands\UnifiedCommandSystem::class);
+# >>> $result = $system->processCommand('/start');
+# >>> $result->isSuccess();
+
+# Verificar cache de comandos
+# >>> $cache = app(\App\Services\Telegram\Commands\Cache\CommandCache::class);
+# >>> $cache->getStats();
+
+# Verificar aprendizado de comandos
+# >>> $learning = app(\App\Services\Telegram\Commands\Learning\CommandLearning::class);
+# >>> $learning->getLearningStats();
+
+# Verificar repositório de comandos
+# >>> $repo = app(\App\Services\Telegram\Commands\Repositories\CommandConfigRepository::class);
+# >>> $repo->getCommandsStats();
+
+# Verificar registro de comandos
+# >>> $registry = app(\App\Services\Telegram\Commands\CommandRegistry::class);
+# >>> $registry->getAllCommands();
+
+# Verificar menu builder
+# >>> $menuBuilder = app(\App\Services\Telegram\TelegramMenuBuilder::class);
+# >>> $menuBuilder->buildMainMenu(123456789);
+</code>
