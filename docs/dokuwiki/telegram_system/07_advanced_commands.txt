@@ -1,0 +1,959 @@
+[[:templates_ai:funcionalidades:laravel:telegram_bot_passos|{{wiki:user:undo_24.png}}]]
+
+====== Passo 07: Sistema de Comandos Avançados - Telegram Webhook ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Sistema de comandos avançados que implementa comandos complexos, menus interativos, gerenciamento de estado do usuário e integração com IA. Depende de todos os sistemas anteriores e estende o sistema de comandos básico.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar sistema comandos avancados telegram
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+  - **Todos os sistemas anteriores** implementados
+  - **Sistema de Comandos Básicos** implementado
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
+  - **Redis** para cache de estado
+  - **API de IA** (OpenAI, etc.)
+
+===== 📁 Arquivos do Módulo =====
+
+=== 🔧 Advanced Services ===
+
+  * **`app/Services/Telegram/Commands/Advanced/UserStateManager.php`**
+    - Gerenciamento de estado do usuário
+    - Sessões e contexto
+    - Navegação entre menus
+
+  * **`app/Services/Telegram/Commands/Advanced/InteractiveMenuService.php`**
+    - Menus interativos complexos
+    - Navegação hierárquica
+    - Teclados dinâmicos
+
+  * **`app/Services/Telegram/Commands/Advanced/AICommandService.php`**
+    - Integração com IA
+    - Comandos inteligentes
+    - Processamento de linguagem natural
+
+=== 🎯 Command Handlers ===
+
+  * **`app/Services/Telegram/Commands/Handlers/StartCommandHandler.php`**
+    - Comando /start avançado
+    - Onboarding de usuários
+    - Configuração inicial
+
+  * **`app/Services/Telegram/Commands/Handlers/HelpCommandHandler.php`**
+    - Sistema de ajuda contextual
+    - Comandos disponíveis
+    - Tutoriais interativos
+
+  * **`app/Services/Telegram/Commands/Handlers/SettingsCommandHandler.php`**
+    - Configurações do usuário
+    - Preferências
+    - Personalização
+
+=== 🧠 AI Integration ===
+
+  * **`app/Services/Telegram/Commands/AI/ChatAIHandler.php`**
+    - Chat com IA
+    - Processamento de contexto
+    - Respostas inteligentes
+
+===== 🔧 Implementação Passo a Passo =====
+
+=== Passo 1: Criar UserStateManager ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands\Advanced;
+
+use App\Contracts\LoggingServiceInterface;
+use Illuminate\Support\Facades\Cache;
+
+class UserStateManager
+{
+    private string $cachePrefix = 'telegram_user_state_';
+    private int $defaultTtl = 3600; // 1 hour
+
+    public function __construct(
+        private LoggingServiceInterface $loggingService
+    ) {}
+
+    /**
+     * Set user state
+     */
+    public function setUserState(int $userId, array $state): void
+    {
+        try {
+            $cacheKey = $this->getCacheKey($userId);
+            
+            Cache::put($cacheKey, $state, $this->defaultTtl);
+            
+            $this->loggingService->logTelegramEvent('user_state_updated', [
+                'user_id' => $userId,
+                'state_keys' => array_keys($state)
+            ], 'info');
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'set_user_state',
+                'user_id' => $userId
+            ]);
+        }
+    }
+
+    /**
+     * Get user state
+     */
+    public function getUserState(int $userId): array
+    {
+        try {
+            $cacheKey = $this->getCacheKey($userId);
+            return Cache::get($cacheKey, []);
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'get_user_state',
+                'user_id' => $userId
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Update specific state key
+     */
+    public function updateUserState(int $userId, string $key, mixed $value): void
+    {
+        try {
+            $state = $this->getUserState($userId);
+            $state[$key] = $value;
+            $this->setUserState($userId, $state);
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'update_user_state',
+                'user_id' => $userId,
+                'key' => $key
+            ]);
+        }
+    }
+
+    /**
+     * Get specific state value
+     */
+    public function getUserStateValue(int $userId, string $key, mixed $default = null): mixed
+    {
+        $state = $this->getUserState($userId);
+        return $state[$key] ?? $default;
+    }
+
+    /**
+     * Clear user state
+     */
+    public function clearUserState(int $userId): void
+    {
+        try {
+            $cacheKey = $this->getCacheKey($userId);
+            Cache::forget($cacheKey);
+            
+            $this->loggingService->logTelegramEvent('user_state_cleared', [
+                'user_id' => $userId
+            ], 'info');
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'clear_user_state',
+                'user_id' => $userId
+            ]);
+        }
+    }
+
+    /**
+     * Set user in menu
+     */
+    public function setUserInMenu(int $userId, string $menuName, array $menuData = []): void
+    {
+        $this->updateUserState($userId, 'current_menu', $menuName);
+        $this->updateUserState($userId, 'menu_data', $menuData);
+        $this->updateUserState($userId, 'menu_timestamp', now()->timestamp);
+    }
+
+    /**
+     * Get user current menu
+     */
+    public function getUserCurrentMenu(int $userId): ?string
+    {
+        return $this->getUserStateValue($userId, 'current_menu');
+    }
+
+    /**
+     * Clear user menu
+     */
+    public function clearUserMenu(int $userId): void
+    {
+        $this->updateUserState($userId, 'current_menu', null);
+        $this->updateUserState($userId, 'menu_data', []);
+    }
+
+    /**
+     * Set user context
+     */
+    public function setUserContext(int $userId, string $context, array $contextData = []): void
+    {
+        $this->updateUserState($userId, 'context', $context);
+        $this->updateUserState($userId, 'context_data', $contextData);
+    }
+
+    /**
+     * Get user context
+     */
+    public function getUserContext(int $userId): ?string
+    {
+        return $this->getUserStateValue($userId, 'context');
+    }
+
+    /**
+     * Clear user context
+     */
+    public function clearUserContext(int $userId): void
+    {
+        $this->updateUserState($userId, 'context', null);
+        $this->updateUserState($userId, 'context_data', []);
+    }
+
+    /**
+     * Get cache key for user
+     */
+    private function getCacheKey(int $userId): string
+    {
+        return $this->cachePrefix . $userId;
+    }
+
+    /**
+     * Get user statistics
+     */
+    public function getUserStats(int $userId): array
+    {
+        $state = $this->getUserState($userId);
+        
+        return [
+            'user_id' => $userId,
+            'current_menu' => $state['current_menu'] ?? null,
+            'context' => $state['context'] ?? null,
+            'has_menu_data' => !empty($state['menu_data']),
+            'has_context_data' => !empty($state['context_data']),
+            'state_size' => count($state),
+            'last_activity' => $state['last_activity'] ?? null
+        ];
+    }
+
+    /**
+     * Update last activity
+     */
+    public function updateLastActivity(int $userId): void
+    {
+        $this->updateUserState($userId, 'last_activity', now()->timestamp);
+    }
+}
+</code>
+
+=== Passo 2: Criar InteractiveMenuService ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands\Advanced;
+
+use App\Contracts\LoggingServiceInterface;
+use App\Services\Channels\TelegramChannel;
+use App\Services\Telegram\Commands\Advanced\UserStateManager;
+
+class InteractiveMenuService
+{
+    public function __construct(
+        private LoggingServiceInterface $loggingService,
+        private TelegramChannel $telegramChannel,
+        private UserStateManager $userStateManager
+    ) {}
+
+    /**
+     * Show main menu
+     */
+    public function showMainMenu(int $chatId, int $userId): array
+    {
+        try {
+            $keyboard = [
+                [
+                    ['text' => '🏠 Início', 'callback_data' => 'menu_main'],
+                    ['text' => '📋 Comandos', 'callback_data' => 'menu_commands']
+                ],
+                [
+                    ['text' => '⚙️ Configurações', 'callback_data' => 'menu_settings'],
+                    ['text' => '❓ Ajuda', 'callback_data' => 'menu_help']
+                ],
+                [
+                    ['text' => '🤖 Chat com IA', 'callback_data' => 'menu_ai_chat']
+                ]
+            ];
+
+            $message = "🤖 *Bem-vindo ao Rei do Óleo Bot!*\n\n";
+            $message .= "Escolha uma opção no menu abaixo:";
+
+            $this->userStateManager->setUserInMenu($userId, 'main');
+
+            return $this->telegramChannel->sendMessageWithKeyboard(
+                $message,
+                (string) $chatId,
+                $keyboard
+            );
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'show_main_menu',
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Show commands menu
+     */
+    public function showCommandsMenu(int $chatId, int $userId): array
+    {
+        try {
+            $keyboard = [
+                [
+                    ['text' => '📊 Relatórios', 'callback_data' => 'cmd_reports'],
+                    ['text' => '📦 Produtos', 'callback_data' => 'cmd_products']
+                ],
+                [
+                    ['text' => '👥 Clientes', 'callback_data' => 'cmd_clients'],
+                    ['text' => '💰 Vendas', 'callback_data' => 'cmd_sales']
+                ],
+                [
+                    ['text' => '🔍 Buscar', 'callback_data' => 'cmd_search'],
+                    ['text' => '📈 Estatísticas', 'callback_data' => 'cmd_stats']
+                ],
+                [
+                    ['text' => '⬅️ Voltar', 'callback_data' => 'menu_main']
+                ]
+            ];
+
+            $message = "📋 *Comandos Disponíveis*\n\n";
+            $message .= "Selecione uma categoria para ver os comandos disponíveis:";
+
+            $this->userStateManager->setUserInMenu($userId, 'commands');
+
+            return $this->telegramChannel->sendMessageWithKeyboard(
+                $message,
+                (string) $chatId,
+                $keyboard
+            );
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'show_commands_menu',
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Show settings menu
+     */
+    public function showSettingsMenu(int $chatId, int $userId): array
+    {
+        try {
+            $userStats = $this->userStateManager->getUserStats($userId);
+            
+            $keyboard = [
+                [
+                    ['text' => '🔔 Notificações', 'callback_data' => 'settings_notifications'],
+                    ['text' => '🌐 Idioma', 'callback_data' => 'settings_language']
+                ],
+                [
+                    ['text' => '📊 Relatórios', 'callback_data' => 'settings_reports'],
+                    ['text' => '🔐 Privacidade', 'callback_data' => 'settings_privacy']
+                ],
+                [
+                    ['text' => '⬅️ Voltar', 'callback_data' => 'menu_main']
+                ]
+            ];
+
+            $message = "⚙️ *Configurações*\n\n";
+            $message .= "Gerencie suas preferências e configurações:\n\n";
+            $message .= "📊 *Status:* Ativo\n";
+            $message .= "🕒 *Última atividade:* " . ($userStats['last_activity'] ? date('d/m/Y H:i', $userStats['last_activity']) : 'Nunca');
+
+            $this->userStateManager->setUserInMenu($userId, 'settings');
+
+            return $this->telegramChannel->sendMessageWithKeyboard(
+                $message,
+                (string) $chatId,
+                $keyboard
+            );
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'show_settings_menu',
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Show help menu
+     */
+    public function showHelpMenu(int $chatId, int $userId): array
+    {
+        try {
+            $keyboard = [
+                [
+                    ['text' => '📖 Tutoriais', 'callback_data' => 'help_tutorials'],
+                    ['text' => '❓ FAQ', 'callback_data' => 'help_faq']
+                ],
+                [
+                    ['text' => '📞 Suporte', 'callback_data' => 'help_support'],
+                    ['text' => '🐛 Reportar Bug', 'callback_data' => 'help_bug']
+                ],
+                [
+                    ['text' => '⬅️ Voltar', 'callback_data' => 'menu_main']
+                ]
+            ];
+
+            $message = "❓ *Central de Ajuda*\n\n";
+            $message .= "Encontre ajuda e suporte para usar o bot:\n\n";
+            $message .= "• 📖 *Tutoriais:* Guias passo a passo\n";
+            $message .= "• ❓ *FAQ:* Perguntas frequentes\n";
+            $message .= "• 📞 *Suporte:* Contato direto\n";
+            $message .= "• 🐛 *Bugs:* Reportar problemas";
+
+            $this->userStateManager->setUserInMenu($userId, 'help');
+
+            return $this->telegramChannel->sendMessageWithKeyboard(
+                $message,
+                (string) $chatId,
+                $keyboard
+            );
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'show_help_menu',
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Handle callback query for menus
+     */
+    public function handleMenuCallback(string $callbackData, int $chatId, int $userId): array
+    {
+        try {
+            $this->userStateManager->updateLastActivity($userId);
+
+            return match (true) {
+                str_starts_with($callbackData, 'menu_') => $this->handleMenuNavigation($callbackData, $chatId, $userId),
+                str_starts_with($callbackData, 'cmd_') => $this->handleCommandCallback($callbackData, $chatId, $userId),
+                str_starts_with($callbackData, 'settings_') => $this->handleSettingsCallback($callbackData, $chatId, $userId),
+                str_starts_with($callbackData, 'help_') => $this->handleHelpCallback($callbackData, $chatId, $userId),
+                default => $this->handleUnknownCallback($callbackData, $chatId, $userId)
+            };
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'handle_menu_callback',
+                'callback_data' => $callbackData,
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Handle menu navigation
+     */
+    private function handleMenuNavigation(string $callbackData, int $chatId, int $userId): array
+    {
+        return match ($callbackData) {
+            'menu_main' => $this->showMainMenu($chatId, $userId),
+            'menu_commands' => $this->showCommandsMenu($chatId, $userId),
+            'menu_settings' => $this->showSettingsMenu($chatId, $userId),
+            'menu_help' => $this->showHelpMenu($chatId, $userId),
+            'menu_ai_chat' => $this->showAIChatMenu($chatId, $userId),
+            default => $this->showMainMenu($chatId, $userId)
+        };
+    }
+
+    /**
+     * Show AI chat menu
+     */
+    private function showAIChatMenu(int $chatId, int $userId): array
+    {
+        try {
+            $keyboard = [
+                [
+                    ['text' => '💬 Nova Conversa', 'callback_data' => 'ai_new_chat'],
+                    ['text' => '📚 Histórico', 'callback_data' => 'ai_history']
+                ],
+                [
+                    ['text' => '⚙️ Configurar IA', 'callback_data' => 'ai_settings'],
+                    ['text' => '📊 Estatísticas', 'callback_data' => 'ai_stats']
+                ],
+                [
+                    ['text' => '⬅️ Voltar', 'callback_data' => 'menu_main']
+                ]
+            ];
+
+            $message = "🤖 *Chat com IA*\n\n";
+            $message .= "Inicie uma conversa inteligente com nossa IA:\n\n";
+            $message .= "• 💬 *Nova Conversa:* Começar do zero\n";
+            $message .= "• 📚 *Histórico:* Ver conversas anteriores\n";
+            $message .= "• ⚙️ *Configurar:* Personalizar IA\n";
+            $message .= "• 📊 *Estatísticas:* Suas interações";
+
+            $this->userStateManager->setUserInMenu($userId, 'ai_chat');
+
+            return $this->telegramChannel->sendMessageWithKeyboard(
+                $message,
+                (string) $chatId,
+                $keyboard
+            );
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'show_ai_chat_menu',
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Handle command callbacks
+     */
+    private function handleCommandCallback(string $callbackData, int $chatId, int $userId): array
+    {
+        // Implementation for command callbacks
+        return [
+            'success' => true,
+            'message' => 'Comando em desenvolvimento'
+        ];
+    }
+
+    /**
+     * Handle settings callbacks
+     */
+    private function handleSettingsCallback(string $callbackData, int $chatId, int $userId): array
+    {
+        // Implementation for settings callbacks
+        return [
+            'success' => true,
+            'message' => 'Configuração em desenvolvimento'
+        ];
+    }
+
+    /**
+     * Handle help callbacks
+     */
+    private function handleHelpCallback(string $callbackData, int $chatId, int $userId): array
+    {
+        // Implementation for help callbacks
+        return [
+            'success' => true,
+            'message' => 'Ajuda em desenvolvimento'
+        ];
+    }
+
+    /**
+     * Handle unknown callbacks
+     */
+    private function handleUnknownCallback(string $callbackData, int $chatId, int $userId): array
+    {
+        $this->loggingService->logTelegramEvent('unknown_callback_data', [
+            'callback_data' => $callbackData,
+            'chat_id' => $chatId,
+            'user_id' => $userId
+        ], 'warning');
+
+        return $this->showMainMenu($chatId, $userId);
+    }
+}
+</code>
+
+=== Passo 3: Criar AICommandService ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram\Commands\Advanced;
+
+use App\Contracts\LoggingServiceInterface;
+use App\Services\Channels\TelegramChannel;
+use App\Services\Telegram\Commands\Advanced\UserStateManager;
+use Illuminate\Support\Facades\Http;
+
+class AICommandService
+{
+    public function __construct(
+        private LoggingServiceInterface $loggingService,
+        private TelegramChannel $telegramChannel,
+        private UserStateManager $userStateManager
+    ) {}
+
+    /**
+     * Process AI chat message
+     */
+    public function processAIMessage(string $message, int $chatId, int $userId): array
+    {
+        try {
+            $this->loggingService->logTelegramEvent('ai_message_processing_started', [
+                'chat_id' => $chatId,
+                'user_id' => $userId,
+                'message_length' => strlen($message)
+            ], 'info');
+
+            // Get conversation context
+            $context = $this->getConversationContext($userId);
+            
+            // Send typing indicator
+            $this->telegramChannel->sendTypingIndicator((string) $chatId);
+
+            // Process with AI
+            $aiResponse = $this->getAIResponse($message, $context, $userId);
+
+            if (!$aiResponse) {
+                return [
+                    'success' => false,
+                    'message' => 'Desculpe, não consegui processar sua mensagem no momento. Tente novamente.'
+                ];
+            }
+
+            // Save conversation to context
+            $this->saveConversationContext($userId, $message, $aiResponse);
+
+            // Send response
+            $result = $this->telegramChannel->sendTextMessage($aiResponse, (string) $chatId);
+
+            $this->loggingService->logTelegramEvent('ai_message_processed_successfully', [
+                'chat_id' => $chatId,
+                'user_id' => $userId,
+                'response_length' => strlen($aiResponse)
+            ], 'info');
+
+            return $result;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'process_ai_message',
+                'message' => $message,
+                'chat_id' => $chatId,
+                'user_id' => $userId
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Ocorreu um erro ao processar sua mensagem. Tente novamente.'
+            ];
+        }
+    }
+
+    /**
+     * Get AI response from OpenAI
+     */
+    private function getAIResponse(string $message, array $context, int $userId): ?string
+    {
+        try {
+            $apiKey = config('openai.api_key');
+            
+            if (!$apiKey) {
+                $this->loggingService->logTelegramEvent('openai_api_key_missing', [], 'error');
+                return null;
+            }
+
+            // Build conversation history
+            $messages = [
+                [
+                    'role' => 'system',
+                    'content' => $this->getSystemPrompt()
+                ]
+            ];
+
+            // Add context if available
+            if (!empty($context)) {
+                foreach ($context as $conversation) {
+                    $messages[] = [
+                        'role' => 'user',
+                        'content' => $conversation['user_message']
+                    ];
+                    $messages[] = [
+                        'role' => 'assistant',
+                        'content' => $conversation['ai_response']
+                    ];
+                }
+            }
+
+            // Add current message
+            $messages[] = [
+                'role' => 'user',
+                'content' => $message
+            ];
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json'
+            ])->post('https://api.openai.com/v1/chat/completions', [
+                'model' => config('openai.model', 'gpt-3.5-turbo'),
+                'messages' => $messages,
+                'max_tokens' => 500,
+                'temperature' => 0.7
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['choices'][0]['message']['content'])) {
+                    return trim($data['choices'][0]['message']['content']);
+                }
+            }
+
+            $this->loggingService->logTelegramEvent('openai_api_error', [
+                'status' => $response->status(),
+                'error' => $response->body()
+            ], 'error');
+
+            return null;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'get_ai_response'
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get system prompt for AI
+     */
+    private function getSystemPrompt(): string
+    {
+        return "Você é um assistente virtual do sistema 'Rei do Óleo', especializado em ajudar com questões relacionadas a óleos automotivos e industriais. 
+
+Você deve:
+- Ser prestativo e educado
+- Responder em português brasileiro
+- Fornecer informações precisas sobre óleos
+- Sugerir produtos quando apropriado
+- Ser conciso mas informativo
+- Manter um tom profissional mas amigável
+
+Se não souber algo específico, admita e sugira onde o usuário pode encontrar mais informações.";
+    }
+
+    /**
+     * Get conversation context
+     */
+    private function getConversationContext(int $userId): array
+    {
+        return $this->userStateManager->getUserStateValue($userId, 'ai_conversation_context', []);
+    }
+
+    /**
+     * Save conversation context
+     */
+    private function saveConversationContext(int $userId, string $userMessage, string $aiResponse): void
+    {
+        $context = $this->getConversationContext($userId);
+        
+        // Add new conversation
+        $context[] = [
+            'user_message' => $userMessage,
+            'ai_response' => $aiResponse,
+            'timestamp' => now()->timestamp
+        ];
+
+        // Keep only last 10 conversations to avoid context overflow
+        if (count($context) > 10) {
+            $context = array_slice($context, -10);
+        }
+
+        $this->userStateManager->updateUserState($userId, 'ai_conversation_context', $context);
+    }
+
+    /**
+     * Clear AI conversation context
+     */
+    public function clearAIContext(int $userId): void
+    {
+        $this->userStateManager->updateUserState($userId, 'ai_conversation_context', []);
+        
+        $this->loggingService->logTelegramEvent('ai_context_cleared', [
+            'user_id' => $userId
+        ], 'info');
+    }
+
+    /**
+     * Get AI usage statistics
+     */
+    public function getAIStats(int $userId): array
+    {
+        $context = $this->getConversationContext($userId);
+        
+        return [
+            'user_id' => $userId,
+            'total_conversations' => count($context),
+            'last_conversation' => !empty($context) ? end($context)['timestamp'] : null,
+            'context_size' => count($context)
+        ];
+    }
+}
+</code>
+
+=== Passo 4: Registrar Services ===
+
+<code php>
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App\Services\Telegram\Commands\Advanced\UserStateManager;
+use App\Services\Telegram\Commands\Advanced\InteractiveMenuService;
+use App\Services\Telegram\Commands\Advanced\AICommandService;
+
+class TelegramAdvancedCommandsServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton(UserStateManager::class);
+        $this->app->singleton(InteractiveMenuService::class);
+        $this->app->singleton(AICommandService::class);
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}
+</code>
+
+=== Passo 5: Registrar Provider ===
+
+<code php>
+// config/app.php
+'providers' => [
+    // ... outros providers
+    App\Providers\TelegramAdvancedCommandsServiceProvider::class,
+],
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] Service `UserStateManager` criado
+  - [ ] Service `InteractiveMenuService` criado
+  - [ ] Service `AICommandService` criado
+  - [ ] Provider `TelegramAdvancedCommandsServiceProvider` registrado
+  - [ ] Sistema de estado do usuário implementado
+  - [ ] Menus interativos implementados
+  - [ ] Integração com IA implementada
+  - [ ] Cache de conversas implementado
+
+=== Comandos de Validação ===
+
+<code bash>
+# Verificar se os services foram criados
+ls -la app/Services/Telegram/Commands/Advanced/UserStateManager.php
+ls -la app/Services/Telegram/Commands/Advanced/InteractiveMenuService.php
+ls -la app/Services/Telegram/Commands/Advanced/AICommandService.php
+
+# Verificar provider
+ls -la app/Providers/TelegramAdvancedCommandsServiceProvider.php
+
+# Testar services
+php artisan tinker
+# >>> $userState = app(\App\Services\Telegram\Commands\Advanced\UserStateManager::class);
+# >>> $userState->setUserState(123456, ['test' => 'data']);
+# >>> $userState->getUserState(123456);
+
+# >>> $menuService = app(\App\Services\Telegram\Commands\Advanced\InteractiveMenuService::class);
+# >>> $menuService->showMainMenu(123456, 789012);
+
+# >>> $aiService = app(\App\Services\Telegram\Commands\Advanced\AICommandService::class);
+# >>> $aiService->processAIMessage('Olá, como você está?', 123456, 789012);
+</code>

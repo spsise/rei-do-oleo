@@ -1,0 +1,781 @@
+[[:templates_ai:funcionalidades:laravel:telegram_bot_passos|{{wiki:user:undo_24.png}}]]
+
+====== Passo 06: Sistema de Speech-to-Text - Telegram Webhook ======
+
+===== ⚠️ INSTRUÇÕES IMPORTANTES ANTES DE COMEÇAR =====
+
+**Para evitar erros durante a implementação, siga EXATAMENTE estas etapas:**
+
+✅ **1. Ler o template COMPLETO da página**
+  * Leia toda a documentação antes de começar
+  * Entenda o fluxo completo de implementação
+  * Identifique dependências entre os passos
+
+✅ **2. Identificar TODOS os arquivos mencionados**
+  * Liste todos os arquivos que serão criados/modificados
+  * Verifique se já existem no projeto
+  * Anote o caminho exato de cada arquivo
+
+✅ **3. Verificar a estrutura EXATA de cada arquivo**
+  * Confirme namespaces e imports corretos
+  * Verifique se dependências estão instaladas
+  * Valide sintaxe PHP antes de implementar
+
+✅ **4. Implementar linha por linha conforme template**
+  * Copie o código EXATAMENTE como mostrado
+  * Não modifique namespaces ou imports
+  * Execute comandos na ordem especificada
+
+**🚨 ATENÇÃO:**
+  * **NÃO pule etapas** - cada passo tem dependências
+  * **NÃO modifique** o código fornecido sem entender as consequências
+  * **SEMPRE teste** após cada implementação
+  * **MANTENHA backup** antes de grandes alterações
+
+===== 📋 Visão Geral =====
+
+Sistema de conversão de voz para texto que processa mensagens de voz do Telegram e as converte em texto para processamento posterior. Integra com APIs de speech-to-text e gerencia cache de arquivos de áudio.
+
+===== 🚀 Comando de Implementação =====
+
+<code bash>
+implementar sistema speech to text telegram
+</code>
+
+===== ⚙️ Pré-requisitos =====
+
+  - **Sistema de Logging** implementado
+  - **Sistema de Rastreamento de Fluxo** implementado
+  - **Sistema de Canais de Notificação** implementado
+  - **Sistema de Validação e Middleware** implementado
+  - **Services Core do Telegram** implementados
+  - **Laravel 12** instalado
+  - **PHP 8.2+** configurado
+  - **FFmpeg** para processamento de áudio
+  - **API de Speech-to-Text** (OpenAI Whisper, Google Speech, etc.)
+
+===== 📁 Arquivos do Módulo =====
+
+=== 🔧 Services ===
+
+  * **`app/Services/SpeechToTextService.php`**
+    - Conversão principal de voz para texto
+    - Integração com APIs externas
+    - Cache de arquivos processados
+
+  * **`app/Services/Telegram/TelegramFileService.php`**
+    - Download de arquivos do Telegram
+    - Gerenciamento de arquivos temporários
+    - Validação de formatos de áudio
+
+=== ⚙️ Configurações ===
+
+  * **`config/speech.php`**
+    - Configuração de APIs de speech-to-text
+    - Configurações de cache e storage
+    - Configurações de FFmpeg
+
+===== 🔧 Implementação Passo a Passo =====
+
+=== Passo 1: Criar SpeechToTextService ===
+
+<code php>
+<?php
+
+namespace App\Services;
+
+use App\Contracts\LoggingServiceInterface;
+use App\Services\Telegram\TelegramFileService;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
+
+class SpeechToTextService
+{
+    private string $storagePath;
+    private int $maxFileSize;
+    private int $maxDuration;
+
+    public function __construct(
+        private LoggingServiceInterface $loggingService,
+        private TelegramFileService $telegramFileService
+    ) {
+        $this->storagePath = config('speech.storage_path', 'speech-temp');
+        $this->maxFileSize = config('speech.max_file_size', 20 * 1024 * 1024); // 20MB
+        $this->maxDuration = config('speech.max_duration', 300); // 5 minutes
+    }
+
+    /**
+     * Convert voice file from Telegram to text
+     */
+    public function convertVoiceToText(string $fileId): ?string
+    {
+        try {
+            $this->loggingService->logTelegramEvent('speech_conversion_started', [
+                'file_id' => $fileId
+            ], 'info');
+
+            // Download file from Telegram
+            $filePath = $this->telegramFileService->downloadFile($fileId);
+            
+            if (!$filePath) {
+                $this->loggingService->logTelegramEvent('speech_file_download_failed', [
+                    'file_id' => $fileId
+                ], 'error');
+                return null;
+            }
+
+            // Validate file
+            if (!$this->validateAudioFile($filePath)) {
+                $this->loggingService->logTelegramEvent('speech_file_validation_failed', [
+                    'file_id' => $fileId,
+                    'file_path' => $filePath
+                ], 'error');
+                return null;
+            }
+
+            // Convert to text using configured provider
+            $text = $this->performSpeechToTextConversion($filePath);
+
+            // Clean up temporary file
+            $this->cleanupTempFile($filePath);
+
+            if ($text) {
+                $this->loggingService->logTelegramEvent('speech_conversion_successful', [
+                    'file_id' => $fileId,
+                    'text_length' => strlen($text)
+                ], 'info');
+            } else {
+                $this->loggingService->logTelegramEvent('speech_conversion_failed', [
+                    'file_id' => $fileId
+                ], 'error');
+            }
+
+            return $text;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'convert_voice_to_text',
+                'file_id' => $fileId
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Perform speech-to-text conversion
+     */
+    private function performSpeechToTextConversion(string $filePath): ?string
+    {
+        $provider = config('speech.provider', 'openai');
+
+        return match ($provider) {
+            'openai' => $this->convertWithOpenAI($filePath),
+            'google' => $this->convertWithGoogle($filePath),
+            'azure' => $this->convertWithAzure($filePath),
+            default => $this->convertWithOpenAI($filePath)
+        };
+    }
+
+    /**
+     * Convert using OpenAI Whisper API
+     */
+    private function convertWithOpenAI(string $filePath): ?string
+    {
+        try {
+            $apiKey = config('speech.openai.api_key');
+            
+            if (!$apiKey) {
+                $this->loggingService->logTelegramEvent('openai_api_key_missing', [], 'error');
+                return null;
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+            ])->attach('file', file_get_contents($filePath), basename($filePath))
+            ->post('https://api.openai.com/v1/audio/transcriptions', [
+                'model' => config('speech.openai.model', 'whisper-1'),
+                'language' => config('speech.openai.language', 'pt'),
+                'response_format' => 'text'
+            ]);
+
+            if ($response->successful()) {
+                return trim($response->body());
+            }
+
+            $this->loggingService->logTelegramEvent('openai_api_error', [
+                'status' => $response->status(),
+                'error' => $response->body()
+            ], 'error');
+
+            return null;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'openai_speech_conversion'
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Convert using Google Speech API
+     */
+    private function convertWithGoogle(string $filePath): ?string
+    {
+        try {
+            $apiKey = config('speech.google.api_key');
+            
+            if (!$apiKey) {
+                $this->loggingService->logTelegramEvent('google_api_key_missing', [], 'error');
+                return null;
+            }
+
+            // Convert to base64
+            $audioContent = base64_encode(file_get_contents($filePath));
+
+            $response = Http::post("https://speech.googleapis.com/v1/speech:recognize?key={$apiKey}", [
+                'config' => [
+                    'encoding' => 'OGG_OPUS',
+                    'sampleRateHertz' => 48000,
+                    'languageCode' => config('speech.google.language', 'pt-BR')
+                ],
+                'audio' => [
+                    'content' => $audioContent
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['results'][0]['alternatives'][0]['transcript'])) {
+                    return $data['results'][0]['alternatives'][0]['transcript'];
+                }
+            }
+
+            $this->loggingService->logTelegramEvent('google_api_error', [
+                'status' => $response->status(),
+                'error' => $response->body()
+            ], 'error');
+
+            return null;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'google_speech_conversion'
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Convert using Azure Speech Services
+     */
+    private function convertWithAzure(string $filePath): ?string
+    {
+        try {
+            $apiKey = config('speech.azure.api_key');
+            $region = config('speech.azure.region');
+            
+            if (!$apiKey || !$region) {
+                $this->loggingService->logTelegramEvent('azure_api_config_missing', [], 'error');
+                return null;
+            }
+
+            $response = Http::withHeaders([
+                'Ocp-Apim-Subscription-Key' => $apiKey,
+                'Content-Type' => 'audio/ogg; codecs=opus'
+            ])->post("https://{$region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1", [
+                'language' => config('speech.azure.language', 'pt-BR'),
+                'format' => 'detailed'
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['DisplayText'])) {
+                    return $data['DisplayText'];
+                }
+            }
+
+            $this->loggingService->logTelegramEvent('azure_api_error', [
+                'status' => $response->status(),
+                'error' => $response->body()
+            ], 'error');
+
+            return null;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'azure_speech_conversion'
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Validate audio file
+     */
+    private function validateAudioFile(string $filePath): bool
+    {
+        try {
+            // Check if file exists
+            if (!file_exists($filePath)) {
+                return false;
+            }
+
+            // Check file size
+            $fileSize = filesize($filePath);
+            if ($fileSize > $this->maxFileSize) {
+                $this->loggingService->logTelegramEvent('audio_file_too_large', [
+                    'file_size' => $fileSize,
+                    'max_size' => $this->maxFileSize
+                ], 'warning');
+                return false;
+            }
+
+            // Check file duration using FFmpeg
+            $duration = $this->getAudioDuration($filePath);
+            if ($duration > $this->maxDuration) {
+                $this->loggingService->logTelegramEvent('audio_file_too_long', [
+                    'duration' => $duration,
+                    'max_duration' => $this->maxDuration
+                ], 'warning');
+                return false;
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'validate_audio_file',
+                'file_path' => $filePath
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Get audio file duration using FFmpeg
+     */
+    private function getAudioDuration(string $filePath): int
+    {
+        try {
+            $command = sprintf(
+                'ffprobe -v quiet -show_entries format=duration -of csv="p=0" %s',
+                escapeshellarg($filePath)
+            );
+
+            $output = shell_exec($command);
+            
+            return (int) round((float) $output);
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'get_audio_duration',
+                'file_path' => $filePath
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Clean up temporary file
+     */
+    private function cleanupTempFile(string $filePath): void
+    {
+        try {
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'cleanup_temp_file',
+                'file_path' => $filePath
+            ]);
+        }
+    }
+
+    /**
+     * Test speech-to-text service
+     */
+    public function testService(): array
+    {
+        try {
+            $provider = config('speech.provider', 'openai');
+            $apiKey = config("speech.{$provider}.api_key");
+
+            return [
+                'success' => true,
+                'provider' => $provider,
+                'api_key_configured' => !empty($apiKey),
+                'storage_path' => $this->storagePath,
+                'max_file_size' => $this->maxFileSize,
+                'max_duration' => $this->maxDuration
+            ];
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'test_speech_service'
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+}
+</code>
+
+=== Passo 2: Criar TelegramFileService ===
+
+<code php>
+<?php
+
+namespace App\Services\Telegram;
+
+use App\Contracts\LoggingServiceInterface;
+use App\Services\Channels\TelegramChannel;
+use Illuminate\Support\Facades\Storage;
+
+class TelegramFileService
+{
+    private string $storagePath;
+
+    public function __construct(
+        private LoggingServiceInterface $loggingService,
+        private TelegramChannel $telegramChannel
+    ) {
+        $this->storagePath = config('speech.storage_path', 'speech-temp');
+    }
+
+    /**
+     * Download file from Telegram
+     */
+    public function downloadFile(string $fileId): ?string
+    {
+        try {
+            $this->loggingService->logTelegramEvent('telegram_file_download_started', [
+                'file_id' => $fileId
+            ], 'info');
+
+            // Get file info from Telegram
+            $fileInfo = $this->telegramChannel->getFile($fileId);
+            
+            if (!$fileInfo['success']) {
+                $this->loggingService->logTelegramEvent('telegram_file_info_failed', [
+                    'file_id' => $fileId,
+                    'error' => $fileInfo['error']
+                ], 'error');
+                return null;
+            }
+
+            $filePath = $fileInfo['file_path'];
+            $botToken = config('services.telegram.bot_token');
+            
+            // Download file from Telegram servers
+            $fileUrl = "https://api.telegram.org/file/bot{$botToken}/{$filePath}";
+            
+            $response = \Illuminate\Support\Facades\Http::get($fileUrl);
+            
+            if (!$response->successful()) {
+                $this->loggingService->logTelegramEvent('telegram_file_download_failed', [
+                    'file_id' => $fileId,
+                    'file_url' => $fileUrl,
+                    'status' => $response->status()
+                ], 'error');
+                return null;
+            }
+
+            // Save to temporary file
+            $tempFileName = "telegram_{$fileId}_" . time() . ".ogg";
+            $tempFilePath = storage_path("app/{$this->storagePath}/{$tempFileName}");
+            
+            // Ensure directory exists
+            $directory = dirname($tempFilePath);
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            file_put_contents($tempFilePath, $response->body());
+
+            $this->loggingService->logTelegramEvent('telegram_file_download_successful', [
+                'file_id' => $fileId,
+                'temp_file' => $tempFilePath,
+                'file_size' => filesize($tempFilePath)
+            ], 'info');
+
+            return $tempFilePath;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'download_telegram_file',
+                'file_id' => $fileId
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get file information from Telegram
+     */
+    public function getFileInfo(string $fileId): array
+    {
+        try {
+            return $this->telegramChannel->getFile($fileId);
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'get_telegram_file_info',
+                'file_id' => $fileId
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Clean up old temporary files
+     */
+    public function cleanupOldFiles(int $maxAge = 3600): int
+    {
+        try {
+            $tempDir = storage_path("app/{$this->storagePath}");
+            
+            if (!is_dir($tempDir)) {
+                return 0;
+            }
+
+            $files = glob($tempDir . '/telegram_*');
+            $cleanedCount = 0;
+            $cutoffTime = time() - $maxAge;
+
+            foreach ($files as $file) {
+                if (filemtime($file) < $cutoffTime) {
+                    unlink($file);
+                    $cleanedCount++;
+                }
+            }
+
+            if ($cleanedCount > 0) {
+                $this->loggingService->logTelegramEvent('telegram_temp_files_cleaned', [
+                    'cleaned_count' => $cleanedCount,
+                    'max_age_seconds' => $maxAge
+                ], 'info');
+            }
+
+            return $cleanedCount;
+
+        } catch (\Exception $e) {
+            $this->loggingService->logException($e, [
+                'operation' => 'cleanup_telegram_temp_files'
+            ]);
+            return 0;
+        }
+    }
+}
+</code>
+
+=== Passo 3: Criar Configuração ===
+
+<code php>
+<?php
+
+// config/speech.php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Speech-to-Text Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for speech-to-text services used to convert voice messages
+    | from Telegram to text for processing.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Choose the speech-to-text provider to use. Available options:
+    | - openai: OpenAI Whisper API
+    | - google: Google Speech-to-Text API
+    | - azure: Azure Speech Services
+    |
+    */
+
+    'provider' => env('SPEECH_PROVIDER', 'openai'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure temporary file storage for audio processing.
+    |
+    */
+
+    'storage_path' => env('SPEECH_STORAGE_PATH', 'speech-temp'),
+    'max_file_size' => env('SPEECH_MAX_FILE_SIZE', 20971520), // 20MB in bytes
+    'max_duration' => env('SPEECH_MAX_DURATION', 300), // 5 minutes in seconds
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for OpenAI Whisper API.
+    |
+    */
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_WHISPER_MODEL', 'whisper-1'),
+        'language' => env('OPENAI_WHISPER_LANGUAGE', 'pt'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Speech Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Google Speech-to-Text API.
+    |
+    */
+
+    'google' => [
+        'api_key' => env('GOOGLE_SPEECH_API_KEY'),
+        'language' => env('GOOGLE_SPEECH_LANGUAGE', 'pt-BR'),
+        'encoding' => env('GOOGLE_SPEECH_ENCODING', 'OGG_OPUS'),
+        'sample_rate' => env('GOOGLE_SPEECH_SAMPLE_RATE', 48000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Azure Speech Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Azure Speech Services.
+    |
+    */
+
+    'azure' => [
+        'api_key' => env('AZURE_SPEECH_API_KEY'),
+        'region' => env('AZURE_SPEECH_REGION'),
+        'language' => env('AZURE_SPEECH_LANGUAGE', 'pt-BR'),
+        'endpoint' => env('AZURE_SPEECH_ENDPOINT'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure caching for processed audio files to avoid reprocessing.
+    |
+    */
+
+    'cache' => [
+        'enabled' => env('SPEECH_CACHE_ENABLED', true),
+        'ttl' => env('SPEECH_CACHE_TTL', 3600), // 1 hour
+        'key_prefix' => env('SPEECH_CACHE_PREFIX', 'speech_conversion_'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cleanup Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configure automatic cleanup of temporary files.
+    |
+    */
+
+    'cleanup' => [
+        'enabled' => env('SPEECH_CLEANUP_ENABLED', true),
+        'max_age' => env('SPEECH_CLEANUP_MAX_AGE', 3600), // 1 hour
+        'schedule' => env('SPEECH_CLEANUP_SCHEDULE', '0 */6 * * *'), // Every 6 hours
+    ],
+];
+</code>
+
+=== Passo 4: Registrar Services ===
+
+<code php>
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App\Services\SpeechToTextService;
+use App\Services\Telegram\TelegramFileService;
+
+class SpeechToTextServiceProvider extends ServiceProvider
+{
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton(SpeechToTextService::class);
+        $this->app->singleton(TelegramFileService::class);
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}
+</code>
+
+=== Passo 5: Registrar Provider ===
+
+<code php>
+// config/app.php
+'providers' => [
+    // ... outros providers
+    App\Providers\SpeechToTextServiceProvider::class,
+],
+</code>
+
+===== ✅ Validação do Módulo =====
+
+=== Checklist de Implementação ===
+
+  - [ ] Service `SpeechToTextService` criado
+  - [ ] Service `TelegramFileService` criado
+  - [ ] Configuração `speech.php` criada
+  - [ ] Provider `SpeechToTextServiceProvider` registrado
+  - [ ] Integração com APIs de speech-to-text
+  - [ ] Sistema de cache implementado
+  - [ ] Sistema de limpeza automática
+
+=== Comandos de Validação ===
+
+<code bash>
+# Verificar se os services foram criados
+ls -la app/Services/SpeechToTextService.php
+ls -la app/Services/Telegram/TelegramFileService.php
+
+# Verificar configuração
+ls -la config/speech.php
+
+# Verificar provider
+ls -la app/Providers/SpeechToTextServiceProvider.php
+
+# Testar services
+php artisan tinker
+# >>> $service = app(\App\Services\SpeechToTextService::class);
+# >>> $service->testService();
+
+# >>> $fileService = app(\App\Services\Telegram\TelegramFileService::class);
+# >>> $fileService->cleanupOldFiles();
+</code>
